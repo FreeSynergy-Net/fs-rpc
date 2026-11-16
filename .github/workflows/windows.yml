@@ -19,10 +19,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: FreeSynergy/fs-release/actions/setup-rust@main
+      - uses: FreeSynergy/fs-release/actions/setup-rust@v0.0.10
         with:
           components: rustfmt,clippy
           cache-key: windows
       - run: cargo fmt --check -p fs-rpc
-      - run: cargo clippy -p fs-rpc --all-targets --all-features -- -D warnings -W clippy::pedantic
-      - run: cargo test -p fs-rpc --all-features --no-fail-fast
+      - run: cargo clippy -p fs-rpc --all-targets --all-features --locked -- -D warnings -W clippy::pedantic
+      - run: cargo test -p fs-rpc --all-features --locked --no-fail-fast

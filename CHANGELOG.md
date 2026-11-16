@@ -2,6 +2,14 @@
 
 Version = tag.
 
+## 0.0.2
+
+- Pins (ADR 0093, each straight from the owner's repository, one source per library in the lock): `fs-types` v0.0.1 (6323518a1a1abba7c241e94d948668eb208649f5, new direct dependency; no longer reached through `fs-interfaces`), `fs-interfaces` v0.0.27 (2745e306a13e0b7e7339ffc3f9c09185515fe152), `fs-objects` v0.0.6 (cc3102a53968c4fc8e900a8193d4d15593e12881). `fs-jscalendar` is not used here.
+- New: `fs_rpc::catalog::CatalogServer`, the `TypeCatalog` server over a `fs_types::TypeRegistry`. It was `fs_types::describe::CatalogServer` (feature `rpc`) in `fs-interfaces` up to v0.0.26; the code is unchanged except for the paths (`fs_types::types_capnp`).
+- New test `tests/catalog_roundtrip.rs` (acceptance test of ADR 0093): the type catalog and an `Edit` with values of `fs-types` (`Utc`, `LocalDateTime`, `Zone`, `EmailAddress`, `PhoneNumber`) cross the wire through the `People` contract once over an in-memory pipe and once over a Unix socket, and come back equal.
+- New `.fs-lock-sources.toml` (`strict`, `only_from_enabled`): the lock check of fs-release v0.0.10 is a red gate here. Workflows: `windows.yml` with `--locked`, calls of fs-release at v0.0.10 (no `@main`).
+- Auf Deutsch: Pins nach ADR 0093, je direkt aus dem Besitzer-Repository, eine Quelle je Bibliothek im Lock: `fs-types` v0.0.1 (neue direkte Abhaengigkeit, nicht mehr ueber `fs-interfaces`), `fs-interfaces` v0.0.27, `fs-objects` v0.0.6 (Koepfe siehe oben); `fs-jscalendar` wird hier nicht benutzt. Neu: `fs_rpc::catalog::CatalogServer` (bis `fs-interfaces` v0.0.26 in `fs-types`, Feature `rpc`), Abnahmetest `tests/catalog_roundtrip.rs` (Katalog und `Edit` mit Werten aus `fs-types` ueber In-Speicher-Pipe und Unix-Socket, wertgleich zurueck), `.fs-lock-sources.toml` mit strenger Pruefung, `windows.yml` mit `--locked`, fs-release-Aufrufe auf v0.0.10.
+
 ## 0.0.1
 
 - First version. The code is the module `rpc` of `fs-interfaces` v0.0.25 (38 source files) with its tests, moved here unchanged except for the paths: `crate::common_capnp` and friends became `fs_interfaces::...`, `crate::rpc::X` became `crate::X`, `fs_interfaces::rpc::X` became `fs_rpc::X` in the tests. Reason: the cycle `fs-interfaces` to `fs-objects` to `fs-types` to `fs-interfaces` (ADR 0092 accepted).

@@ -23,6 +23,7 @@
 #![deny(missing_docs)]
 #![warn(clippy::pedantic)]
 
+pub mod catalog;
 pub mod client;
 mod control;
 mod cursor;
