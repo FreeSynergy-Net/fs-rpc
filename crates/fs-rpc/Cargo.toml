@@ -1,0 +1,33 @@
+[package]
+name = "fs-rpc"
+description = "FreeSynergy RPC runtime: the shared server and client side of every interface contract (Unix socket and named pipe, Cap'n Proto RPC, envelope on the wire, RFC 9457 problems as RPC errors, pages, change feed, version handshake)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[dependencies]
+# Pins by tag (ADR 0092 draft); both tags are not yet set on GitHub, see PIN-ANMERKUNG.md.
+fs-interfaces = { git = "https://github.com/FreeSynergy/fs-interfaces", tag = "v0.0.26" }
+fs-objects = { git = "https://github.com/FreeSynergy/fs-objects", tag = "v0.0.4" }
+capnp = "0.27"
+capnp-rpc = "0.27"
+tokio = { version = "1", features = ["rt", "net", "sync", "macros", "signal", "time", "io-util"] }
+tokio-util = { version = "0.7", features = ["compat", "rt"] }
+futures = "0.3"
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+uuid = "1"
+
+[target.'cfg(unix)'.dependencies]
+# Who is on the other end of a Unix socket, and who runs this; the tests send themselves signals.
+rustix = { version = "1", features = ["process"] }
+
+[target.'cfg(windows)'.dependencies]
+# Who is on the other end of a named pipe, and who runs this; rights of the pipe and of the data folder.
+windows-sys = { version = "0.61", features = [
+  "Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_System_Pipes", "Win32_System_Threading",
+] }
+
+[dev-dependencies]
+tempfile = "3"
