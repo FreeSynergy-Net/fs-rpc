@@ -585,8 +585,8 @@ dependencies = [
 
 [[package]]
 name = "fs-objects"
-version = "0.0.4"
-source = "git+https://github.com/FreeSynergy/fs-objects?tag=v0.0.4#e184999a1bf011c98040594ddb23ea466ffb5663"
+version = "0.0.5"
+source = "git+https://github.com/FreeSynergy/fs-objects?tag=v0.0.5#6cb627253b9fd7005ce98be44f88e2e430d7de0f"
 dependencies = [
  "async-trait",
  "base64",

@@ -8,9 +8,9 @@ rust-version.workspace = true
 repository.workspace = true
 
 [dependencies]
-# Pins by tag (ADR 0092 accepted): fs-interfaces v0.0.26 and fs-objects v0.0.4.
+# Pins by tag (ADR 0092 accepted): fs-interfaces v0.0.26 and fs-objects v0.0.5.
 fs-interfaces = { git = "https://github.com/FreeSynergy/fs-interfaces", tag = "v0.0.26" }
-fs-objects = { git = "https://github.com/FreeSynergy/fs-objects", tag = "v0.0.4" }
+fs-objects = { git = "https://github.com/FreeSynergy/fs-objects", tag = "v0.0.5" }
 capnp = "0.27"
 capnp-rpc = "0.27"
 tokio = { version = "1", features = ["rt", "net", "sync", "macros", "signal", "time", "io-util"] }

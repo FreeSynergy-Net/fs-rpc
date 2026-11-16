@@ -17,7 +17,7 @@ Latest tag: none yet (first version `0.0.1`, not published).
 
 ## What is not there yet
 
-- It pins fs-interfaces v0.0.26 and fs-objects v0.0.4 by tag; `Cargo.lock` is made against exactly these tags.
+- It pins fs-interfaces v0.0.26 and fs-objects v0.0.5 by tag; `Cargo.lock` is made against exactly these tags.
 - The limits listed in the DESIGN file of fs-interfaces (history of this code) are still to be closed before 1.0.
 
 ## Part of FreeSynergy
@@ -27,7 +27,7 @@ FreeSynergy is a family of programs that are free for everyone, forever, and tha
 ## For developers
 
 - One library crate: `fs-rpc` (`crates/fs-rpc`). It was the module `rpc` of fs-interfaces up to v0.0.25: `fs_interfaces::rpc::X` is now `fs_rpc::X`.
-- Dependencies by git tag: `fs-interfaces` v0.0.26, `fs-objects` v0.0.4 (only `ObjectId` and `Envelope` of the v4 layer, no feature `v5`).
+- Dependencies by git tag: `fs-interfaces` v0.0.26, `fs-objects` v0.0.5 (only `ObjectId` and `Envelope` of the v4 layer, no feature `v5`).
 - No code generation here: the generated Cap'n Proto modules (`common_capnp` and so on) come from fs-interfaces; there is no `build.rs` and no schema compiler.
 - Use it by git tag: `fs-rpc = { git = "https://github.com/FreeSynergy/fs-rpc", tag = "v0.0.1" }`, and pin the same fs-interfaces tag as this library does, or your lock holds two copies of the generated types.
 - Gates: `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings -W clippy::pedantic`, `cargo test --workspace --all-features`.
