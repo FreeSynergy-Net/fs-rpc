@@ -17,7 +17,7 @@ The runtime half of the interface contracts: what every program's server and cli
 
 ## Generated code (Cap'n Proto)
 
-Checked for v0.0.2: `fs-rpc` needs no code generation of its own. It uses the committed generated modules of `fs-interfaces` (and `fs_types::types_capnp::type_catalog` for the catalog server) (`common_capnp::{control, change, change_listener, subscription, envelope, problem, uuid}`, in the tests also `files_capnp`, `store_capnp`, `tasks_capnp`, `types_capnp`, `texts_capnp`, `places_capnp`, `comments_capnp`) through `fs_interfaces::...`, and `capnp-rpc` for the two-party transport. The only change to the moved source was the path (`crate::` to `fs_interfaces::` at 13 places in `src/`). Generated types of two `fs-interfaces` or `fs-types` tags are different Rust types, so `fs-rpc`, `fs-objects` and the program must all use the same tags (checked by one source per library in the lock, `.fs-lock-sources.toml`, `strict`).
+Checked for v0.0.2: `fs-rpc` needs no code generation of its own. It uses the committed generated modules of `fs-interfaces` (and `fs_types::types_capnp::type_catalog` for the catalog server) (`common_capnp::{control, change, change_listener, subscription, envelope, problem, uuid}`, in the tests also `tasks_capnp`, `texts_capnp`, `places_capnp`, `people_capnp`) through `fs_interfaces::...`, and `capnp-rpc` for the two-party transport. The only change to the moved source was the path (`crate::` to `fs_interfaces::` at 13 places in `src/`). Generated types of two `fs-interfaces` or `fs-types` tags are different Rust types, so `fs-rpc`, `fs-objects` and the program must all use the same tags (checked by one source per library in the lock, `.fs-lock-sources.toml`, `strict`).
 
 ## Tests
 
