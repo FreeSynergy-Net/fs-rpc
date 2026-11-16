@@ -1,6 +1,6 @@
 # fs-rpc – Design
 
-The runtime half of the interface contracts: what every program's server and client share (ADR 0043 §4). The contracts (schemas, generated code, `provider`, `values`) are in `fs-interfaces`; this crate adds no schema. Repo graph (ADR 0092, draft): `fs-interfaces` <- `fs-objects` <- `fs-rpc` <- programs. No edge goes upward.
+The runtime half of the interface contracts: what every program's server and client share (ADR 0043 §4). The contracts (schemas, generated code, `provider`, `values`) are in `fs-interfaces`; this crate adds no schema. Repo graph (ADR 0092, accepted): `fs-interfaces` <- `fs-objects` <- `fs-rpc` <- programs. No edge goes upward.
 
 ## Structure and pattern map
 

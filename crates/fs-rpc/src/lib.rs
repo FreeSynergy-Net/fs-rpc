@@ -1,4 +1,4 @@
-//! The shared server and client side of every contract .
+//! The shared server and client side of every contract.
 //!
 //! Every program serves its contract the same way: a socket per program (a Unix socket, a named pipe on Windows), one two-party RPC
 //! system per connection, RFC 9457 problems as RPC errors, cursor pages, a change feed. All of that

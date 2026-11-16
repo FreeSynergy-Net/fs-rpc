@@ -1,4 +1,4 @@
-//! `--facet NAME`: one parser for the server and for the apps .
+//! `--facet NAME`: one parser for the server and for the apps.
 
 use std::ffi::OsString;
 

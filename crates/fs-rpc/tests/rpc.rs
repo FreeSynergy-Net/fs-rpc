@@ -1,4 +1,4 @@
-//! The shared RPC side, over a real Unix socket .
+//! The shared RPC side, over a real Unix socket.
 
 use fs_interfaces::common_capnp::{change, envelope};
 use fs_objects::Envelope;

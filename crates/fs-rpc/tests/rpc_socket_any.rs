@@ -1,4 +1,4 @@
-//! Sockets and connections of the shared RPC side , on every system: Unix socket or named pipe.
+//! Sockets and connections of the shared RPC side, on every system: Unix socket or named pipe.
 
 use std::io::ErrorKind;
 use std::rc::Rc;

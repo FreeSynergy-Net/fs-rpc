@@ -1,4 +1,4 @@
-//! A request to stop belongs to one run: the next run in the same process is not ended by it . Alone in its file:
+//! A request to stop belongs to one run: the next run in the same process is not ended by it. Alone in its file:
 //! the request is remembered by the whole process.
 
 use std::time::{Duration, Instant};

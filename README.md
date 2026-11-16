@@ -4,7 +4,7 @@
 
 FreeSynergy RPC is the shared server and client side of every interface contract in [fs-interfaces](https://github.com/FreeSynergy/fs-interfaces). Each program serves its contract the same way: one socket per program (a Unix socket, a named pipe on Windows), one two-party Cap'n Proto RPC system per connection, the common envelope on the wire, errors in the RFC 9457 form, cursor pages and a change feed. All of that lives here, once.
 
-What is different here: it holds only the runtime. The contracts (schemas and generated code) stay in fs-interfaces; the object store stays in fs-objects. This library sits above both, so the repositories form a graph without a cycle (ADR 0092, draft).
+What is different here: it holds only the runtime. The contracts (schemas and generated code) stay in fs-interfaces; the object store stays in fs-objects. This library sits above both, so the repositories form a graph without a cycle (ADR 0092, accepted).
 
 ## What it can do today
 
@@ -17,7 +17,7 @@ Latest tag: none yet (first version `0.0.1`, not published).
 
 ## What is not there yet
 
-- Not tagged and not on GitHub yet; its two pins (fs-interfaces v0.0.26, fs-objects v0.0.4) are not tagged yet either (see `PIN-ANMERKUNG.md`).
+- It pins fs-interfaces v0.0.26 and fs-objects v0.0.4 by tag; `Cargo.lock` is made against exactly these tags.
 - The limits listed in the DESIGN file of fs-interfaces (history of this code) are still to be closed before 1.0.
 
 ## Part of FreeSynergy
@@ -35,4 +35,4 @@ FreeSynergy is a family of programs that are free for everyone, forever, and tha
 
 ## Auf Deutsch
 
-FreeSynergy RPC ist die gemeinsame Server- und Client-Seite aller Schnittstellenvertraege aus fs-interfaces: ein Socket je Programm (Unix-Socket, unter Windows eine benannte Pipe), ein Cap'n-Proto-RPC-System je Verbindung, Huelle auf dem Draht, Fehler nach RFC 9457, Seiten und Aenderungsstrom. Es war bis v0.0.25 das Modul `rpc` von fs-interfaces (`fs_interfaces::rpc::X` heisst jetzt `fs_rpc::X`). Es enthaelt nur die Laufzeit; Vertraege (fs-interfaces) und Speicher (fs-objects) bleiben getrennt, damit die Repositories keinen Kreis bilden (ADR 0092, Entwurf). Noch nicht getaggt und nicht auf GitHub.
+FreeSynergy RPC ist die gemeinsame Server- und Client-Seite aller Schnittstellenvertraege aus fs-interfaces: ein Socket je Programm (Unix-Socket, unter Windows eine benannte Pipe), ein Cap'n-Proto-RPC-System je Verbindung, Huelle auf dem Draht, Fehler nach RFC 9457, Seiten und Aenderungsstrom. Es war bis v0.0.25 das Modul `rpc` von fs-interfaces (`fs_interfaces::rpc::X` heisst jetzt `fs_rpc::X`). Es enthaelt nur die Laufzeit; Vertraege (fs-interfaces) und Speicher (fs-objects) bleiben getrennt, damit die Repositories keinen Kreis bilden (ADR 0092, akzeptiert). 

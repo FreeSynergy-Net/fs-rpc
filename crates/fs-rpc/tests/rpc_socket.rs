@@ -1,4 +1,4 @@
-//! Sockets and connections of the shared RPC side , the parts that are Unix only: file modes, descriptors,
+//! Sockets and connections of the shared RPC side, the parts that are Unix only: file modes, descriptors,
 //! stale socket files. `rpc_socket_any.rs` has what holds on every system.
 #![cfg(unix)]
 

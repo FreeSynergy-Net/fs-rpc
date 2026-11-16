@@ -1,4 +1,4 @@
-//! The shared change feed .
+//! The shared change feed.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;

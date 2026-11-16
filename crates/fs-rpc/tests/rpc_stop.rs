@@ -1,4 +1,4 @@
-//! A program ends itself in order with `stop_self`, on every system . Alone in its file: the request is
+//! A program ends itself in order with `stop_self`, on every system. Alone in its file: the request is
 //! remembered by the whole process.
 
 use capnp_rpc::new_client;

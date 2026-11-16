@@ -1,4 +1,4 @@
-//! A write under way survives SIGTERM . Alone in its file: the signal goes to this whole process.
+//! A write under way survives SIGTERM. Alone in its file: the signal goes to this whole process.
 #![cfg(unix)] // signals sent with `kill`
 
 use std::cell::Cell;

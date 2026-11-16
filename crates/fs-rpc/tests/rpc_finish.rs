@@ -1,4 +1,4 @@
-//! Writes that finish whatever the client does .
+//! Writes that finish whatever the client does.
 
 use std::cell::Cell;
 use std::rc::Rc;

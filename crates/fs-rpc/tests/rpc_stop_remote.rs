@@ -1,4 +1,4 @@
-//! A server is ended from outside through the protocol (`stop_server`), on every system . Alone in its file: the
+//! A server is ended from outside through the protocol (`stop_server`), on every system. Alone in its file: the
 //! request is remembered by the whole process.
 
 use std::time::{Duration, Instant};

@@ -1,4 +1,4 @@
-//! The client half every program's client shares .
+//! The client half every program's client shares.
 //!
 //! A `capnp-rpc` client is `!Send`, so a program's client (a frontend, a CLI, another program) keeps
 //! it on one thread and talks to that thread through a queue. That thread, its deadlines and the way

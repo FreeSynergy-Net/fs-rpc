@@ -1,4 +1,4 @@
-//! A SIGTERM during the start ends the program cleanly . Alone in its file: the signal goes to this whole
+//! A SIGTERM during the start ends the program cleanly. Alone in its file: the signal goes to this whole
 //! process. Before the fix the handler was registered after `open`, and the signal killed the process hard.
 #![cfg(unix)] // signals sent with `kill`
 
