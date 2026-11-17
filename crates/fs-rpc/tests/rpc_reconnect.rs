@@ -92,7 +92,10 @@ async fn until(what: &str, mut done: impl FnMut() -> bool) {
 
 #[test]
 fn a_dead_server_that_comes_back_is_reconnected_and_subscribed_again() {
-    let _one = ONE_AT_A_TIME.lock().unwrap();
+    let _one = ONE_AT_A_TIME
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let _limit = watchdog(90);
     let dir = tempfile::tempdir().unwrap();
     let socket = dir.path().join("r.sock");
     start_first(&socket, "0.0.3");
@@ -166,6 +169,7 @@ fn a_dead_server_that_comes_back_is_reconnected_and_subscribed_again() {
 
 #[test]
 fn a_server_that_never_comes_back_ends_the_loop_within_the_deadline() {
+    let _limit = watchdog(60);
     let dir = tempfile::tempdir().unwrap();
     let socket = dir.path().join("none.sock");
     let tries = Rc::new(Cell::new(0u32));
@@ -218,7 +222,10 @@ fn a_server_that_never_comes_back_ends_the_loop_within_the_deadline() {
 
 #[test]
 fn a_feed_that_ended_on_a_live_server_is_subscribed_again() {
-    let _one = ONE_AT_A_TIME.lock().unwrap();
+    let _one = ONE_AT_A_TIME
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let _limit = watchdog(90);
     let dir = tempfile::tempdir().unwrap();
     let socket = dir.path().join("e.sock");
     start_first(&socket, "0.0.3");
@@ -258,7 +265,10 @@ fn a_feed_that_ended_on_a_live_server_is_subscribed_again() {
 
 #[test]
 fn a_lost_link_drops_its_subscription() {
-    let _one = ONE_AT_A_TIME.lock().unwrap();
+    let _one = ONE_AT_A_TIME
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let _limit = watchdog(90);
     let dir = tempfile::tempdir().unwrap();
     let socket = dir.path().join("d.sock");
     start_first(&socket, "0.0.3");

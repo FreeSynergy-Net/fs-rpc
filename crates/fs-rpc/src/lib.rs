@@ -43,8 +43,12 @@ mod page;
 mod problem;
 mod pump;
 mod reconnect;
+mod saved;
 mod serve;
 #[cfg(unix)]
+mod single;
+#[cfg(not(unix))]
+#[path = "single_other.rs"]
 mod single;
 mod starter;
 mod stop;
@@ -65,7 +69,7 @@ pub use finish::{FINISH_TIMEOUT, finish_underway, run_to_end};
 pub use handshake::{connect_matching, connect_matching_with};
 #[cfg(unix)]
 pub use heartbeat::{
-    Beat, HangTimes, Heartbeat, Hung, Pulse, SaveOnTerm, Saved, Verdict, Watch, ask_beat, ask_save,
+    Beat, HangTimes, Heartbeat, Hung, Pulse, SaveOnTerm, Verdict, Watch, ask_beat, ask_save,
 };
 pub use ids::{from_millis, read_object_id, read_uuid, to_millis, write_object_id, write_uuid};
 pub use options::{
@@ -84,13 +88,13 @@ pub use problem::{
 pub use reconnect::{
     Backoff, ReconnectEnd, ReconnectTimes, Reconnected, Resync, Session, keep_connected,
 };
+pub use saved::Saved;
 pub use serve::{
     Connection, ReadLimits, connect, connect_with, run_until_signal, run_until_signal_as, serve,
     serve_with,
 };
 #[cfg(all(unix, target_os = "linux"))]
 pub use single::{Decision, Image, Own, Peer, Why, decide_takeover};
-#[cfg(unix)]
 pub use single::{Single, SingleError, SingleTimes, Stuck, TakenOver, ensure_single};
 pub use starter::{CommandStarter, ServerStarter};
 pub use stop::stop_self;

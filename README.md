@@ -20,6 +20,12 @@ Latest tag: `v0.0.2`.
 - RFC 9457 problems as RPC errors with typed extensions, pages cut by weight, the change feed, stop from outside.
 - Written for Unix (socket, signals) and Windows (named pipe with a protected descriptor).
 
+## Lift note (v0.0.3, for callers)
+
+- `prepare_data_dir` answers `Result<PathBuf, DataDirError>` instead of `io::Result<PathBuf>`: a caller with an `io::Result` annotation and no `?` must convert (`io::Error::from(e)`) or use `?`; an open own folder is now corrected, not refused.
+- `HandshakeError::CannotRestart` carries `cause` (see the changelog of the error codes).
+- Programs that use `Heartbeat` MUST call `tick()` at every turn of their work or window loop.
+
 ## What is not there yet
 
 - It pins fs-types v0.0.1, fs-interfaces v0.0.27 and fs-objects v0.0.6 by tag; `Cargo.lock` is made against exactly these tags (one source per library, ADR 0093).

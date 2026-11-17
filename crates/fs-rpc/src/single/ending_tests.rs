@@ -3,7 +3,7 @@
 //! Pattern: Fake `Env` that writes down what was done. Mutants (each turns its test red): M1 save after the signal (or none);
 //! M2 no second look after the `pidfd` (a changed process is ended); M3 SIGKILL without waiting for SIGTERM to run out; M4 SIGKILL
 //! although a heartbeat still answers (also `busy`); M5 no third look before SIGKILL; M6 another program is saved or signalled
-//! (it is only reported); M10 a program without a heartbeat channel is killed; M7 the socket file is removed although it is not the one that was seen; M8 a process that is gone
+//! (it is only reported); M10 a program without a heartbeat channel gets a signal (SIGTERM or SIGKILL); M7 the socket file is removed although it is not the one that was seen; M8 a process that is gone
 //! before it is held gets a signal; M9 a refusal is sent as `Ok`.
 
 use std::cell::{Cell, RefCell};
@@ -299,18 +299,15 @@ fn only_the_socket_file_that_belonged_to_the_ended_process_is_removed() {
 }
 
 #[test]
-fn a_program_without_a_heartbeat_channel_is_never_killed_only_reported() {
-    let mut env = fake(vec![peer(4242)], "kill", None);
-    env.channel = false;
-    assert_eq!(why(&run(&env).unwrap_err()), "no-control");
-    let events = events(&env);
-    assert!(
-        events.contains(&"term".to_owned()),
-        "a clean end may be asked: {events:?}"
-    );
-    assert!(!events.contains(&"kill".to_owned()), "{events:?}");
-    // If it ends after SIGTERM, all is well.
-    let mut env = fake(vec![peer(4242)], "term", None);
-    env.channel = false;
-    assert_eq!(run(&env).unwrap().how, "sigterm");
+fn a_program_without_a_heartbeat_channel_gets_no_signal_only_a_report() {
+    for dies_on in ["term", "kill", "never"] {
+        let mut env = fake(vec![peer(4242)], dies_on, None);
+        env.channel = false;
+        assert_eq!(why(&run(&env).unwrap_err()), "no-control");
+        assert!(
+            events(&env).is_empty(),
+            "nothing saved, held or signalled: {:?}",
+            events(&env)
+        );
+    }
 }

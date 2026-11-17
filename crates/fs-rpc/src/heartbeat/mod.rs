@@ -42,28 +42,7 @@ pub struct Pulse {
     pub tick_age: Option<std::time::Duration>,
 }
 
-/// What a save before the end came to.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Saved {
-    /// The program has nothing to save, or cannot be asked (no heartbeat channel).
-    Nothing,
-    /// The program saved its drafts and its session.
-    Saved,
-    /// The hook failed.
-    Failed,
-}
-
-impl Saved {
-    /// The stable token (`nothing`, `saved`, `failed`): the parameter `saved` of the message and a word of the log.
-    #[must_use]
-    pub const fn token(self) -> &'static str {
-        match self {
-            Self::Nothing => "nothing",
-            Self::Saved => "saved",
-            Self::Failed => "failed",
-        }
-    }
-}
+pub(crate) use crate::saved::Saved;
 
 /// What a program saves before it is ended: open drafts, the session. It runs on the heartbeat thread, so it must work from
 /// state that is shared (a `Mutex` around the drafts), never from the thread that may be blocked. Give it a short run.

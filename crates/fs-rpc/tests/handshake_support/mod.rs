@@ -129,3 +129,51 @@ pub async fn wait_gone(socket: &Path) {
         tokio::time::sleep(Duration::from_millis(20)).await;
     }
 }
+
+/// Child processes of a test, by PID: the watchdog ends them if the test does not finish.
+pub static CHILDREN: Mutex<Vec<u32>> = Mutex::new(Vec::new());
+
+/// Factor for every wait of a time-dependent test: `FS_TEST_SCALE` (default 1).
+pub fn scale() -> u32 {
+    std::env::var("FS_TEST_SCALE")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .filter(|n| *n >= 1)
+        .unwrap_or(1)
+}
+
+/// A hard limit for the whole test: when it runs out, the children of the test are killed by PID and the process ends red (never a
+/// hang). Dropping it at the end of the test cancels it.
+pub struct Watchdog(std::sync::Arc<std::sync::atomic::AtomicBool>);
+
+pub fn watchdog(secs: u64) -> Watchdog {
+    let done = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let flag = done.clone();
+    let limit = Duration::from_secs(secs) * scale();
+    std::thread::spawn(move || {
+        let until = Instant::now() + limit;
+        while Instant::now() < until {
+            if flag.load(std::sync::atomic::Ordering::SeqCst) {
+                return;
+            }
+            std::thread::sleep(Duration::from_millis(50));
+        }
+        for pid in CHILDREN.lock().map(|c| c.clone()).unwrap_or_default() {
+            if let Some(pid) = i32::try_from(pid)
+                .ok()
+                .and_then(rustix::process::Pid::from_raw)
+            {
+                let _ = rustix::process::kill_process(pid, rustix::process::Signal::KILL);
+            }
+        }
+        eprintln!("WATCHDOG: the test did not finish within {limit:?}; its children were killed");
+        std::process::exit(124);
+    });
+    Watchdog(done)
+}
+
+impl Drop for Watchdog {
+    fn drop(&mut self) {
+        self.0.store(true, std::sync::atomic::Ordering::SeqCst);
+    }
+}

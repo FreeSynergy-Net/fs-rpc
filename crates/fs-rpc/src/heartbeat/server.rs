@@ -16,11 +16,10 @@ use std::time::{Duration, Instant};
 use super::{Beat, SaveOnTerm, Saved, clean_key};
 use crate::companion_path;
 
-#[derive(Default)]
 struct Shared {
     beat: Mutex<Option<(String, u64)>>,
     hook: Mutex<Option<Arc<dyn SaveOnTerm>>>,
-    tick: Mutex<Option<Instant>>,
+    tick: Mutex<Instant>,
 }
 
 fn locked<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -36,7 +35,7 @@ impl Shared {
     }
 
     fn tick_text(&self) -> String {
-        locked(&self.tick).map_or_else(|| "-".to_owned(), |t| t.elapsed().as_millis().to_string())
+        locked(&self.tick).elapsed().as_millis().to_string()
     }
 
     fn save(&self) -> Saved {
@@ -104,7 +103,11 @@ impl Heartbeat {
         }
         let listener = UnixListener::bind(&path)?;
         std::fs::set_permissions(&path, PermissionsExt::from_mode(0o600))?;
-        let shared = Arc::new(Shared::default());
+        let shared = Arc::new(Shared {
+            beat: Mutex::new(None),
+            hook: Mutex::new(None),
+            tick: Mutex::new(Instant::now()),
+        });
         let stop = Arc::new(AtomicBool::new(false));
         let thread = {
             let (shared, stop) = (shared.clone(), stop.clone());
@@ -143,10 +146,11 @@ impl Heartbeat {
         *locked(&self.shared.beat) = None;
     }
 
-    /// The work thread (the window's loop, the server's loop) calls this at every turn: it says "I am not stuck". The heartbeat
+    /// The work thread (the window's loop, the server's loop) MUST call this at every turn: it says "I am not stuck". The age counts from
+    /// `start`, so a program that never calls it stands still for the limit (10 s) as soon as its contract is silent. The heartbeat
     /// thread answers even if the work thread is blocked, so the age of the last tick is what tells a deadlock from health.
     pub fn tick(&self) {
-        *locked(&self.shared.tick) = Some(Instant::now());
+        *locked(&self.shared.tick) = Instant::now();
     }
 
     /// What to save before the program is ended (also run when a client asks `save`).

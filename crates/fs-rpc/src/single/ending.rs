@@ -88,7 +88,7 @@ async fn gone_within<E: Env>(env: &E, target: &Target, limit: Duration) -> bool 
 
 /// End the process `target`. `uid` is what the socket said about its user; `limit` only names the wait in a failure. `channel`
 /// says that the program has a heartbeat channel at all: a program without one (older, or a window before it has a control
-/// channel) is asked to end with SIGTERM like any other, but is NEVER killed: the failure says "close it" (`no-control`).
+/// channel) gets NO signal at all (nothing could be saved first): the failure says "please close it" (`no-control`).
 ///
 /// # Errors
 /// The process is not one that may be ended (`Unresponsive` with the reason), still answers its heartbeat, or does not end.
@@ -102,7 +102,14 @@ pub(super) async fn end_process<E: Env>(
     channel: bool,
 ) -> Result<TakenOver, SingleError> {
     let pid = u32::try_from(target.pid).unwrap_or(0);
-    accepted(env, target, uid, own, limit)?;
+    let first = accepted(env, target, uid, own, limit)?;
+    if !channel {
+        // No heartbeat channel: nothing can be saved first, and a signal would lose work. Only the report.
+        env.log(&format!(
+            "pid={pid} has no heartbeat channel: no signal sent, the person is told"
+        ));
+        return Err(stuck(&first, "no-control", limit));
+    }
     // First what would be lost: the program saves, on the thread of its heartbeat. No signal has been sent yet.
     let saved = env.save().await;
     let Some(held) = env
@@ -134,12 +141,6 @@ pub(super) async fn end_process<E: Env>(
     } else {
         // Still there. The facts again, and the heartbeat: a program that still answers (or reports progress) is not killed.
         accepted(env, target, uid, own, limit)?;
-        if !channel {
-            env.log(&format!(
-                "pid={pid} did not end after SIGTERM and has no heartbeat channel: not killed"
-            ));
-            return Err(stuck(&peer, "no-control", limit));
-        }
         if env.beat().await.is_some() {
             env.log(&format!(
                 "pid={pid} did not end after SIGTERM but its heartbeat answers: not killed"

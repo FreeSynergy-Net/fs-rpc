@@ -54,10 +54,19 @@ fn a_busy_state_is_told_as_a_text_key_and_goes_away_with_idle() {
         block_on(ask_beat(&socket, LIMIT)).unwrap().beat,
         Beat::Alive
     );
-    assert_eq!(
-        block_on(ask_beat(&socket, LIMIT)).unwrap().tick_age,
-        None,
-        "no tick, none reported"
+    // A program that never calls `tick()` is counted from its start: tick() is mandatory, the age grows.
+    let first = block_on(ask_beat(&socket, LIMIT))
+        .unwrap()
+        .tick_age
+        .expect("always reported");
+    std::thread::sleep(Duration::from_millis(200));
+    let later = block_on(ask_beat(&socket, LIMIT))
+        .unwrap()
+        .tick_age
+        .unwrap();
+    assert!(
+        later >= first + Duration::from_millis(150),
+        "{first:?} {later:?}"
     );
 }
 
