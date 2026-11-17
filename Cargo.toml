@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/fs-rpc"]
+members = ["crates/fs-rpc", "crates/fs-starter"]
 
 [workspace.package]
 version = "0.0.2"
