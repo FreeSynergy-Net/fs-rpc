@@ -1,6 +1,8 @@
 //! Code <-> `Problem`, the ONE mapping: the problem type is the message key (`setting-error-<code>`), each parameter one extension
 //! in the order it was added. A parameter that is a number travels as decimal text and is read back as a number by its key
 //! (`line`, `found`, `known`); every other parameter is text. A problem of another type is no setting code (`None`).
+//!
+//! Pattern: Adapter (code <-> wire problem), one mapping for both directions.
 
 use fs_rpc::Problem;
 use fs_settings::coded_stub::{ErrorCode, Param, message_key};

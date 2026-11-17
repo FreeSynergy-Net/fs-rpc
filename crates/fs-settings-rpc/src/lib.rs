@@ -29,6 +29,7 @@ mod service;
 #[allow(clippy::all, clippy::pedantic, unused_parens, dead_code, missing_docs)]
 pub mod settings_capnp;
 mod wire;
+mod wire_log;
 
 pub use client::{ClientTimes, RpcInstanceAdmin, RpcSettingsStore, Watching, unreachable_at};
 pub use ensure::{SERVICE_PROGRAM, ensure_service, ensure_service_with, find_service_program};

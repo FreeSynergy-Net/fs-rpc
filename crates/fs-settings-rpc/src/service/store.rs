@@ -1,4 +1,6 @@
 //! `Store`: the port for one program (or for all, `manage`). Scope check here; the port does the rest.
+//!
+//! Pattern: Adapter (contract -> port `SettingsStore`) + Guard (the scope check).
 
 use std::rc::Rc;
 

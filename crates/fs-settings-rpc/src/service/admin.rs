@@ -1,4 +1,6 @@
 //! `Admin`: the port `InstanceStore` for ONE actor. The actor is `by` of the connection; time and OS user are the service's.
+//!
+//! Pattern: Adapter (contract -> port `InstanceStore`).
 
 use std::rc::Rc;
 use std::sync::Arc;
