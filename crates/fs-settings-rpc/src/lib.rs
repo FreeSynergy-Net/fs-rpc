@@ -26,6 +26,8 @@ mod client;
 mod ensure;
 mod problem;
 mod service;
+// The copy of B0's generated file names `crate::common_capnp`, as it does inside fs-interfaces.
+pub(crate) use fs_interfaces::common_capnp;
 #[rustfmt::skip]
 #[allow(clippy::all, clippy::pedantic, unused_parens, dead_code, missing_docs)]
 pub mod settings_capnp;
