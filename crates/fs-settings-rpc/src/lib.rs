@@ -35,11 +35,7 @@ pub mod settings_capnp;
 mod wire;
 mod wire_log;
 
-pub(crate) use fs_settings::coded_stub::Coded;
-
-/// The closure type of `SettingsStore::update_index` (the port does not export its alias).
-pub(crate) type IndexFn<'a> = dyn FnMut(&mut fs_settings::ProfileSet<u64>) -> Result<(), Coded<fs_settings::ProfileCode>>
-    + 'a;
+pub(crate) use fs_settings::{Coded, IndexFn};
 
 pub use caller::current_os_user;
 pub use client::{ClientTimes, RpcInstanceAdmin, RpcSettingsStore, Watching, unreachable_at};

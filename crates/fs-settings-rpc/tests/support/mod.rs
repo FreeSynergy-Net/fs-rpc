@@ -7,7 +7,7 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use fs_rpc::{bind_socket, serve};
-pub use fs_settings::coded_stub::Coded;
+pub use fs_settings::{Coded, IndexFn};
 use fs_settings::{
     InstanceStore, MemoryStore, ProfileName, ProfileRef, ProfileSet, SettingCode, SettingKey,
     SettingsStore,
@@ -15,10 +15,6 @@ use fs_settings::{
 use fs_settings_rpc::{ClientTimes, SettingsService};
 use tempfile::TempDir;
 use tokio::sync::oneshot;
-
-/// The closure type of `SettingsStore::update_index` (the port does not export its alias).
-pub type IndexFn<'a> =
-    dyn FnMut(&mut ProfileSet<u64>) -> Result<(), Coded<fs_settings::ProfileCode>> + 'a;
 
 pub type Service = SettingsService<dyn SettingsStore, MemoryStore>;
 
