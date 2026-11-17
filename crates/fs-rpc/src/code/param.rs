@@ -32,7 +32,7 @@ pub mod param_keys {
     pub const LIMIT_MS: &str = "limit-ms";
     /// The class of a system failure (`permission-denied`, `invalid-input`, ...): the name of `std::io::ErrorKind`.
     pub const KIND: &str = "kind";
-    /// The capability a "not possible" is about (`board.open`).
+    /// The capability a "not possible" is about (`board.open`); from the problem extension `capability`.
     pub const CAPABILITY: &str = "capability";
     /// The problem type without the base URI (`people/not-found`).
     pub const TYPE: &str = "type";

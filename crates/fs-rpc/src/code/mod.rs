@@ -9,6 +9,7 @@ mod error;
 mod from;
 mod kind;
 mod param;
+mod token;
 
 pub use error::RpcError;
 pub use kind::RpcErrorCode;

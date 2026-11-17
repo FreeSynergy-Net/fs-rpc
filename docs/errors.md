@@ -23,11 +23,13 @@ This file is a template. The programs own their `.mf2` files; the texts below ar
 | `rpc-error-timeout` | `timeout` | `server`, `limit-ms` (number) | no answer in time; a write may have happened |
 | `rpc-error-connection-lost` | `connection-lost` | `server` | the server went away; offer to connect again |
 | `rpc-error-interrupted` | `interrupted` | `server` | a call ended without an answer |
-| `rpc-error-unimplemented` | `unimplemented` | `capability` (when the provider named one) | "not possible" (ADR 0045) or an old server |
+| `rpc-error-unimplemented` | `unimplemented` | `capability` (from the problem extension `capability`; an older server sends none, then none is set) | "not possible" (ADR 0045) or an old server |
 | `rpc-error-invalid-request` | `invalid-request` | problem extensions (`id`, `kind`, `issue` ...) | the request cannot be accepted |
 | `rpc-error-too-large` | `too-large` | `size`, `limit` (numbers, bytes) | does not fit into one message |
 | `rpc-error-protocol` | `protocol` | `type` (problem type without base), problem extensions | other problem type, unreadable answer |
 | `rpc-error-io` | `io` | `kind` (`invalid-input` ...) | any other system failure |
+
+Planned (run B, not built, not part of v0.0.3): code `data-dir-not-private`: `prepare_data_dir` corrects its own open folder to 0700 and refuses a foreign owner, a symlink or a non-directory with this code and the parameter `cause` = `foreign-owner` | `mode` | `symlink` | `ancestor`.
 
 Codes are never renamed or reused once released (the enum is `non_exhaustive`: a new problem is a new code, so keep a general
 fallback message for unknown keys).

@@ -5,11 +5,26 @@
 
 use std::fmt;
 
-/// What went wrong, without a sentence. Kebab-case name: [`RpcErrorCode::as_str`]; message key (`rpc-error-` and the name):
-/// [`RpcErrorCode::message_key`].
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum RpcErrorCode {
+/// The enum and its list `ALL` come from ONE list, so a code cannot be missing from `ALL`. A code missing from the list is
+/// missing from the enum, and then the total `match`es below and the test no longer compile.
+macro_rules! codes {
+    ($($(#[$doc:meta])* $variant:ident,)+) => {
+        /// What went wrong, without a sentence. Kebab-case name: [`RpcErrorCode::as_str`]; message key (`rpc-error-` and the name):
+        /// [`RpcErrorCode::message_key`].
+        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+        #[non_exhaustive]
+        pub enum RpcErrorCode {
+            $($(#[$doc])* $variant,)+
+        }
+
+        impl RpcErrorCode {
+            /// Every code, in the order of the enum (the catalog in `docs/errors.md` reads it).
+            pub const ALL: [Self; { [$(Self::$variant),+].len() }] = [$(Self::$variant),+];
+        }
+    };
+}
+
+codes! {
     /// Nothing listens on the socket (no such file, or the connection was refused).
     NoServer,
     /// The socket exists but cannot be used (another user serves it, rights).
@@ -43,25 +58,6 @@ pub enum RpcErrorCode {
 }
 
 impl RpcErrorCode {
-    /// Every code, in the order of the enum (the test of completeness and the catalog in `docs/errors.md` read it).
-    pub const ALL: [Self; 15] = [
-        Self::NoServer,
-        Self::SocketUnreachable,
-        Self::AlreadyRunning,
-        Self::ContractMismatch,
-        Self::CannotRestart,
-        Self::OtherProgram,
-        Self::TooOldToStop,
-        Self::Timeout,
-        Self::ConnectionLost,
-        Self::Interrupted,
-        Self::Unimplemented,
-        Self::InvalidRequest,
-        Self::TooLarge,
-        Self::Protocol,
-        Self::Io,
-    ];
-
     /// The stable name in kebab-case; it is what a log or a wire carries.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
@@ -110,5 +106,39 @@ impl RpcErrorCode {
 impl fmt::Display for RpcErrorCode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_str())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RpcErrorCode as C;
+
+    /// The position of each code in the list. The `match` has no `_`: a new variant does not compile until it is named here.
+    fn position(code: C) -> usize {
+        match code {
+            C::NoServer => 0,
+            C::SocketUnreachable => 1,
+            C::AlreadyRunning => 2,
+            C::ContractMismatch => 3,
+            C::CannotRestart => 4,
+            C::OtherProgram => 5,
+            C::TooOldToStop => 6,
+            C::Timeout => 7,
+            C::ConnectionLost => 8,
+            C::Interrupted => 9,
+            C::Unimplemented => 10,
+            C::InvalidRequest => 11,
+            C::TooLarge => 12,
+            C::Protocol => 13,
+            C::Io => 14,
+        }
+    }
+
+    #[test]
+    fn all_is_complete_and_in_the_order_of_the_enum() {
+        assert_eq!(C::ALL.len(), position(C::Io) + 1);
+        for (i, code) in C::ALL.into_iter().enumerate() {
+            assert_eq!(position(code), i, "{code}");
+        }
     }
 }

@@ -27,3 +27,7 @@ pub const ISSUE: &str = "issue";
 /// The kind of the object named by [`ID`] or the thing that was refused (`person`, `task`,
 /// `folder`, `page`), the contract's own noun in lower case. At most once.
 pub const KIND: &str = "kind";
+
+/// The capability a "not possible" is about (`board.open`), at most once. `unsupported` fills it, so a client reads the
+/// name here and not from the sentence in `detail`. A server that does not send it (an older one) names none.
+pub const CAPABILITY: &str = "capability";

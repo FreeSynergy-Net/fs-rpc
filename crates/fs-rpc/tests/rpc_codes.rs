@@ -39,33 +39,6 @@ fn every_code_has_a_unique_key_and_a_unique_name() {
     assert_eq!(keys.len(), RpcErrorCode::ALL.len());
 }
 
-/// Exhaustiveness: a variant that is missing from `ALL` makes this `match` or the count fail.
-#[test]
-fn the_list_of_all_codes_is_complete() {
-    let mut seen = 0;
-    for code in RpcErrorCode::ALL {
-        seen += match code {
-            RpcErrorCode::NoServer
-            | RpcErrorCode::SocketUnreachable
-            | RpcErrorCode::AlreadyRunning
-            | RpcErrorCode::ContractMismatch
-            | RpcErrorCode::CannotRestart
-            | RpcErrorCode::OtherProgram
-            | RpcErrorCode::TooOldToStop
-            | RpcErrorCode::Timeout
-            | RpcErrorCode::ConnectionLost
-            | RpcErrorCode::Interrupted
-            | RpcErrorCode::Unimplemented
-            | RpcErrorCode::InvalidRequest
-            | RpcErrorCode::TooLarge
-            | RpcErrorCode::Protocol
-            | RpcErrorCode::Io => 1,
-            _ => 0,
-        };
-    }
-    assert_eq!(seen, 15);
-}
-
 #[test]
 fn the_released_names_are_fixed() {
     let names: Vec<&str> = RpcErrorCode::ALL.iter().map(|c| c.as_str()).collect();
@@ -164,6 +137,10 @@ fn a_replacement_that_fails_names_its_step() {
             .as_deref(),
         Some("reach")
     );
+    let (_, _, e) = step(RestartCause::NotStarted(io::Error::from(
+        io::ErrorKind::PermissionDenied,
+    )));
+    assert_eq!(text(&e, "kind"), Some("permission-denied"));
     let (code, s, _) = step(RestartCause::TooOldToStop);
     assert_eq!((code, s), (RpcErrorCode::TooOldToStop, None));
     let (code, s, e) = step(RestartCause::OtherProgram {
@@ -194,6 +171,7 @@ fn faults_become_codes_with_server_and_limit() {
         limit: Duration::from_millis(1500),
     });
     assert_eq!(late.message_key(), "rpc-error-timeout");
+    assert_eq!(text(&late, "server"), Some("people"));
     assert_eq!(
         late.param("limit-ms").and_then(Param::as_number),
         Some(1500)
@@ -214,6 +192,18 @@ fn problems_become_codes_and_their_extensions_become_parameters() {
     )));
     assert_eq!(no.message_key(), "rpc-error-unimplemented");
     assert_eq!(text(&no, "capability"), Some("board.open"));
+    // An older server sends no extension: its sentence is never read for the capability.
+    let old = RpcError::of(
+        &Problem::new(
+            "https://freesynergy.net/problems/unsupported",
+            "Not possible",
+            "board.open: later",
+            501,
+        )
+        .into_error(),
+    );
+    assert_eq!(old.code(), RpcErrorCode::Unimplemented);
+    assert!(old.param("capability").is_none());
     let other = RpcError::of(
         &Problem::new(
             "https://freesynergy.net/problems/people/not-found",

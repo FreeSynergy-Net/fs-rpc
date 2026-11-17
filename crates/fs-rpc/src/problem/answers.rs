@@ -21,6 +21,7 @@ pub fn unsupported(not_possible: &Unsupported) -> Error {
         format!("{}: {}", not_possible.capability(), not_possible.reason()),
         not_possible.status(),
     )
+    .with_ext(super::keys::CAPABILITY, not_possible.capability())
     .into_error()
 }
 

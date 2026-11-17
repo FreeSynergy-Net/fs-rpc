@@ -9,6 +9,7 @@ use std::io;
 use capnp::Error as CapnpError;
 
 use super::param::param_keys as k;
+use super::token::kind_token;
 use super::{RpcError, RpcErrorCode};
 use crate::client::problems::{Failure, local_type};
 use crate::client::{Fault, connection_lost};
@@ -40,11 +41,8 @@ impl From<&Problem> for RpcError {
     fn from(p: &Problem) -> Self {
         let local = local_type(p);
         let mut e = if p.is_unsupported() || p.status == 501 {
-            let mut e = Self::new(RpcErrorCode::Unimplemented);
-            if let Some((capability, _)) = p.detail.split_once(": ") {
-                e = e.with_text(k::CAPABILITY, capability);
-            }
-            e
+            // The capability comes with the extension `capability` (below), never from the sentence in `detail`.
+            Self::new(RpcErrorCode::Unimplemented)
         } else {
             match local {
                 "invalid-request" => Self::new(RpcErrorCode::InvalidRequest),
@@ -79,23 +77,6 @@ impl From<&Fault> for RpcError {
                 ),
         }
     }
-}
-
-/// The class name of an `io::ErrorKind` as a stable token (`permission-denied`).
-fn kind_token(kind: io::ErrorKind) -> String {
-    let debug = format!("{kind:?}");
-    let mut out = String::with_capacity(debug.len() + 4);
-    for (i, c) in debug.chars().enumerate() {
-        if c.is_ascii_uppercase() {
-            if i > 0 {
-                out.push('-');
-            }
-            out.push(c.to_ascii_lowercase());
-        } else {
-            out.push(c);
-        }
-    }
-    out
 }
 
 impl From<&io::Error> for RpcError {
