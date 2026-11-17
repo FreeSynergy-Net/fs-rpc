@@ -139,13 +139,16 @@ pub async fn wait_gone(socket: &Path) {
     // The socket is gone, the server thread may still be ending: join it (bounded), so its stop request is forgotten.
     let until = Instant::now() + Duration::from_secs(5);
     loop {
-        let mut all = SERVERS
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        let (done, running): (Vec<_>, Vec<_>) = all.drain(..).partition(|h| h.is_finished());
-        *all = running;
-        let left = all.len();
-        drop(all);
+        let (done, left) = {
+            let mut all = SERVERS
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            let (done, running): (Vec<_>, Vec<_>) = all
+                .drain(..)
+                .partition(std::thread::JoinHandle::is_finished);
+            *all = running;
+            (done, all.len())
+        };
         for handle in done {
             let _ = handle.join();
         }
