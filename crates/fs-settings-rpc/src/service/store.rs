@@ -91,6 +91,7 @@ where
                     &list,
                 );
             }
+            #[allow(clippy::match_wildcard_for_single_variants)] // `Health` is non-exhaustive
             _ => out.set_ok(()),
         }
         Ok(())

@@ -12,8 +12,8 @@
 //! promise, no security boundary until fs-access); the actor of the administrator is `by`; time and OS user of the log are the
 //! service's, never the caller's.
 //!
-//! PROVISIONAL (probe): the contract `settings` (draft 0.2) comes from the fs-interfaces branch `unreviewed/interfaces-settings`
-//! by `rev`; the tag of 0.0.28 replaces the pin.
+//! PROVISIONAL (probe): the contract `settings` (draft 0.2) is a byte-equal copy of the files of the fs-interfaces branch
+//! `unreviewed/interfaces-settings` (08f0a93: `schema/settings.capnp`, `settings_capnp.rs`) until fs-interfaces 0.0.28 carries it.
 //!
 //! Pattern: Adapter (both directions) + Proxy (client cache) + Facade (service).
 //! Written with Claude (Anthropic) as the coding assistant.
@@ -26,7 +26,9 @@ mod client;
 mod ensure;
 mod problem;
 mod service;
-pub(crate) use fs_interfaces::settings_capnp;
+#[rustfmt::skip]
+#[allow(clippy::all, clippy::pedantic, unused_parens, dead_code, missing_docs)]
+pub mod settings_capnp;
 
 mod wire;
 mod wire_log;

@@ -2,7 +2,6 @@
 //!
 //! Pattern: Facade (see the module above).
 
-use crate::Coded;
 use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::Arc;
