@@ -9,8 +9,8 @@ use std::time::Duration;
 use fs_rpc::{bind_socket, serve};
 pub use fs_settings::coded_stub::Coded;
 use fs_settings::{
-    Health, Instance, InstanceStore, MemoryStore, Place, ProfileName, ProfileRef, ProfileSet, Raw,
-    Scope, SettingCode, SettingKey, SettingsStore, Snapshot, Stamp,
+    InstanceStore, MemoryStore, ProfileName, ProfileRef, ProfileSet, SettingCode, SettingKey,
+    SettingsStore,
 };
 use fs_settings_rpc::{ClientTimes, SettingsService};
 use tempfile::TempDir;
