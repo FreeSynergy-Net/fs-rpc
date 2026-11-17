@@ -7,6 +7,8 @@ use std::path::{Path, PathBuf};
 
 use tokio::io::{AsyncRead, AsyncWrite};
 
+use crate::datadir::DataDirError;
+
 /// What the listener of a server found when it looked at the next caller.
 pub enum Accepted<S> {
     /// A caller that is this user: serve it.
@@ -39,8 +41,8 @@ pub trait Endpoint {
     /// Makes the data directory for this user alone and answers the path to use (see `prepare_data_dir`).
     ///
     /// # Errors
-    /// Others have access (`PermissionDenied`), or the file system refuses.
-    fn prepare_data_dir(dir: &Path) -> io::Result<PathBuf>;
+    /// The folder is not private to this user and cannot be made so, or the file system refuses.
+    fn prepare_data_dir(dir: &Path) -> Result<PathBuf, DataDirError>;
 
     /// Binds `path`, so that a second start never touches the data of the first.
     fn bind(path: &Path) -> impl Future<Output = io::Result<Self::Bound>>;

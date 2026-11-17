@@ -5,9 +5,9 @@
 //! existing one others can reach is refused.
 
 use std::ffi::OsString;
-use std::io;
 use std::path::{Path, PathBuf};
 
+use super::datadir::DataDirError;
 use super::transport::{Endpoint, System, default_socket};
 
 /// The acting person when none is named: the owner of this device.
@@ -97,13 +97,14 @@ fn is_domain(name: &str) -> bool {
         })
 }
 
-/// Create the data directory for this user alone; refuse one that others can reach, or one below a
-/// directory that others could swap (Unix). Answers the canonical path, the one that was checked and is the
-/// one to use.
+/// Create the data directory for this user alone (Unix). A folder of this user that others can reach loses those rights (v0.0.3;
+/// nothing is ever added); a folder of somebody else, a symbolic link, a file, or one below a directory that others could swap is
+/// refused. Answers the canonical path, the one that was checked and is the one to use.
 ///
 /// # Errors
-/// Others have access (`PermissionDenied`), or the file system refuses.
-pub fn prepare_data_dir(dir: &Path) -> io::Result<PathBuf> {
+/// [`DataDirError`]: not private (code `data-dir-not-private` with the cause), or the file system refuses. It converts into
+/// `io::Error` (`PermissionDenied` when not private), so `?` in a function that answers one still works.
+pub fn prepare_data_dir(dir: &Path) -> Result<PathBuf, DataDirError> {
     System::prepare_data_dir(dir)
 }
 

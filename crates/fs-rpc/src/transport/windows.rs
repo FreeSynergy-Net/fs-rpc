@@ -23,6 +23,7 @@ use tokio::net::windows::named_pipe::{ClientOptions, NamedPipeClient, NamedPipeS
 use tokio::sync::Mutex;
 
 use super::endpoint::{Accepted, Endpoint};
+use crate::datadir::DataDirError;
 use name::{companion_stem, default_name, pipe_name};
 
 /// `ERROR_PIPE_BUSY`: every instance is in use at this moment; try again shortly.
@@ -146,9 +147,9 @@ impl Endpoint for Windows {
         Some(PathBuf::from(base).join("FreeSynergy").join(program))
     }
 
-    fn prepare_data_dir(dir: &Path) -> io::Result<PathBuf> {
+    fn prepare_data_dir(dir: &Path) -> Result<PathBuf, DataDirError> {
         acl::make_private(dir)?;
-        dir.canonicalize().map(plain)
+        Ok(dir.canonicalize().map(plain)?)
     }
 
     async fn bind(path: &Path) -> io::Result<BoundSocket> {

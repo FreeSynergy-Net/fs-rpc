@@ -55,6 +55,10 @@ codes! {
     Protocol,
     /// Any other failure of the system (file, socket, process); the parameter `kind` names the class.
     Io,
+    /// The data folder cannot be used: it is not private to this user (the parameter `cause` names why).
+    DataDirNotPrivate,
+    /// A server holds the socket and does not answer, and it was not ended (the parameters say which process and why).
+    ServerUnresponsive,
 }
 
 impl RpcErrorCode {
@@ -77,6 +81,8 @@ impl RpcErrorCode {
             Self::TooLarge => "too-large",
             Self::Protocol => "protocol",
             Self::Io => "io",
+            Self::DataDirNotPrivate => "data-dir-not-private",
+            Self::ServerUnresponsive => "server-unresponsive",
         }
     }
 
@@ -99,6 +105,8 @@ impl RpcErrorCode {
             Self::TooLarge => "rpc-error-too-large",
             Self::Protocol => "rpc-error-protocol",
             Self::Io => "rpc-error-io",
+            Self::DataDirNotPrivate => "rpc-error-data-dir-not-private",
+            Self::ServerUnresponsive => "rpc-error-server-unresponsive",
         }
     }
 }
@@ -131,12 +139,14 @@ mod tests {
             C::TooLarge => 12,
             C::Protocol => 13,
             C::Io => 14,
+            C::DataDirNotPrivate => 15,
+            C::ServerUnresponsive => 16,
         }
     }
 
     #[test]
     fn all_is_complete_and_in_the_order_of_the_enum() {
-        assert_eq!(C::ALL.len(), position(C::Io) + 1);
+        assert_eq!(C::ALL.len(), position(C::ServerUnresponsive) + 1);
         for (i, code) in C::ALL.into_iter().enumerate() {
             assert_eq!(position(code), i, "{code}");
         }

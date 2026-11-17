@@ -29,7 +29,10 @@ This file is a template. The programs own their `.mf2` files; the texts below ar
 | `rpc-error-protocol` | `protocol` | `type` (problem type without base), problem extensions | other problem type, unreadable answer |
 | `rpc-error-io` | `io` | `kind` (`invalid-input` ...) | any other system failure |
 
-Planned (run B, not built, not part of v0.0.3): code `data-dir-not-private`: `prepare_data_dir` corrects its own open folder to 0700 and refuses a foreign owner, a symlink or a non-directory with this code and the parameter `cause` = `foreign-owner` | `mode` | `symlink` | `ancestor`.
+| `rpc-error-data-dir-not-private` | `data-dir-not-private` | `cause` (`foreign-owner`, `mode`, `symlink`, `ancestor`, `not-directory`); the path is added by the program (`with_text`) | `prepare_data_dir`: the data folder is not private to this user and could not be made so |
+| `rpc-error-server-unresponsive` | `server-unresponsive` | `pid` (number, left out if unknown), `why` (`itself`, `foreign-user`, `unreadable`, `pid-reused`, `other-program`, `unsupported`), `exe` (real path of the program file, left out if unreadable), `limit-ms` (number) | `ensure_single`: a server holds the socket and does not answer, and it was not ended (never for another program: only reported) |
+
+`prepare_data_dir` (v0.0.3) corrects its own open folder to the owner bits (nothing is ever added, what is inside stays) and refuses a foreign owner, a symbolic link or a non-directory with `data-dir-not-private`. A failure of the file system is `io` (with `kind`), never `socket-unreachable`.
 
 Codes are never renamed or reused once released (the enum is `non_exhaustive`: a new problem is a new code, so keep a general
 fallback message for unknown keys).
@@ -54,7 +57,7 @@ rpc-error-too-large = Das ist zu gross: {$size :number} Bytes, hoechstens {$limi
 rpc-error-unimplemented = Das ist hier nicht moeglich.
 ```
 
-Parameters that the table says may be left out (version, program, socket) must not be required by the message, or the message gets a variant without them (MessageFormat 2 `.match`). The keys that are not shown follow the same pattern; each program writes all 15 in all its languages.
+Parameters that the table says may be left out (version, program, socket) must not be required by the message, or the message gets a variant without them (MessageFormat 2 `.match`). The keys that are not shown follow the same pattern; each program writes all 17 in all its languages.
 
 ## On the wire
 

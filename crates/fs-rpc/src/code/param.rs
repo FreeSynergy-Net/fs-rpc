@@ -32,6 +32,12 @@ pub mod param_keys {
     pub const LIMIT_MS: &str = "limit-ms";
     /// The class of a system failure (`permission-denied`, `invalid-input`, ...): the name of `std::io::ErrorKind`.
     pub const KIND: &str = "kind";
+    /// Why a data folder is refused: `foreign-owner`, `mode`, `symlink`, `ancestor`, `not-directory`.
+    pub const CAUSE: &str = "cause";
+    /// Why a silent server is not ended: `itself`, `foreign-user`, `unreadable`, `pid-reused`, `other-program`, `unsupported`.
+    pub const WHY: &str = "why";
+    /// The program file of the process that holds the socket (its real path), if it could be read.
+    pub const EXE: &str = "exe";
     /// The capability a "not possible" is about (`board.open`); from the problem extension `capability`.
     pub const CAPABILITY: &str = "capability";
     /// The problem type without the base URI (`people/not-found`).

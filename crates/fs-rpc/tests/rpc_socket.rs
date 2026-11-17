@@ -263,9 +263,11 @@ fn a_data_directory_is_for_this_user_alone() {
     );
     let mode = std::fs::metadata(&fresh).unwrap().permissions().mode();
     assert_eq!(mode & 0o777, 0o700);
+    // v0.0.3: an open folder of this user is corrected, not refused (tests/rpc_datadir.rs has the rest).
     std::fs::set_permissions(&fresh, PermissionsExt::from_mode(0o755)).unwrap();
-    let refused = prepare_data_dir(&fresh).unwrap_err();
-    assert_eq!(refused.kind(), ErrorKind::PermissionDenied);
+    prepare_data_dir(&fresh).unwrap();
+    let mode = std::fs::metadata(&fresh).unwrap().permissions().mode();
+    assert_eq!(mode & 0o777, 0o700);
 }
 
 #[test]

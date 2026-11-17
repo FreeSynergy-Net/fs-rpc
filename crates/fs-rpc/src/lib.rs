@@ -29,6 +29,7 @@ pub mod client;
 mod code;
 mod control;
 mod cursor;
+mod datadir;
 mod envelope;
 mod expected;
 mod feed;
@@ -48,6 +49,7 @@ pub use cause::RestartCause;
 pub use code::{Param, RpcError, RpcErrorCode, param_keys as rpc_param_keys};
 pub use control::{PROTOCOL, ServerIdentity, stop_server};
 pub use cursor::{PlaceParts, decode_place, encode_place};
+pub use datadir::{DataDirCause, DataDirError};
 pub use envelope::{envelope_weight, read_envelope, write_envelope};
 pub use expected::{Expected, HandshakeError, RestartTimes, ServerInfo};
 pub use feed::{

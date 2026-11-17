@@ -13,7 +13,7 @@ use super::token::kind_token;
 use super::{RpcError, RpcErrorCode};
 use crate::client::problems::{Failure, local_type};
 use crate::client::{Fault, connection_lost};
-use crate::{Expected, HandshakeError, Problem, ServerInfo};
+use crate::{DataDirError, Expected, HandshakeError, Problem, ServerInfo};
 
 impl RpcError {
     /// The error of a failed call: a problem inside is read by its type (`RpcError::from(&Problem)`), `unimplemented` and a
@@ -75,6 +75,21 @@ impl From<&Fault> for RpcError {
                     k::LIMIT_MS,
                     u64::try_from(limit.as_millis()).unwrap_or(u64::MAX),
                 ),
+        }
+    }
+}
+
+impl From<&DataDirError> for RpcError {
+    /// Not private: code `data-dir-not-private` with the `cause`; the path is not a parameter (the program adds it with
+    /// `with_text`). A failure of the file system is `io` with its `kind`, never `socket-unreachable`.
+    fn from(e: &DataDirError) -> Self {
+        match e {
+            DataDirError::NotPrivate { cause, .. } => {
+                Self::new(RpcErrorCode::DataDirNotPrivate).with_text(k::CAUSE, cause.token())
+            }
+            DataDirError::Io(io) => {
+                Self::new(RpcErrorCode::Io).with_text(k::KIND, kind_token(io.kind()))
+            }
         }
     }
 }

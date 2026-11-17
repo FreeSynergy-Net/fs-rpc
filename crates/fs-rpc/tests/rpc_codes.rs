@@ -60,6 +60,8 @@ fn the_released_names_are_fixed() {
             "too-large",
             "protocol",
             "io",
+            "data-dir-not-private",
+            "server-unresponsive",
         ]
     );
 }
