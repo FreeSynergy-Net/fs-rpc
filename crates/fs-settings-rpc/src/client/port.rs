@@ -42,9 +42,7 @@ impl RpcSettingsStore {
         }
     }
 
-    fn fresh_index(
-        &self,
-    ) -> Result<(ProfileSet<u64>, Vec<Coded<SettingCode>>), Coded<SettingCode>> {
+    fn fresh_index(&self) -> Result<IndexRead, Coded<SettingCode>> {
         let r = self.worker.call(|l| {
             Box::pin(async move {
                 let resp = l.store.index_request().send().promise.await?;
