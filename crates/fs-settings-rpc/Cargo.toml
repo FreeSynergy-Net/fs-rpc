@@ -11,7 +11,7 @@ repository.workspace = true
 fs-rpc = { path = "../fs-rpc" }
 # PROVISIONAL (probe): git pin on the head of the branch `unreviewed/probe-settingsstore-v1` (B1); branch/rev pins are allowed in the
 # probe only ([LOCK-STRIKT]), the tag replaces them before release.
-fs-settings = { git = "https://github.com/FreeSynergy/fs-components", rev = "eda35b36e3a6021615aba925cf7c0c7da64a0969" }
+fs-settings = { git = "https://github.com/FreeSynergy/fs-components", rev = "10985aaf190806f3b30c010c61bbd747ee6142d4" }
 fs-types = { git = "https://github.com/FreeSynergy/fs-types", tag = "v0.0.1" }
 # `common.capnp` stays at the tag v0.0.27 (one source with fs-rpc). The contract `settings` is a byte-equal copy of B0 (fs-interfaces
 # `unreviewed/interfaces-settings` 08f0a93: `schema/settings.capnp`, `src/settings_capnp.rs`): a rev pin of fs-interfaces would bring fs-types
