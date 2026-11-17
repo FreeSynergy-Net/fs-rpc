@@ -26,6 +26,7 @@ fn nobody() -> Stampd {
 
 /// KB16: the person's service has no administrator; the instance service answers; time and OS user are the SERVICE's.
 #[test]
+#[allow(clippy::too_many_lines)] // one story: the instance service from first write to the locked refusal
 fn kb16_admin_only_on_instance_service_time_and_user_are_the_services() {
     let tmp = dir();
     let store = MemoryStore::new();
