@@ -1,7 +1,7 @@
 //! The reading of `/proc` on a made-up tree: the start time, the program file (also ` (deleted)`), a zombie, a reused number.
 //!
 //! Pattern: Table tests on a temporary tree. Mutants: M1 the start time is read from the wrong field; M2 ` (deleted)` is not cut off;
-//! M3 a zombie or another start time does not count as gone; M4 the user is taken from the folder without comparing with the socket.
+//! M3 a zombie or another start time does not count as gone; M5 only the main thread is looked at; M4 the user is taken from the folder without comparing with the socket.
 
 use super::procfs::{image_of, is_gone, own, parse_stat, peer_in};
 
@@ -77,4 +77,23 @@ fn a_replaced_program_file_keeps_its_real_path_without_the_word_deleted() {
     assert_eq!(before.path, real.to_string_lossy());
     assert_eq!(after.path, real.to_string_lossy(), "no ` (deleted)`");
     assert_eq!((before.dev, before.ino), (after.dev, after.ino));
+}
+
+#[test]
+fn a_zombie_main_thread_with_a_live_thread_is_not_gone() {
+    // The main thread has exited (state Z) but another thread still holds the socket and its lock file: not gone yet; gone when every
+    // thread is a zombie. Mutant: only the main thread is looked at (a new server then fails with "already running").
+    let root = tempfile::tempdir().unwrap();
+    let dir = root.path().join("77");
+    std::fs::create_dir_all(dir.join("task/77")).unwrap();
+    std::fs::create_dir_all(dir.join("task/78")).unwrap();
+    let stat = |tid: u32, state: &str| {
+        format!("{tid} (x) {state} 1 77 77 0 -1 0 0 0 0 0 0 0 0 0 20 0 2 0 500 1")
+    };
+    std::fs::write(dir.join("stat"), stat(77, "Z")).unwrap();
+    std::fs::write(dir.join("task/77/stat"), stat(77, "Z")).unwrap();
+    std::fs::write(dir.join("task/78/stat"), stat(78, "S")).unwrap();
+    assert!(!is_gone(root.path(), 77, 500), "a thread still lives");
+    std::fs::write(dir.join("task/78/stat"), stat(78, "Z")).unwrap();
+    assert!(is_gone(root.path(), 77, 500), "every thread is dead");
 }

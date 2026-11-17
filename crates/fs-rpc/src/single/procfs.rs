@@ -84,12 +84,36 @@ pub(super) fn own(exe: Option<&Path>) -> Option<Own> {
     })
 }
 
-/// Whether the process is gone for good: no such process, a zombie (it holds nothing), or another process with the same number.
+/// Whether the process is gone for good: no such process, another process with the same number, or the WHOLE thread group is dead.
+/// The main thread alone is not enough: it shows `Z` as soon as it has exited, while other threads still hold the socket and its lock
+/// file; a new server started at that moment fails with "already running". So a `Z` leader counts only if every thread in
+/// `/proc/<pid>/task/` is a zombie or dead too (no task directory: nothing else is left).
 pub(super) fn is_gone(root: &Path, pid: i32, start: u64) -> bool {
     match stat_of(root, pid) {
-        None => true,
-        Some((state, now)) => state == 'Z' || state == 'X' || now != start,
+        None | Some(('X', _)) => true,
+        Some((_, now)) if now != start => true,
+        Some(('Z', _)) => threads_dead(root, pid),
+        Some(_) => false,
     }
+}
+
+/// Every thread of `pid` is a zombie or gone.
+fn threads_dead(root: &Path, pid: i32) -> bool {
+    let Ok(tasks) = std::fs::read_dir(root.join(pid.to_string()).join("task")) else {
+        return true;
+    };
+    tasks.flatten().all(|task| {
+        parse_stat_state(&std::fs::read_to_string(task.path().join("stat")).unwrap_or_default())
+            .is_none_or(|state| state == 'Z' || state == 'X')
+    })
+}
+
+fn parse_stat_state(text: &str) -> Option<char> {
+    text.get(text.rfind(')')? + 1..)?
+        .split_whitespace()
+        .next()?
+        .chars()
+        .next()
 }
 
 /// Seconds since 1970 as `YYYY-MM-DDTHH:MM:SSZ` (the civil-date rule of H. Hinnant), for the log.
