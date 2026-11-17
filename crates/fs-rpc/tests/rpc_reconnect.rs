@@ -11,8 +11,7 @@
 //! subscription is not dropped when the link is lost: `a_lost_link_drops_its_subscription`.
 #![cfg(unix)]
 
-use std::any::Any;
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::io;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
@@ -20,75 +19,16 @@ use std::time::{Duration, Instant};
 
 use fs_interfaces::common_capnp::blob;
 use fs_rpc::{
-    Backoff, Expected, ReconnectEnd, ReconnectTimes, Reconnected, RestartTimes, Resync, RpcError,
-    Session, keep_connected, stop_server,
+    Backoff, Expected, ReconnectEnd, ReconnectTimes, Reconnected, keep_connected, stop_server,
 };
-use futures::future::LocalBoxFuture;
 
 mod handshake_support;
+mod reconnect_support;
 use handshake_support::*;
+use reconnect_support::*;
 
-#[derive(Default)]
-struct Recorder {
-    attached: Cell<u32>,
-    dropped: Rc<Cell<u32>>,
-    events: RefCell<Vec<Reconnected>>,
-    gave_up: RefCell<Vec<RpcError>>,
-    ended: Rc<tokio::sync::Notify>,
-}
-
-struct Held(Rc<Cell<u32>>);
-impl Drop for Held {
-    fn drop(&mut self) {
-        self.0.set(self.0.get() + 1);
-    }
-}
-
-impl Session<blob::Client> for Recorder {
-    fn attach<'a>(&'a self, _client: blob::Client) -> LocalBoxFuture<'a, io::Result<Box<dyn Any>>> {
-        self.attached.set(self.attached.get() + 1);
-        let held: Box<dyn Any> = Box::new(Held(self.dropped.clone()));
-        Box::pin(async move { Ok(held) })
-    }
-
-    fn ended(&self) -> LocalBoxFuture<'_, ()> {
-        let ended = self.ended.clone();
-        Box::pin(async move { ended.notified().await })
-    }
-}
-
-impl Resync for Recorder {
-    fn reconnected(&self, event: Reconnected) {
-        self.events.borrow_mut().push(event);
-    }
-    fn gave_up(&self, error: &RpcError) {
-        self.gave_up.borrow_mut().push(error.clone());
-    }
-}
-
-fn quick(give_up_ms: u64) -> ReconnectTimes {
-    let ms = Duration::from_millis;
-    ReconnectTimes {
-        attempt: ms(2000),
-        backoff: vec![ms(30), ms(60), ms(100)],
-        give_up: ms(give_up_ms),
-        ping: ms(40),
-        ping_limit: ms(500),
-        handshake: RestartTimes {
-            call: ms(500),
-            stop: ms(2000),
-            start: ms(2000),
-        },
-    }
-}
-
-async fn until(what: &str, mut done: impl FnMut() -> bool) {
-    let began = Instant::now();
-    while !done() {
-        assert!(began.elapsed() < Duration::from_secs(15), "{what}");
-        tokio::time::sleep(Duration::from_millis(10)).await;
-    }
-}
+static ALLOW: AtomicBool = AtomicBool::new(false);
+static STARTS: AtomicU32 = AtomicU32::new(0);
 
 #[test]
 fn a_dead_server_that_comes_back_is_reconnected_and_subscribed_again() {
@@ -99,8 +39,6 @@ fn a_dead_server_that_comes_back_is_reconnected_and_subscribed_again() {
     let dir = tempfile::tempdir().unwrap();
     let socket = dir.path().join("r.sock");
     start_first(&socket, "0.0.3");
-    static ALLOW: AtomicBool = AtomicBool::new(false);
-    static STARTS: AtomicU32 = AtomicU32::new(0);
     ALLOW.store(false, Ordering::SeqCst);
     STARTS.store(0, Ordering::SeqCst);
     let starter_socket = socket.clone();
@@ -210,7 +148,7 @@ fn a_server_that_never_comes_back_ends_the_loop_within_the_deadline() {
         };
         assert_eq!(
             recorder.gave_up.borrow().as_slice(),
-            &[error.clone()],
+            std::slice::from_ref(&error),
             "told once"
         );
         assert!(recorder.events.borrow().is_empty());

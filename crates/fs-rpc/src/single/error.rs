@@ -127,6 +127,6 @@ pub(super) fn is_silent(e: &HandshakeError) -> bool {
         HandshakeError::CannotRestart { cause, .. } => {
             matches!(&**cause, C::CannotAsk(io) | C::StopRefused(io) if timed_out(io))
         }
-        _ => false,
+        HandshakeError::ServerMismatch { .. } => false,
     }
 }

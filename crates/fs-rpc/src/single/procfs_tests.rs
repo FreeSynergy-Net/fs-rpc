@@ -61,7 +61,7 @@ fn a_replaced_program_file_keeps_its_real_path_without_the_word_deleted() {
                 break;
             }
             Err(e) if e.raw_os_error() == Some(26) => {
-                std::thread::sleep(std::time::Duration::from_millis(40))
+                std::thread::sleep(std::time::Duration::from_millis(40));
             }
             Err(e) => panic!("{e}"),
         }

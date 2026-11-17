@@ -1,158 +1,15 @@
 //! The ending of a hanging server, on a made-up system: the order of the steps and every guard.
 //!
-//! Pattern: Fake `Env` that writes down what was done. Mutants (each turns its test red): M1 save after the signal (or none);
-//! M2 no second look after the `pidfd` (a changed process is ended); M3 SIGKILL without waiting for SIGTERM to run out; M4 SIGKILL
-//! although a heartbeat still answers (also `busy`); M5 no third look before SIGKILL; M6 another program is saved or signalled
-//! (it is only reported); M10 a program without a heartbeat channel gets a signal (SIGTERM or SIGKILL); M7 the socket file is removed although it is not the one that was seen; M8 a process that is gone
-//! before it is held gets a signal; M9 a refusal is sent as `Ok`.
+//! Pattern: Fake `Env` (`ending_fake.rs`) that writes down what was done. Mutants (each turns its test red): M1 save after the signal (or
+//! none); M2 no second look after the `pidfd` (a changed process is ended); M3 SIGKILL without waiting for SIGTERM to run out; M4 SIGKILL
+//! although a heartbeat still answers (also `busy`); M5 no third look before SIGKILL; M6 another program is saved or signalled (it is only
+//! reported); M7 the socket file is removed although it is not the one that was seen; M8 a process that is gone before it is held gets a
+//! signal; M9 a refusal is sent as `Ok`; M10 a program without a heartbeat channel gets a signal (SIGTERM or SIGKILL).
 
-use std::cell::{Cell, RefCell};
-use std::collections::VecDeque;
-use std::rc::Rc;
-use std::time::Duration;
-
-use super::ending::{Env, Held, Target, Waits, end_process, remove_if_same};
-use super::error::SingleError;
-use super::rule::{Image, Own, Peer};
-use crate::{Beat, Pulse, Saved};
-
-const ME: u32 = 1000;
-
-fn image(ino: u64, path: &str) -> Image {
-    Image {
-        dev: 7,
-        ino,
-        path: path.into(),
-    }
-}
-
-fn own() -> Own {
-    Own {
-        pid: 500,
-        uid: ME,
-        exe: image(10, "/usr/bin/fs-x"),
-    }
-}
-
-fn peer(start: u64) -> Peer {
-    Peer {
-        pid: 900,
-        uid: ME,
-        start: Some(start),
-        exe: Some(image(10, "/usr/bin/fs-x")),
-    }
-}
-
-#[derive(Default)]
-struct State {
-    events: RefCell<Vec<String>>,
-    gone: Cell<bool>,
-}
-
-struct Fake {
-    state: Rc<State>,
-    peers: RefCell<VecDeque<Peer>>,
-    beat: Option<Beat>,
-    channel: bool,
-    saved: Saved,
-    present: bool,
-    dies_on: &'static str,
-}
-
-struct FakeHeld(Rc<State>, &'static str);
-
-impl Held for FakeHeld {
-    fn term(&self) {
-        self.0.events.borrow_mut().push("term".into());
-        if self.1 == "term" {
-            self.0.gone.set(true);
-        }
-    }
-    fn kill(&self) {
-        self.0.events.borrow_mut().push("kill".into());
-        if self.1 != "never" {
-            self.0.gone.set(true);
-        }
-    }
-}
-
-impl Env for Fake {
-    fn peer(&self, _: i32, _: u32) -> Peer {
-        let mut q = self.peers.borrow_mut();
-        if q.len() > 1 {
-            q.pop_front().unwrap()
-        } else {
-            q[0].clone()
-        }
-    }
-    fn hold(&self, _: i32) -> std::io::Result<Option<Box<dyn Held>>> {
-        self.state.events.borrow_mut().push("hold".into());
-        Ok(self
-            .present
-            .then(|| Box::new(FakeHeld(self.state.clone(), self.dies_on)) as Box<dyn Held>))
-    }
-    fn gone(&self, _: &Target) -> bool {
-        self.state.gone.get()
-    }
-    async fn save(&self) -> Saved {
-        self.state.events.borrow_mut().push("save".into());
-        self.saved
-    }
-    async fn beat(&self) -> Option<Pulse> {
-        self.state.events.borrow_mut().push("beat".into());
-        self.beat.clone().map(|beat| Pulse {
-            beat,
-            tick_age: None,
-        })
-    }
-    fn log(&self, _: &str) {}
-}
-
-fn fake(peers: Vec<Peer>, dies_on: &'static str, beat: Option<Beat>) -> Fake {
-    Fake {
-        state: Rc::default(),
-        peers: RefCell::new(peers.into()),
-        beat,
-        channel: true,
-        saved: Saved::Saved,
-        present: true,
-        dies_on,
-    }
-}
-
-fn run(env: &Fake) -> Result<super::error::TakenOver, SingleError> {
-    let waits = Waits {
-        term: Duration::from_millis(80),
-        kill: Duration::from_millis(80),
-    };
-    tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(end_process(
-            env,
-            &Target {
-                pid: 900,
-                start: 4242,
-            },
-            ME,
-            &own(),
-            waits,
-            Duration::from_secs(1),
-            env.channel,
-        ))
-}
-
-fn events(env: &Fake) -> Vec<String> {
-    env.state.events.borrow().clone()
-}
-
-fn why(e: &SingleError) -> &'static str {
-    match e {
-        SingleError::Unresponsive(s) => s.why,
-        other => panic!("{other}"),
-    }
-}
+use super::ending::remove_if_same;
+use super::ending_fake::{events, fake, image, peer, run, why};
+use super::rule::Peer;
+use crate::{Beat, Saved};
 
 #[test]
 fn it_saves_first_then_holds_then_ends_with_sigterm() {
@@ -242,7 +99,7 @@ fn another_user_a_reused_number_and_the_system_are_refused_before_anything_is_do
     ] {
         let env = fake(vec![p], "term", None);
         assert_eq!(why(&run(&env).unwrap_err()), expected);
-        assert!(events(&env).is_empty());
+        assert_eq!(events(&env), Vec::<String>::new());
     }
 }
 

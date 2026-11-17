@@ -5,6 +5,8 @@ mod endpoint;
 mod socket;
 #[cfg(unix)]
 mod unix;
+#[cfg(unix)]
+mod unix_dir;
 #[cfg(windows)]
 mod windows;
 

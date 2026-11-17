@@ -43,7 +43,7 @@ pub trait Resync {
 pub trait Session<C> {
     /// Subscribe on the new connection (`client` is its root capability). The answer is what keeps the subscription alive (the
     /// capability and its response); the loop holds it until the link is lost, and dropping it ends the subscription.
-    fn attach<'a>(&'a self, client: C) -> LocalBoxFuture<'a, io::Result<Box<dyn Any>>>;
+    fn attach(&self, client: C) -> LocalBoxFuture<'_, io::Result<Box<dyn Any>>>;
 
     /// Resolves when the subscription ended although the connection may still stand (`ChangeListener.ended`). The default
     /// never does: only a connection that no longer answers makes the loop connect again.
