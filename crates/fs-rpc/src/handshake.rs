@@ -14,6 +14,7 @@ use std::time::{Duration, Instant};
 
 use capnp::capability::FromClientHook;
 
+use super::cause::RestartCause;
 use super::control::{io_error, stop_server};
 use super::expected::{Expected, HandshakeError, RestartTimes, ServerInfo};
 use super::serve::{Connection, connect};
@@ -52,7 +53,7 @@ pub async fn connect_matching_with<C: FromClientHook>(
             // Never ends the server of another program: the socket is wrong.
             return Err(HandshakeError::CannotRestart {
                 expected: expected.clone(),
-                reason: expected.other_program_reason(&info),
+                cause: Box::new(other_program(expected, &info)),
                 running: Some(info),
             });
         }
@@ -64,10 +65,10 @@ pub async fn connect_matching_with<C: FromClientHook>(
         Err(e) if is_absent(&e) => None,
         Err(e) => return Err(HandshakeError::Io(e)),
     };
-    let cannot = |reason: String| HandshakeError::CannotRestart {
+    let cannot = |cause: RestartCause| HandshakeError::CannotRestart {
         running: running.clone(),
         expected: expected.clone(),
-        reason,
+        cause: Box::new(cause),
     };
     if running.is_some() {
         // Another client may have replaced the server meanwhile (two windows after an update): then this is the one.
@@ -80,7 +81,7 @@ pub async fn connect_matching_with<C: FromClientHook>(
     }
     starter
         .start()
-        .map_err(|e| cannot(format!("the server did not start: {e}")))?;
+        .map_err(|e| cannot(RestartCause::NotStarted(e)))?;
     let began = Instant::now();
     let (connection, info) = loop {
         match ask::<C>(socket, times.call).await {
@@ -88,7 +89,7 @@ pub async fn connect_matching_with<C: FromClientHook>(
             Err(e) if is_absent(&e) && began.elapsed() < times.start => {
                 tokio::time::sleep(POLL).await;
             }
-            Err(e) => return Err(cannot(format!("the new server cannot be reached: {e}"))),
+            Err(e) => return Err(cannot(RestartCause::NewUnreachable(e))),
         }
     };
     if expected.accepts(&info) {
@@ -98,6 +99,13 @@ pub async fn connect_matching_with<C: FromClientHook>(
             running: info,
             expected: expected.clone(),
         })
+    }
+}
+
+fn other_program(expected: &Expected, info: &ServerInfo) -> RestartCause {
+    RestartCause::OtherProgram {
+        found: info.program.clone(),
+        wanted: expected.program().to_owned(),
     }
 }
 
@@ -156,15 +164,15 @@ async fn end_server<C: FromClientHook>(
     socket: &Path,
     expected: &Expected,
     times: RestartTimes,
-) -> Result<Option<Connection<C>>, String> {
+) -> Result<Option<Connection<C>>, RestartCause> {
     match ask::<C>(socket, times.call).await {
         Ok((_, info)) if expected.is_other_program(&info) => {
-            return Err(expected.other_program_reason(&info)); // replaced by another program meanwhile: leave it
+            return Err(other_program(expected, &info)); // replaced by another program meanwhile: leave it
         }
         Ok((connection, info)) if expected.accepts(&info) => return Ok(Some(connection)),
         Ok(_) => {}
         Err(e) if is_absent(&e) => return Ok(None),
-        Err(e) => return Err(format!("the running server cannot be asked: {e}")),
+        Err(e) => return Err(RestartCause::CannotAsk(e)),
     }
     let stopped = tokio::time::timeout(times.call, stop_server(socket))
         .await
@@ -182,15 +190,12 @@ async fn end_server<C: FromClientHook>(
                 if System::connect(socket).await.is_err() {
                     return Ok(None); // gone while we looked
                 }
-                return Err(
-                    "the running server is too old to be stopped by request, and its process is unknown: end it by hand"
-                        .to_owned(),
-                );
+                return Err(RestartCause::TooOldToStop);
             };
             System::terminate(pid)
-                .map_err(|e| format!("the old server (process {pid}) could not be ended: {e}"))?;
+                .map_err(|source| RestartCause::CannotTerminate { pid, source })?;
         }
-        Err(e) => return Err(format!("the running server did not accept the stop: {e}")),
+        Err(e) => return Err(RestartCause::StopRefused(e)),
     }
     let began = Instant::now();
     loop {
@@ -200,7 +205,7 @@ async fn end_server<C: FromClientHook>(
             _ => {}
         }
         if began.elapsed() >= times.stop {
-            return Err("the old server did not end in time".to_owned());
+            return Err(RestartCause::NotEnded);
         }
         tokio::time::sleep(POLL).await;
     }

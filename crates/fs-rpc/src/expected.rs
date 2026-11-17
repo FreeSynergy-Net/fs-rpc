@@ -5,6 +5,7 @@ use std::fmt;
 use std::io;
 use std::time::Duration;
 
+use super::cause::RestartCause;
 use super::control::PROTOCOL;
 
 /// What the program (the client) expects of its server.
@@ -51,7 +52,11 @@ impl Expected {
         !self.program().is_empty() && !info.program.is_empty() && info.program != self.program()
     }
 
-    /// The reason a server of another program is left alone.
+    /// The reason a server of another program is left alone, as an English sentence.
+    #[deprecated(
+        since = "0.0.3",
+        note = "typed now: `RestartCause::OtherProgram`; a window shows the `RpcError`"
+    )]
     #[must_use]
     pub fn other_program_reason(&self, info: &ServerInfo) -> String {
         format!(
@@ -96,8 +101,9 @@ impl fmt::Display for ServerInfo {
     }
 }
 
-/// Why no matching server could be reached. A window shows this as a visible message (ADR 0065), with the text of
-/// [`Display`](fmt::Display), and offers to try again.
+/// Why no matching server could be reached. A window shows this as a visible message (ADR 0065) and offers to try again.
+/// The text comes from the program's messages: `RpcError::from(&error)` gives code and parameters. The
+/// [`Display`](fmt::Display) text is an English fallback for logs; a window must not show it.
 #[derive(Debug)]
 pub enum HandshakeError {
     /// A server runs, was replaced, and the new one still is not what is expected (the program started an old executable).
@@ -113,8 +119,8 @@ pub enum HandshakeError {
         running: Option<ServerInfo>,
         /// What the client wanted.
         expected: Expected,
-        /// What failed, in words for the person.
-        reason: String,
+        /// What failed, typed (v0.0.3; it was `reason: String`). A window shows the [`RpcError`](crate::RpcError) of it.
+        cause: Box<RestartCause>,
     },
     /// The connection failed for another reason (for example another user serves the socket).
     Io(io::Error),
@@ -136,14 +142,14 @@ impl fmt::Display for HandshakeError {
             Self::CannotRestart {
                 running,
                 expected,
-                reason,
+                cause,
             } => {
                 let was = running
                     .as_ref()
                     .map_or_else(|| "no server".to_owned(), ToString::to_string);
                 write!(
                     f,
-                    "The server could not be replaced (running: {was}; needed: {} protocol {}): {reason}",
+                    "The server could not be replaced (running: {was}; needed: {} protocol {}): {cause}",
                     expected.version, expected.protocol
                 )
             }

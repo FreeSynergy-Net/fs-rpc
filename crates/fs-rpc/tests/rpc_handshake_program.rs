@@ -23,13 +23,16 @@ fn a_server_of_another_program_is_left_alone() {
             .unwrap();
         match &e {
             HandshakeError::CannotRestart {
-                running, reason, ..
+                running, cause, ..
             } => {
                 assert_eq!(running.as_ref().unwrap().program, "test");
                 assert!(
-                    reason.contains("test") && reason.contains("fs-people"),
-                    "{reason}"
+                    matches!(&**cause, fs_rpc::RestartCause::OtherProgram { found, wanted } if found == "test" && wanted == "fs-people"),
+                    "{cause:?}"
                 );
+                let coded = fs_rpc::RpcError::from(&e);
+                assert_eq!(coded.message_key(), "rpc-error-other-program");
+                assert_eq!(coded.param("running-program").and_then(fs_rpc::Param::as_text), Some("test"));
             }
             other => panic!("{other}"),
         }

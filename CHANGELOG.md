@@ -2,6 +2,12 @@
 
 Version = tag.
 
+## Unreleased
+
+- New (additive): error codes with typed parameters instead of English sentences (ADR 0057). `RpcErrorCode` (15 stable kebab-case codes, `as_str`, `message_key` = `rpc-error-<name>`, `ALL`), `Param` (text or number), `RpcError` (`code`, `message_key`, `params`, `param`, `with_text`, `with_number`, `is_retryable`; `Display` is a technical code text `rpc.error: no-server (socket=...)`, no sentence). `RpcError::from(&HandshakeError | &Fault | &Problem | &Failure | &io::Error | &capnp::Error)` and `RpcError::of(&capnp::Error)`. A program translates `message_key()` with `params()` through its MessageFormat 2 files; the template is `docs/errors.md`. The `Display` texts of the existing error types stay as an English fallback for logs; a window must not show them.
+- Migration (breaking, for v0.0.3): `HandshakeError::CannotRestart` carries `cause: RestartCause` (typed, `#[non_exhaustive]`) instead of `reason: String`; `cause.to_string()` gives the former text. `Expected::other_program_reason` is deprecated. Call sites: only a `match` on `CannotRestart { reason, .. }` must change to `cause` (none in the fs-messages, fs-resources, fs-draw clients: they print `e.to_string()` of `HandshakeError`; they switch to `RpcError::from(&e)`).
+- Auf Deutsch: Neu, additiv: Fehler-Codes mit typisierten Parametern statt englischer Saetze (ADR 0057): `RpcErrorCode` (15 stabile Codes), `Param`, `RpcError` (`message_key()` = `rpc-error-<name>`, `params()`), `From` fuer alle Fehlertypen und `capnp::Error`. Das Programm uebersetzt ueber MessageFormat 2; Vorlage `docs/errors.md`. Die `Display`-Texte der bisherigen Fehler bleiben als englischer Rueckfall fuer Logs, ein Fenster darf sie nicht zeigen. Migration (Bruch, fuer v0.0.3): `HandshakeError::CannotRestart` traegt `cause: RestartCause` statt `reason: String`; `Expected::other_program_reason` ist veraltet.
+
 ## 0.0.2
 
 - Pins (ADR 0093, each straight from the owner's repository, one source per library in the lock): `fs-types` v0.0.1 (6323518a1a1abba7c241e94d948668eb208649f5, new direct dependency; no longer reached through `fs-interfaces`), `fs-interfaces` v0.0.27 (2745e306a13e0b7e7339ffc3f9c09185515fe152), `fs-objects` v0.0.6 (cc3102a53968c4fc8e900a8193d4d15593e12881). `fs-jscalendar` is not used here.

@@ -24,7 +24,9 @@
 #![warn(clippy::pedantic)]
 
 pub mod catalog;
+mod cause;
 pub mod client;
+mod code;
 mod control;
 mod cursor;
 mod envelope;
@@ -42,6 +44,8 @@ mod starter;
 mod stop;
 mod transport;
 
+pub use cause::RestartCause;
+pub use code::{Param, RpcError, RpcErrorCode, param_keys as rpc_param_keys};
 pub use control::{PROTOCOL, ServerIdentity, stop_server};
 pub use cursor::{PlaceParts, decode_place, encode_place};
 pub use envelope::{envelope_weight, read_envelope, write_envelope};

@@ -11,6 +11,7 @@ The runtime half of the interface contracts: what every program's server and cli
 | `src/serve.rs`, `transport/` | Adapter, Strategy (`Endpoint`: Unix socket, named pipe) | one RPC system per connection on a local endpoint |
 | `src/envelope.rs`, `ids.rs`, `cursor.rs` | Adapter | `fs_objects::Envelope` / `ObjectId` to the `common.capnp` wire form |
 | `src/problem/` | Value object (`Problem`), Adapter (`wire`: error text), constants (`keys`) | RFC 9457 problems as RPC errors |
+| `src/code/`, `src/cause.rs` | Value objects, Adapter (`from`) | error code + typed parameters for the program's MessageFormat 2 messages (ADR 0057); `RestartCause` types the reason of a failed replacement |
 | `src/feed.rs`, `pump.rs` | Observer | change feed with a bounded queue |
 | `src/handshake.rs`, `control.rs`, `starter.rs`, `stop.rs`, `finish.rs` | Strategy (`ServerStarter`), Command | version handshake, stop from outside, writes that finish |
 | `src/client/` | Command (+ Strategy `Remote`, RAII guard `Reply`), Decorator (`call_limited`) | the client half: thread that owns the `!Send` connection, deadlines, `Fault` |

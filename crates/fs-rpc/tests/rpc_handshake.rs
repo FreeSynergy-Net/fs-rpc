@@ -131,11 +131,19 @@ fn a_failed_start_is_a_typed_error() {
             .err()
             .unwrap();
         match &e {
-            HandshakeError::CannotRestart {
-                running, reason, ..
-            } => {
+            HandshakeError::CannotRestart { running, cause, .. } => {
                 assert_eq!(running.as_ref().unwrap().protocol, 0);
-                assert!(reason.contains("no executable"), "{reason}");
+                assert!(
+                    matches!(&**cause, fs_rpc::RestartCause::NotStarted(_)),
+                    "{cause:?}"
+                );
+                assert!(cause.to_string().contains("no executable"), "{cause}");
+                let coded = fs_rpc::RpcError::from(&e);
+                assert_eq!(coded.message_key(), "rpc-error-cannot-restart");
+                assert_eq!(
+                    coded.param("step").and_then(fs_rpc::Param::as_text),
+                    Some("start")
+                );
             }
             other => panic!("{other}"),
         }
