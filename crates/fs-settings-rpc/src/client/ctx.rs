@@ -5,13 +5,14 @@
 use std::any::Any;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use std::time::Instant;
 
 use fs_rpc::{Problem, connect};
-use fs_settings::{Coded, SettingCode};
+use fs_settings::{Coded, SettingCode, keys};
 
-use super::worker::{CallError, ClientTimes, Link, Pinned, Role, unreachable_at};
+use super::worker::{CallError, ClientTimes, Link, Pinned, Role};
 use crate::problem::meaning;
 use crate::settings_capnp::settings_hub;
 
