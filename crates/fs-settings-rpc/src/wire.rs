@@ -8,10 +8,9 @@ use std::collections::BTreeMap;
 use fs_interfaces::common_capnp::problem;
 use fs_rpc::Problem;
 use fs_settings::{
-    Coded, InstanceLogEntry, Lock, Place, ProfileName, ProfileRef, ProfileSet, ProgramName, Raw,
-    Scope, SettingCode, SettingKey, Snapshot, keys,
+    Coded, Place, ProfileName, ProfileRef, ProfileSet, ProgramName, Raw, Scope, SettingCode,
+    SettingKey, Snapshot, keys,
 };
-use fs_types::{ObjectId, Utc};
 
 use crate::problem::{from_problem, to_problem};
 use crate::settings_capnp::{self as w, entry, index, named, raw, scope};
