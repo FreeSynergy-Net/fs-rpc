@@ -7,11 +7,11 @@ use std::collections::BTreeMap;
 
 use fs_interfaces::common_capnp::problem;
 use fs_rpc::Problem;
-use fs_types::{ObjectId, Utc};
 use fs_settings::{
-    Coded, InstanceLogEntry, Lock, Place, ProfileName, ProfileRef, ProfileSet, ProgramName, Raw, Scope, SettingCode,
-    SettingKey, Snapshot, keys,
+    Coded, InstanceLogEntry, Lock, Place, ProfileName, ProfileRef, ProfileSet, ProgramName, Raw,
+    Scope, SettingCode, SettingKey, Snapshot, keys,
 };
+use fs_types::{ObjectId, Utc};
 
 use crate::problem::{from_problem, to_problem};
 use crate::settings_capnp::{self as w, entry, index, named, raw, scope};
@@ -45,7 +45,11 @@ pub fn read_raw(r: raw::Reader<'_>) -> Result<Raw, Coded<SettingCode>> {
     Ok(match r.which().map_err(|e| broken(&e.to_string()))? {
         raw::Flag(b) => Raw::Bool(b),
         raw::Whole(i) => Raw::Int(i),
-        raw::Text(t) => Raw::Str(t.map_err(|e| from_capnp(&e))?.to_string().map_err(|_| broken("utf8"))?),
+        raw::Text(t) => Raw::Str(
+            t.map_err(|e| from_capnp(&e))?
+                .to_string()
+                .map_err(|_| broken("utf8"))?,
+        ),
     })
 }
 
@@ -65,7 +69,10 @@ pub fn read_scope(r: scope::Reader<'_>) -> Result<Scope, Coded<SettingCode>> {
     match r.which().map_err(|e| broken(&e.to_string()))? {
         scope::General(()) => Ok(Scope::General),
         scope::Program(t) => {
-            let name = t.map_err(|e| from_capnp(&e))?.to_str().map_err(|_| broken("utf8"))?;
+            let name = t
+                .map_err(|e| from_capnp(&e))?
+                .to_str()
+                .map_err(|_| broken("utf8"))?;
             Ok(Scope::Program(ProgramName::new(name)?))
         }
     }
@@ -117,7 +124,9 @@ pub fn read_problems(
 
 /// Writes a snapshot.
 pub fn write_snapshot(mut out: w::snapshot::Builder<'_>, s: &Snapshot) {
-    let mut values = out.reborrow().init_values(u32::try_from(s.values.len()).unwrap_or(0));
+    let mut values = out
+        .reborrow()
+        .init_values(u32::try_from(s.values.len()).unwrap_or(0));
     for (i, (k, v)) in (0..).zip(&s.values) {
         let mut e = values.reborrow().get(i);
         e.set_key(k.as_str());
@@ -137,7 +146,11 @@ pub fn read_snapshot(r: w::snapshot::Reader<'_>) -> Result<Snapshot, Coded<Setti
     let mut values = BTreeMap::new();
     for e in r.get_values().map_err(|e| from_capnp(&e))? {
         let e: entry::Reader<'_> = e;
-        let key = e.get_key().map_err(|e| from_capnp(&e))?.to_str().map_err(|_| broken("utf8"))?;
+        let key = e
+            .get_key()
+            .map_err(|e| from_capnp(&e))?
+            .to_str()
+            .map_err(|_| broken("utf8"))?;
         let key = SettingKey::parse(key)?;
         values.insert(key, read_raw(e.get_value().map_err(|e| from_capnp(&e))?)?);
     }
@@ -149,7 +162,9 @@ pub fn read_snapshot(r: w::snapshot::Reader<'_>) -> Result<Snapshot, Coded<Setti
 pub fn write_index(mut out: index::Builder<'_>, set: &ProfileSet<u64>) {
     out.set_top(set.get(&ProfileRef::Base).copied().unwrap_or(0));
     let names: Vec<&ProfileName> = set.names().collect();
-    let mut list = out.reborrow().init_named(u32::try_from(names.len()).unwrap_or(0));
+    let mut list = out
+        .reborrow()
+        .init_named(u32::try_from(names.len()).unwrap_or(0));
     for (i, n) in (0..).zip(names) {
         let mut e: named::Builder<'_> = list.reborrow().get(i);
         e.set_id(set.get(&ProfileRef::Named(n.clone())).copied().unwrap_or(0));
@@ -168,17 +183,27 @@ pub fn write_index(mut out: index::Builder<'_>, set: &ProfileSet<u64>) {
 pub fn read_index(r: index::Reader<'_>) -> Result<ProfileSet<u64>, Coded<SettingCode>> {
     let mut set = ProfileSet::new(r.get_top());
     for e in r.get_named().map_err(|e| from_capnp(&e))? {
-        let name = e.get_name().map_err(|e| from_capnp(&e))?.to_str().map_err(|_| broken("utf8"))?;
+        let name = e
+            .get_name()
+            .map_err(|e| from_capnp(&e))?
+            .to_str()
+            .map_err(|_| broken("utf8"))?;
         let name = ProfileName::new(name).map_err(|_| broken("profile-name"))?;
-        set.create(name.clone(), None).map_err(|_| broken("profile-name"))?;
+        set.create(name.clone(), None)
+            .map_err(|_| broken("profile-name"))?;
         if let Some(id) = set.get_mut(&ProfileRef::Named(name)) {
             *id = e.get_id();
         }
     }
-    let active = r.get_active().map_err(|e| from_capnp(&e))?.to_str().map_err(|_| broken("utf8"))?;
+    let active = r
+        .get_active()
+        .map_err(|e| from_capnp(&e))?
+        .to_str()
+        .map_err(|_| broken("utf8"))?;
     if !active.is_empty() {
         let name = ProfileName::new(active).map_err(|_| broken("profile-name"))?;
-        set.switch(ProfileRef::Named(name)).map_err(|_| broken("active-profile"))?;
+        set.switch(ProfileRef::Named(name))
+            .map_err(|_| broken("active-profile"))?;
     }
     Ok(set)
 }
@@ -187,7 +212,9 @@ pub fn read_index(r: index::Reader<'_>) -> Result<ProfileSet<u64>, Coded<Setting
 pub fn write_lock(mut out: w::lock::Builder<'_>, l: &Lock) {
     out.set_reason(l.reason.as_str());
     out.set_locked_by(l.locked_by.as_str());
-    out.reborrow().init_locked_at().set_unix_millis(l.locked_at.millis());
+    out.reborrow()
+        .init_locked_at()
+        .set_unix_millis(l.locked_at.millis());
 }
 
 /// Reads a lock.
@@ -196,12 +223,18 @@ pub fn write_lock(mut out: w::lock::Builder<'_>, l: &Lock) {
 /// `store-broken{cause=wire}`.
 pub fn read_lock(r: w::lock::Reader<'_>) -> Result<Lock, Coded<SettingCode>> {
     let text = |t: capnp::Result<capnp::text::Reader<'_>>| -> Result<String, Coded<SettingCode>> {
-        t.map_err(|e| from_capnp(&e))?.to_string().map_err(|_| broken("utf8"))
+        t.map_err(|e| from_capnp(&e))?
+            .to_string()
+            .map_err(|_| broken("utf8"))
     };
     Ok(Lock {
         reason: text(r.get_reason())?,
         locked_by: text(r.get_locked_by())?,
-        locked_at: Utc::from_millis(r.get_locked_at().map_err(|e| from_capnp(&e))?.get_unix_millis()),
+        locked_at: Utc::from_millis(
+            r.get_locked_at()
+                .map_err(|e| from_capnp(&e))?
+                .get_unix_millis(),
+        ),
     })
 }
 
@@ -264,13 +297,17 @@ pub fn write_log_entry(mut out: w::log_entry::Builder<'_>, e: &InstanceLogEntry)
 /// `store-broken{cause=wire}`.
 pub fn read_log_entry(r: w::log_entry::Reader<'_>) -> Result<InstanceLogEntry, Coded<SettingCode>> {
     let text = |t: capnp::Result<capnp::text::Reader<'_>>| -> Result<String, Coded<SettingCode>> {
-        t.map_err(|e| from_capnp(&e))?.to_string().map_err(|_| broken("utf8"))
+        t.map_err(|e| from_capnp(&e))?
+            .to_string()
+            .map_err(|_| broken("utf8"))
     };
     let os_user = text(r.get_os_user())?;
     let reason = text(r.get_reason())?;
-    let value = |has: bool, v: capnp::Result<raw::Reader<'_>>| -> Result<Option<Raw>, Coded<SettingCode>> {
-        has.then(|| read_raw(v.map_err(|e| from_capnp(&e))?)).transpose()
-    };
+    let value =
+        |has: bool, v: capnp::Result<raw::Reader<'_>>| -> Result<Option<Raw>, Coded<SettingCode>> {
+            has.then(|| read_raw(v.map_err(|e| from_capnp(&e))?))
+                .transpose()
+        };
     Ok(InstanceLogEntry {
         id: read_id(r.get_id().map_err(|e| from_capnp(&e))?).ok_or_else(|| broken("log-id"))?,
         at: Utc::from_millis(r.get_at().map_err(|e| from_capnp(&e))?.get_unix_millis()),

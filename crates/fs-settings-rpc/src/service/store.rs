@@ -11,9 +11,7 @@ use fs_settings::{
 use super::listeners::Subscription;
 use super::{Shared, blocking, err};
 use crate::settings_capnp::store;
-use crate::wire::{
-    place_of_wire, read_index, read_raw, read_scope, write_index, write_problems,
-};
+use crate::wire::{place_of_wire, read_index, read_raw, read_scope, write_index, write_problems};
 
 /// What a `Store` capability may touch.
 #[derive(Clone, Debug)]
@@ -62,19 +60,32 @@ where
     S: SettingsStore + ?Sized + 'static,
     I: InstanceStore + ?Sized + 'static,
 {
-    async fn stamp(self: Rc<Self>, _: store::StampParams, mut results: store::StampResults) -> Result<(), capnp::Error> {
+    async fn stamp(
+        self: Rc<Self>,
+        _: store::StampParams,
+        mut results: store::StampResults,
+    ) -> Result<(), capnp::Error> {
         let port = self.shared.svc.person.clone();
-        results.get().set_stamp(blocking(move || port.stamp().0).await?);
+        results
+            .get()
+            .set_stamp(blocking(move || port.stamp().0).await?);
         Ok(())
     }
 
-    async fn health(self: Rc<Self>, _: store::HealthParams, mut results: store::HealthResults) -> Result<(), capnp::Error> {
+    async fn health(
+        self: Rc<Self>,
+        _: store::HealthParams,
+        mut results: store::HealthResults,
+    ) -> Result<(), capnp::Error> {
         let port = self.shared.svc.person.clone();
         let health = blocking(move || port.health()).await?;
         let mut out = results.get().init_health();
         match health {
             fs_settings::Health::Defaults(list) => {
-                write_problems(out.init_defaults(u32::try_from(list.len()).unwrap_or(0)), &list);
+                write_problems(
+                    out.init_defaults(u32::try_from(list.len()).unwrap_or(0)),
+                    &list,
+                );
             }
             _ => out.set_ok(()),
         }
@@ -102,7 +113,11 @@ where
         Ok(())
     }
 
-    async fn write(self: Rc<Self>, params: store::WriteParams, mut results: store::WriteResults) -> Result<(), capnp::Error> {
+    async fn write(
+        self: Rc<Self>,
+        params: store::WriteParams,
+        mut results: store::WriteResults,
+    ) -> Result<(), capnp::Error> {
         let p = params.get()?;
         let scope = read_scope(p.get_scope()?).map_err(|c| err(&c))?;
         self.access.refuse(&scope).map_err(|c| err(&c))?;
@@ -125,7 +140,11 @@ where
         Ok(())
     }
 
-    async fn clear(self: Rc<Self>, params: store::ClearParams, mut results: store::ClearResults) -> Result<(), capnp::Error> {
+    async fn clear(
+        self: Rc<Self>,
+        params: store::ClearParams,
+        mut results: store::ClearResults,
+    ) -> Result<(), capnp::Error> {
         let p = params.get()?;
         let scope = read_scope(p.get_scope()?).map_err(|c| err(&c))?;
         self.access.refuse(&scope).map_err(|c| err(&c))?;
@@ -142,12 +161,19 @@ where
         Ok(())
     }
 
-    async fn index(self: Rc<Self>, _: store::IndexParams, mut results: store::IndexResults) -> Result<(), capnp::Error> {
+    async fn index(
+        self: Rc<Self>,
+        _: store::IndexParams,
+        mut results: store::IndexResults,
+    ) -> Result<(), capnp::Error> {
         let port = self.shared.svc.person.clone();
         let (set, problems) = blocking(move || port.index()).await?;
         let mut out = results.get();
         write_index(out.reborrow().init_index(), &set);
-        write_problems(out.init_problems(u32::try_from(problems.len()).unwrap_or(0)), &problems);
+        write_problems(
+            out.init_problems(u32::try_from(problems.len()).unwrap_or(0)),
+            &problems,
+        );
         Ok(())
     }
 
@@ -160,7 +186,9 @@ where
         let expected = read_index(p.get_expected()?).map_err(|c| err(&c))?;
         let wanted = read_index(p.get_wanted()?).map_err(|c| err(&c))?;
         let port = self.shared.svc.person.clone();
-        let (done, stamp) = blocking(move || replace(port.as_ref(), &expected, &wanted)).await?.map_err(|c| err(&c))?;
+        let (done, stamp) = blocking(move || replace(port.as_ref(), &expected, &wanted))
+            .await?
+            .map_err(|c| err(&c))?;
         self.shared.listeners.tell(stamp);
         write_index(results.get().init_index(), &done);
         Ok(())
@@ -179,7 +207,9 @@ where
             id,
             remove: move |i| shared.listeners.remove(i),
         };
-        results.get().set_subscription(capnp_rpc::new_client::<subscription::Client, _>(sub));
+        results
+            .get()
+            .set_subscription(capnp_rpc::new_client::<subscription::Client, _>(sub));
         Ok(())
     }
 }

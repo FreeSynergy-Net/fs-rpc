@@ -14,7 +14,9 @@ fn status(code: SettingCode) -> u16 {
     match code {
         SettingCode::Locked | SettingCode::IndexChanged => 409,
         SettingCode::ReadOnly | SettingCode::NoRight => 403,
-        SettingCode::StoreUnreachable | SettingCode::StoreBusy | SettingCode::StoreBroken
+        SettingCode::StoreUnreachable
+        | SettingCode::StoreBusy
+        | SettingCode::StoreBroken
         | SettingCode::StoreNewer => 503,
         _ => 422,
     }
@@ -39,7 +41,10 @@ pub fn to_problem(c: &Coded<SettingCode>) -> Problem {
 #[must_use]
 pub fn from_problem(p: &Problem) -> Option<Coded<SettingCode>> {
     let name = p.problem_type.strip_prefix(SettingCode::PREFIX)?;
-    let code = SettingCode::ALL.iter().copied().find(|c| c.as_str() == name)?;
+    let code = SettingCode::ALL
+        .iter()
+        .copied()
+        .find(|c| c.as_str() == name)?;
     let mut out = Coded::new(code);
     for (key, value) in &p.extensions {
         out = match (NUMBERS.contains(&key.as_str()), value.parse::<u64>()) {

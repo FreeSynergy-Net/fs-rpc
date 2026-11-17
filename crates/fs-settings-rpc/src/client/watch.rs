@@ -41,16 +41,23 @@ impl RpcSettingsStore {
     ///
     /// # Errors
     /// `store-unreachable` when no service answers; the subscription is not mended by itself after a lost connection.
-    pub fn watch(&self, on_change: Arc<dyn Fn(Stamp) + Send + Sync>) -> Result<Watching, Coded<SettingCode>> {
+    pub fn watch(
+        &self,
+        on_change: Arc<dyn Fn(Stamp) + Send + Sync>,
+    ) -> Result<Watching, Coded<SettingCode>> {
         let id = NEXT.fetch_add(1, Ordering::Relaxed);
-        let handle = self.worker.handle().ok_or_else(|| super::unreachable_at(&self.socket))?;
+        let handle = self
+            .worker
+            .handle()
+            .ok_or_else(|| super::unreachable_at(&self.socket))?;
         self.worker.exec(move |ctx| {
             Box::pin(async move {
                 let held = ctx
                     .run(move |l| {
                         Box::pin(async move {
                             let mut req = l.store.watch_request();
-                            req.get().set_listener(capnp_rpc::new_client(Listener(on_change)));
+                            req.get()
+                                .set_listener(capnp_rpc::new_client(Listener(on_change)));
                             Ok::<_, CallError>(req.send().promise.await?)
                         })
                     })

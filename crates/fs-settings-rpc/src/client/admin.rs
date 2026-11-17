@@ -6,13 +6,13 @@
 use std::path::Path;
 
 use fs_settings::{
-    Coded, Health, IndexFn, Instance, InstanceLogEntry, InstanceStore, LockChange, Place, ProfileSet, Raw, Scope,
-    SettingCode, SettingKey, SettingsStore, Snapshot, Stamp, Stampd, keys,
+    Coded, Health, IndexFn, Instance, InstanceLogEntry, InstanceStore, LockChange, Place,
+    ProfileSet, Raw, Scope, SettingCode, SettingKey, SettingsStore, Snapshot, Stamp, Stampd, keys,
 };
 use fs_types::ObjectId;
 
-use super::worker::{CallError, ClientTimes, Role};
 use super::RpcSettingsStore;
+use super::worker::{CallError, ClientTimes, Role};
 use crate::wire::{read_log_entry, write_id, write_raw};
 
 /// The admin client. `by` is the actor IRI (mandatory); the service writes it into the log.
@@ -32,7 +32,6 @@ impl RpcInstanceAdmin {
     fn read_only() -> Coded<SettingCode> {
         Coded::new(SettingCode::ReadOnly).with_text(keys::WHICH, "instance")
     }
-
 }
 
 impl SettingsStore for RpcInstanceAdmin {
@@ -48,7 +47,14 @@ impl SettingsStore for RpcInstanceAdmin {
     fn profile(&self, scope: &Scope, place: Place, profile: u64) -> Snapshot {
         self.inner.profile(scope, place, profile)
     }
-    fn write(&self, _: &Scope, _: Place, _: u64, _: &SettingKey, _: Option<&Raw>) -> Result<(), Coded<SettingCode>> {
+    fn write(
+        &self,
+        _: &Scope,
+        _: Place,
+        _: u64,
+        _: &SettingKey,
+        _: Option<&Raw>,
+    ) -> Result<(), Coded<SettingCode>> {
         Err(Self::read_only())
     }
     fn clear(&self, _: &Scope, _: u64) -> Result<(), Coded<SettingCode>> {
@@ -63,11 +69,18 @@ impl SettingsStore for RpcInstanceAdmin {
 }
 
 impl InstanceStore for RpcInstanceAdmin {
-    fn write_instance(&self, key: &SettingKey, raw: Option<&Raw>, _: &Stampd) -> Result<bool, Coded<SettingCode>> {
+    fn write_instance(
+        &self,
+        key: &SettingKey,
+        raw: Option<&Raw>,
+        _: &Stampd,
+    ) -> Result<bool, Coded<SettingCode>> {
         let (key, raw) = (key.as_str().to_owned(), raw.cloned());
         self.inner.worker.call(move |l| {
             Box::pin(async move {
-                let admin = l.admin.ok_or_else(|| capnp::Error::failed("no admin".into()))?;
+                let admin = l
+                    .admin
+                    .ok_or_else(|| capnp::Error::failed("no admin".into()))?;
                 Ok::<bool, CallError>(match raw {
                     Some(r) => {
                         let mut req = admin.set_request();
@@ -85,11 +98,18 @@ impl InstanceStore for RpcInstanceAdmin {
         })
     }
 
-    fn write_lock(&self, key: &SettingKey, change: &LockChange, _: &Stampd) -> Result<bool, Coded<SettingCode>> {
+    fn write_lock(
+        &self,
+        key: &SettingKey,
+        change: &LockChange,
+        _: &Stampd,
+    ) -> Result<bool, Coded<SettingCode>> {
         let (key, change) = (key.as_str().to_owned(), change.clone());
         self.inner.worker.call(move |l| {
             Box::pin(async move {
-                let admin = l.admin.ok_or_else(|| capnp::Error::failed("no admin".into()))?;
+                let admin = l
+                    .admin
+                    .ok_or_else(|| capnp::Error::failed("no admin".into()))?;
                 Ok::<bool, CallError>(match change {
                     LockChange::Lock { value, reason } => {
                         let mut req = admin.lock_request();
@@ -114,7 +134,9 @@ impl InstanceStore for RpcInstanceAdmin {
             .worker
             .call(move |l| {
                 Box::pin(async move {
-                    let admin = l.admin.ok_or_else(|| capnp::Error::failed("no admin".into()))?;
+                    let admin = l
+                        .admin
+                        .ok_or_else(|| capnp::Error::failed("no admin".into()))?;
                     let mut req = admin.log_request();
                     write_id(req.get().init_after(), after);
                     req.get().set_size(size);

@@ -25,6 +25,7 @@ mod client;
 mod ensure;
 mod problem;
 mod service;
+#[rustfmt::skip]
 #[allow(clippy::all, clippy::pedantic, unused_parens, dead_code, missing_docs)]
 pub mod settings_capnp;
 mod wire;

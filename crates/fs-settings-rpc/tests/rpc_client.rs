@@ -20,27 +20,50 @@ fn kb12_starts_without_service_and_connects_later() {
     let s0 = c.stamp();
     match c.health() {
         Health::Defaults(list) => {
-            assert_eq!(list.iter().map(code).collect::<Vec<_>>(), ["store-unreachable"]);
+            assert_eq!(
+                list.iter().map(code).collect::<Vec<_>>(),
+                ["store-unreachable"]
+            );
             assert_eq!(text(&list[0], "socket"), Some(socket.to_str().unwrap()));
         }
         other => panic!("{other:?}"),
     }
     assert_eq!(c.stamp(), c.stamp(), "stable while down");
-    assert!(c.profile(&Scope::General, Place::Profile, 0).values.is_empty());
-    let e = c.write(&Scope::General, Place::Profile, 0, &key("fs.look.style"), Some(&Raw::Int(1))).unwrap_err();
+    assert!(
+        c.profile(&Scope::General, Place::Profile, 0)
+            .values
+            .is_empty()
+    );
+    let e = c
+        .write(
+            &Scope::General,
+            Place::Profile,
+            0,
+            &key("fs.look.style"),
+            Some(&Raw::Int(1)),
+        )
+        .unwrap_err();
     assert_eq!(code(&e), "store-unreachable");
     let store = MemoryStore::new();
     let _server = person(&socket, &store, false);
     std::thread::sleep(Duration::from_millis(120));
     assert_ne!(c.stamp(), s0, "the health change is visible in the stamp");
     assert_eq!(c.health(), Health::Ok);
-    c.write(&Scope::General, Place::Profile, 0, &key("fs.look.style"), Some(&Raw::Int(1))).unwrap();
+    c.write(
+        &Scope::General,
+        Place::Profile,
+        0,
+        &key("fs.look.style"),
+        Some(&Raw::Int(1)),
+    )
+    .unwrap();
 }
 
 fn with_watchdog<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> T {
     let (tx, rx) = std::sync::mpsc::channel();
     std::thread::spawn(move || drop(tx.send(f())));
-    rx.recv_timeout(Duration::from_secs(20)).expect("did not end: endless retry")
+    rx.recv_timeout(Duration::from_secs(20))
+        .expect("did not end: endless retry")
 }
 
 /// KB13: two clients create "Arbeit" and "Vortrag" at the same time: both exist, ids 1 and 2.
@@ -64,11 +87,18 @@ fn kb13_concurrent_creation_keeps_both() {
     let mut numbers: Vec<u64> = got.iter().map(|x| x.1).collect();
     numbers.sort_unstable();
     assert_eq!(numbers, [1, 2], "{got:?}");
-    assert_eq!(got.iter().map(|x| x.0.as_str()).collect::<Vec<_>>(), ["Arbeit", "Vortrag"]);
+    assert_eq!(
+        got.iter().map(|x| x.0.as_str()).collect::<Vec<_>>(),
+        ["Arbeit", "Vortrag"]
+    );
 }
 
 fn flaky(fail_first: usize, socket: &std::path::Path) -> (support::Server, Arc<Flaky>) {
-    let port = Arc::new(Flaky { inner: MemoryStore::new(), fail_first, rounds: AtomicUsize::new(0) });
+    let port = Arc::new(Flaky {
+        inner: MemoryStore::new(),
+        fail_first,
+        rounds: AtomicUsize::new(0),
+    });
     let shared = port.clone();
     let server = serve_on(socket, move || {
         let p: Arc<dyn SettingsStore> = shared;
@@ -93,7 +123,11 @@ fn kb13_retries_three_times_then_busy() {
     let e = with_watchdog(move || create(&c, "Arbeit").unwrap_err());
     assert_eq!(code(&e), "store-busy");
     assert_eq!(text(&e, "socket"), Some(server.socket.to_str().unwrap()));
-    assert_eq!(port.rounds.load(std::sync::atomic::Ordering::SeqCst), 3, "exactly three rounds");
+    assert_eq!(
+        port.rounds.load(std::sync::atomic::Ordering::SeqCst),
+        3,
+        "exactly three rounds"
+    );
 }
 
 /// KB17: a port call from inside a runtime thread is a programming error (a debug build says so).
@@ -103,6 +137,8 @@ fn kb13_retries_three_times_then_busy() {
 fn kb17_never_from_a_runtime_thread() {
     let d = dir();
     let c = RpcSettingsStore::open(&d.path().join("s.sock"), &program("tasks"), times());
-    let rt = tokio::runtime::Builder::new_current_thread().build().unwrap();
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .build()
+        .unwrap();
     rt.block_on(async { drop(c.stamp()) });
 }

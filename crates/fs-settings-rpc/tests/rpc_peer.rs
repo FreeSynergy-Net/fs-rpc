@@ -23,15 +23,28 @@ fn kb20_os_user_is_the_peer_not_the_environment() {
     let store = MemoryStore::new();
     let s = store.clone();
     let server = serve_on(&d.path().join("i.sock"), move || {
-        let mut svc = SettingsService::new(Arc::new(s.clone()) as Arc<dyn SettingsStore>, Some(Arc::new(s)));
+        let mut svc = SettingsService::new(
+            Arc::new(s.clone()) as Arc<dyn SettingsStore>,
+            Some(Arc::new(s)),
+        );
         svc.now = Arc::new(|| Utc::from_millis(1));
         svc
     });
     let admin = RpcInstanceAdmin::open(&server.socket, "https://example.net/admin", times());
-    let who = Stampd { by: "x".into(), at: Utc::from_millis(0), os_user: Some("caller-claims".into()) };
-    admin.write_instance(&key("fs.look.style"), Some(&Raw::Str("calm".into())), &who).unwrap();
+    let who = Stampd {
+        by: "x".into(),
+        at: Utc::from_millis(0),
+        os_user: Some("caller-claims".into()),
+    };
+    admin
+        .write_instance(&key("fs.look.style"), Some(&Raw::Str("calm".into())), &who)
+        .unwrap();
     let log = admin.instance_log(None, 5);
     assert_eq!(log.len(), 1);
-    assert_eq!(log[0].os_user.as_deref(), Some(uid.as_str()), "the kernel's peer user");
+    assert_eq!(
+        log[0].os_user.as_deref(),
+        Some(uid.as_str()),
+        "the kernel's peer user"
+    );
     assert!(!log[0].os_user.as_deref().unwrap().contains("mallory"));
 }

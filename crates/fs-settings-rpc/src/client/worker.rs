@@ -104,20 +104,39 @@ impl Ctx {
 
     async fn connect(&self) -> Result<Link, Coded<SettingCode>> {
         let attempt = async {
-            let connection = connect::<settings_hub::Client>(&self.socket).await.map_err(|_| self.unreachable())?;
+            let connection = connect::<settings_hub::Client>(&self.socket)
+                .await
+                .map_err(|_| self.unreachable())?;
             let hub = connection.client.clone();
             let (store, admin) = match &self.role {
                 Role::Program(p) => {
                     let mut r = hub.open_request();
                     r.get().set_program(p.as_str());
-                    (r.send().promise.await.and_then(|x| x.get()?.get_store()), None)
+                    (
+                        r.send().promise.await.and_then(|x| x.get()?.get_store()),
+                        None,
+                    )
                 }
-                Role::Manage => (hub.manage_request().send().promise.await.and_then(|x| x.get()?.get_store()), None),
+                Role::Manage => (
+                    hub.manage_request()
+                        .send()
+                        .promise
+                        .await
+                        .and_then(|x| x.get()?.get_store()),
+                    None,
+                ),
                 Role::Admin(by) => {
                     let mut r = hub.admin_request();
                     r.get().set_by(by.as_str());
                     let a = r.send().promise.await.and_then(|x| x.get()?.get_admin());
-                    (hub.manage_request().send().promise.await.and_then(|x| x.get()?.get_store()), Some(a))
+                    (
+                        hub.manage_request()
+                            .send()
+                            .promise
+                            .await
+                            .and_then(|x| x.get()?.get_store()),
+                        Some(a),
+                    )
                 }
             };
             let admin = match admin {
@@ -126,9 +145,16 @@ impl Ctx {
                 None => None,
             };
             let store = store.map_err(|e| self.rpc_error(&e))?;
-            Ok(Link { hub, store, admin, _connection: Rc::new(connection) })
+            Ok(Link {
+                hub,
+                store,
+                admin,
+                _connection: Rc::new(connection),
+            })
         };
-        tokio::time::timeout(self.times.call, attempt).await.unwrap_or_else(|_| Err(self.unreachable()))
+        tokio::time::timeout(self.times.call, attempt)
+            .await
+            .unwrap_or_else(|_| Err(self.unreachable()))
     }
 
     fn rpc_error(&self, e: &capnp::Error) -> Coded<SettingCode> {
@@ -142,7 +168,11 @@ impl Ctx {
         if let Some(l) = self.link.borrow().clone() {
             return Ok(l);
         }
-        if self.failed_at.get().is_some_and(|t| t.elapsed() < self.times.retry) {
+        if self
+            .failed_at
+            .get()
+            .is_some_and(|t| t.elapsed() < self.times.retry)
+        {
             return Err(self.unreachable());
         }
         match self.connect().await {
@@ -204,7 +234,10 @@ impl Worker {
             .spawn({
                 let path = path.clone();
                 move || {
-                    let Ok(runtime) = tokio::runtime::Builder::new_current_thread().enable_all().build() else {
+                    let Ok(runtime) = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                    else {
                         return;
                     };
                     let ctx = Rc::new(Ctx {
@@ -261,7 +294,11 @@ impl Worker {
                 let _ = reply.send(r);
             })
         });
-        self.jobs.as_ref().ok_or_else(gone)?.send(job).map_err(|_| gone())?;
+        self.jobs
+            .as_ref()
+            .ok_or_else(gone)?
+            .send(job)
+            .map_err(|_| gone())?;
         answer.recv().map_err(|_| gone())?
     }
 }

@@ -21,7 +21,11 @@ pub const SERVICE_PROGRAM: &str = "fs-settings";
 /// there is no regular file in either. Never searches `PATH`.
 #[must_use]
 pub fn find_service_program(running: &Path, usr_bin: &Path) -> Option<PathBuf> {
-    let name = if cfg!(windows) { "fs-settings.exe" } else { SERVICE_PROGRAM };
+    let name = if cfg!(windows) {
+        "fs-settings.exe"
+    } else {
+        SERVICE_PROGRAM
+    };
     let beside = running.parent().map(|d| d.join(name));
     [beside, Some(usr_bin.join(name))]
         .into_iter()
@@ -46,11 +50,22 @@ pub fn ensure_service(
     running: &Path,
     times: &SingleTimes,
 ) -> Result<(), Coded<SettingCode>> {
-    let usr_bin = if cfg!(windows) { Path::new("") } else { Path::new("/usr/bin") };
+    let usr_bin = if cfg!(windows) {
+        Path::new("")
+    } else {
+        Path::new("/usr/bin")
+    };
     let Some(program) = find_service_program(running, usr_bin) else {
         return Err(crate::unreachable_at(socket).with_text(keys::CAUSE, "no-server"));
     };
-    let starter = CommandStarter::new(&program, [OsStr::new("serve"), OsStr::new("--socket"), socket.as_os_str()]);
+    let starter = CommandStarter::new(
+        &program,
+        [
+            OsStr::new("serve"),
+            OsStr::new("--socket"),
+            socket.as_os_str(),
+        ],
+    );
     ensure_service_with(socket, expected, &starter, Some(&program), times)
 }
 
@@ -72,7 +87,10 @@ pub fn ensure_service_with(
         .map_err(|_| crate::unreachable_at(socket).with_text(keys::CAUSE, "runtime"))?;
     let local = tokio::task::LocalSet::new();
     local
-        .block_on(&runtime, ensure_single::<settings_hub::Client>(socket, expected, starter, times, exe))
+        .block_on(
+            &runtime,
+            ensure_single::<settings_hub::Client>(socket, expected, starter, times, exe),
+        )
         .map(drop)
         .map_err(|e| crate::unreachable_at(socket).with_text(keys::CAUSE, cause(&e)))
 }

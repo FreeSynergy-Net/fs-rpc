@@ -7,8 +7,8 @@ use std::collections::BTreeMap;
 use std::sync::PoisonError;
 
 use fs_settings::{
-    Coded, Health, IndexFn, Instance, Place, ProfileCode, ProfileSet, Raw, Scope, SettingCode, SettingKey,
-    SettingsStore, Snapshot, Stamp, keys,
+    Coded, Health, IndexFn, Instance, Place, ProfileCode, ProfileSet, Raw, Scope, SettingCode,
+    SettingKey, SettingsStore, Snapshot, Stamp, keys,
 };
 
 use super::RpcSettingsStore;
@@ -39,12 +39,17 @@ impl RpcSettingsStore {
         }
     }
 
-    fn fresh_index(&self) -> Result<(ProfileSet<u64>, Vec<Coded<SettingCode>>), Coded<SettingCode>> {
+    fn fresh_index(
+        &self,
+    ) -> Result<(ProfileSet<u64>, Vec<Coded<SettingCode>>), Coded<SettingCode>> {
         let r = self.worker.call(|l| {
             Box::pin(async move {
                 let resp = l.store.index_request().send().promise.await?;
                 let r = resp.get()?;
-                Ok((read_index(r.get_index()?)?, read_problems(r.get_problems()?)?))
+                Ok((
+                    read_index(r.get_index()?)?,
+                    read_problems(r.get_problems()?)?,
+                ))
             })
         });
         self.note(&r, |_| None);
@@ -85,7 +90,17 @@ impl RpcSettingsStore {
 impl SettingsStore for RpcSettingsStore {
     fn stamp(&self) -> Stamp {
         let r = self.worker.call(|l| {
-            Box::pin(async move { Ok::<u64, CallError>(l.store.stamp_request().send().promise.await?.get()?.get_stamp()) })
+            Box::pin(async move {
+                Ok::<u64, CallError>(
+                    l.store
+                        .stamp_request()
+                        .send()
+                        .promise
+                        .await?
+                        .get()?
+                        .get_stamp(),
+                )
+            })
         });
         self.note(&r, |s| Some(*s));
         self.cache().stamp()
@@ -95,9 +110,16 @@ impl SettingsStore for RpcSettingsStore {
         let r = self.worker.call(|l| {
             Box::pin(async move {
                 let resp = l.store.health_request().send().promise.await?;
-                match resp.get()?.get_health()?.which().map_err(capnp::Error::from)? {
+                match resp
+                    .get()?
+                    .get_health()?
+                    .which()
+                    .map_err(capnp::Error::from)?
+                {
                     crate::settings_capnp::health::Ok(()) => Ok(Health::Ok),
-                    crate::settings_capnp::health::Defaults(list) => Ok(Health::Defaults(read_problems(list?)?)),
+                    crate::settings_capnp::health::Defaults(list) => {
+                        Ok(Health::Defaults(read_problems(list?)?))
+                    }
                 }
             })
         });
@@ -228,7 +250,8 @@ impl SettingsStore for RpcSettingsStore {
                 Err(e) => return Err(e),
             }
         }
-        Err(Coded::new(SettingCode::StoreBusy).with_text(keys::SOCKET, self.socket.display().to_string()))
+        Err(Coded::new(SettingCode::StoreBusy)
+            .with_text(keys::SOCKET, self.socket.display().to_string()))
     }
 }
 

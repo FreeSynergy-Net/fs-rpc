@@ -8,8 +8,8 @@ use std::time::Duration;
 
 use fs_rpc::{bind_socket, serve};
 use fs_settings::{
-    Coded, Health, IndexFn, Instance, InstanceStore, MemoryStore, Place, ProfileName, ProfileRef, ProfileSet, Raw, Scope,
-    SettingCode, SettingKey, SettingsStore, Snapshot, Stamp,
+    Coded, Health, IndexFn, Instance, InstanceStore, MemoryStore, Place, ProfileName, ProfileRef,
+    ProfileSet, Raw, Scope, SettingCode, SettingKey, SettingsStore, Snapshot, Stamp,
 };
 use fs_settings_rpc::{ClientTimes, SettingsService};
 use tempfile::TempDir;
@@ -26,7 +26,10 @@ pub fn times() -> ClientTimes {
 }
 
 pub fn dir() -> TempDir {
-    tempfile::Builder::new().prefix("s").tempdir_in(env!("CARGO_TARGET_TMPDIR")).unwrap()
+    tempfile::Builder::new()
+        .prefix("s")
+        .tempdir_in(env!("CARGO_TARGET_TMPDIR"))
+        .unwrap()
 }
 
 pub fn key(text: &str) -> SettingKey {
@@ -71,7 +74,10 @@ pub fn serve_on(socket: &Path, make: impl FnOnce() -> Service + Send + 'static) 
     let (ready, up) = std::sync::mpsc::channel();
     let path = socket.to_path_buf();
     let thread = std::thread::spawn(move || {
-        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
         let local = tokio::task::LocalSet::new();
         local.block_on(&rt, async move {
             let bound = bind_socket(&path).await.unwrap();
@@ -121,7 +127,14 @@ impl SettingsStore for Flaky {
     fn profile(&self, s: &Scope, p: Place, id: u64) -> Snapshot {
         self.inner.profile(s, p, id)
     }
-    fn write(&self, s: &Scope, p: Place, id: u64, k: &SettingKey, r: Option<&Raw>) -> Result<(), Coded<SettingCode>> {
+    fn write(
+        &self,
+        s: &Scope,
+        p: Place,
+        id: u64,
+        k: &SettingKey,
+        r: Option<&Raw>,
+    ) -> Result<(), Coded<SettingCode>> {
         self.inner.write(s, p, id, k, r)
     }
     fn clear(&self, s: &Scope, id: u64) -> Result<(), Coded<SettingCode>> {
@@ -131,7 +144,9 @@ impl SettingsStore for Flaky {
         self.inner.index()
     }
     fn update_index(&self, f: &mut IndexFn<'_>) -> Result<ProfileSet<u64>, Coded<SettingCode>> {
-        let n = self.rounds.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let n = self
+            .rounds
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         if n < self.fail_first {
             // Somebody else changed the index in between: the closure sees another one than the client expected.
             let mut other = ProfileSet::new(999);
@@ -143,7 +158,10 @@ impl SettingsStore for Flaky {
 }
 
 /// Creates the profile `name` the way the shell does: the new id is above everything issued so far.
-pub fn create(store: &dyn SettingsStore, name: &str) -> Result<ProfileSet<u64>, Coded<SettingCode>> {
+pub fn create(
+    store: &dyn SettingsStore,
+    name: &str,
+) -> Result<ProfileSet<u64>, Coded<SettingCode>> {
     let name = ProfileName::new(name).unwrap();
     store.update_index(&mut |set| {
         let id = *set.get(&ProfileRef::Base).unwrap() + 1;
@@ -157,7 +175,12 @@ pub fn create(store: &dyn SettingsStore, name: &str) -> Result<ProfileSet<u64>, 
 pub fn ids(set: &ProfileSet<u64>) -> Vec<(String, u64)> {
     let mut v: Vec<_> = set
         .names()
-        .map(|n| (n.as_str().to_owned(), *set.get(&ProfileRef::Named(n.clone())).unwrap()))
+        .map(|n| {
+            (
+                n.as_str().to_owned(),
+                *set.get(&ProfileRef::Named(n.clone())).unwrap(),
+            )
+        })
         .collect();
     v.sort();
     v

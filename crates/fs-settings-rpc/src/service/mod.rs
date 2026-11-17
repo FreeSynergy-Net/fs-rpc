@@ -97,7 +97,9 @@ pub(crate) fn err(c: &fs_settings::Coded<fs_settings::SettingCode>) -> capnp::Er
 }
 
 /// Runs a sync port call on the blocking pool.
-pub(crate) async fn blocking<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> Result<T, capnp::Error> {
+pub(crate) async fn blocking<T: Send + 'static>(
+    f: impl FnOnce() -> T + Send + 'static,
+) -> Result<T, capnp::Error> {
     tokio::task::spawn_blocking(f)
         .await
         .map_err(|e| fs_rpc::failed(format!("port call: {e}")))
@@ -146,7 +148,11 @@ where
         }
         results
             .get()
-            .set_admin(capnp_rpc::new_client(admin::AdminImpl::new(self.shared.clone(), instance, by)));
+            .set_admin(capnp_rpc::new_client(admin::AdminImpl::new(
+                self.shared.clone(),
+                instance,
+                by,
+            )));
         Ok(())
     }
 
