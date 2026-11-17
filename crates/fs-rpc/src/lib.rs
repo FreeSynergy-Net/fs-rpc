@@ -40,6 +40,7 @@ mod options;
 mod page;
 mod problem;
 mod pump;
+mod reconnect;
 mod serve;
 mod starter;
 mod stop;
@@ -71,6 +72,9 @@ pub use problem::{
     INVALID_REQUEST, MAX_DETAIL_BYTES, MAX_EXTENSIONS, MAX_KEY_BYTES, Problem, TOO_LARGE, capped,
     failed, invalid_request, is_unimplemented, keys as problem_keys, too_large, too_large_by,
     unsupported,
+};
+pub use reconnect::{
+    Backoff, ReconnectEnd, ReconnectTimes, Reconnected, Resync, Session, keep_connected,
 };
 pub use serve::{
     Connection, ReadLimits, connect, connect_with, run_until_signal, run_until_signal_as, serve,
