@@ -27,9 +27,9 @@ fn nobody() -> Stampd {
 /// KB16: the person's service has no administrator; the instance service answers; time and OS user are the SERVICE's.
 #[test]
 fn kb16_admin_only_on_instance_service_time_and_user_are_the_services() {
-    let d = dir();
+    let tmp = dir();
     let store = MemoryStore::new();
-    let person_only = person(&d.path().join("p.sock"), &store, false);
+    let person_only = person(&tmp.path().join("p.sock"), &store, false);
     let none = RpcInstanceAdmin::open(&person_only.socket, ADMIN, times());
     assert_eq!(
         code(
@@ -41,46 +41,52 @@ fn kb16_admin_only_on_instance_service_time_and_user_are_the_services() {
     );
 
     let istore = MemoryStore::new();
-    let s = istore.clone();
-    let server = serve_on(&d.path().join("i.sock"), move || {
+    let shared = istore.clone();
+    let server = serve_on(&tmp.path().join("i.sock"), move || {
         let mut svc = SettingsService::new(
-            Arc::new(s.clone()) as Arc<dyn SettingsStore>,
-            Some(Arc::new(s)),
+            Arc::new(shared.clone()) as Arc<dyn SettingsStore>,
+            Some(Arc::new(shared)),
         );
         svc.now = Arc::new(|| Utc::from_millis(THEN));
         svc.os_user = Arc::new(|| Some("service-says".to_owned()));
         svc
     });
     let admin = RpcInstanceAdmin::open(&server.socket, ADMIN, times());
-    let k = key("fs.look.style");
-    let v = Raw::Str("calm".into());
-    assert!(admin.write_instance(&k, Some(&v), &nobody()).unwrap());
+    let name = key("fs.look.style");
+    let value = Raw::Str("calm".into());
     assert!(
-        !admin.write_instance(&k, Some(&v), &nobody()).unwrap(),
+        admin
+            .write_instance(&name, Some(&value), &nobody())
+            .unwrap()
+    );
+    assert!(
+        !admin
+            .write_instance(&name, Some(&value), &nobody())
+            .unwrap(),
         "same value: no change"
     );
     let lock = |reason: &str| LockChange::Lock {
         value: Raw::Str("dark".into()),
         reason: reason.into(),
     };
-    let e = admin.write_lock(&k, &lock("  "), &nobody()).unwrap_err();
+    let e = admin.write_lock(&name, &lock("  "), &nobody()).unwrap_err();
     assert_eq!(
         (code(&e), text(&e, "key")),
         ("reason-missing", Some("fs.look.style"))
     );
     assert!(
         admin
-            .write_lock(&k, &lock("house style"), &nobody())
+            .write_lock(&name, &lock("house style"), &nobody())
             .unwrap()
     );
     let e = admin
-        .write_lock(&k, &LockChange::Unlock { reason: " ".into() }, &nobody())
+        .write_lock(&name, &LockChange::Unlock { reason: " ".into() }, &nobody())
         .unwrap_err();
     assert_eq!(code(&e), "reason-missing");
     assert!(
         admin
             .write_lock(
-                &k,
+                &name,
                 &LockChange::Unlock {
                     reason: "done".into()
                 },
@@ -97,7 +103,7 @@ fn kb16_admin_only_on_instance_service_time_and_user_are_the_services() {
         assert_eq!(
             e.at,
             Utc::from_millis(THEN),
-            "the service's clock, not the caller's"
+            "the service'shared clock, not the caller'shared"
         );
         assert_eq!(e.os_user.as_deref(), Some("service-says"));
         assert_eq!(e.by, ADMIN);
@@ -105,15 +111,19 @@ fn kb16_admin_only_on_instance_service_time_and_user_are_the_services() {
     assert_eq!(log[2].reason.as_deref(), Some("done"));
     let rest = admin.instance_log(Some(log[0].id), 10);
     assert_eq!(rest.len(), 2, "reads on after an id");
-    // The instance layer is readable over the wire, and a person's write on a locked key is refused.
-    admin.write_lock(&k, &lock("again"), &nobody()).unwrap();
+    // The instance layer is readable over the wire, and a person'shared write on a locked key is refused.
+    admin.write_lock(&name, &lock("again"), &nobody()).unwrap();
     let client = RpcSettingsStore::open(&server.socket, &program("tasks"), times());
     assert_eq!(
-        client.instance().locks.get(&k).map(|l| l.reason.as_str()),
+        client
+            .instance()
+            .locks
+            .get(&name)
+            .map(|l| l.reason.as_str()),
         Some("again")
     );
     assert_eq!(
-        client.instance().locks[&k].locked_at,
+        client.instance().locks[&name].locked_at,
         Utc::from_millis(THEN)
     );
     let e = client
@@ -121,7 +131,7 @@ fn kb16_admin_only_on_instance_service_time_and_user_are_the_services() {
             &fs_settings::Scope::General,
             fs_settings::Place::Profile,
             0,
-            &k,
+            &name,
             Some(&Raw::Int(1)),
         )
         .unwrap_err();

@@ -152,7 +152,9 @@ fn kb15_watch_hears_other_writers() {
     let (tx, rx) = mpsc::channel();
     let tx = std::sync::Mutex::new(tx);
     let watching = b
-        .watch(Arc::new(move |s| drop(tx.lock().unwrap().send(s))))
+        .watch(Arc::new(move |s| {
+            let _ = tx.lock().unwrap().send(s);
+        }))
         .unwrap();
     let k = key("fs.look.style");
     a.write(&Scope::General, Place::Profile, 0, &k, Some(&Raw::Int(1)))

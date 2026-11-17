@@ -140,5 +140,7 @@ fn kb17_never_from_a_runtime_thread() {
     let rt = tokio::runtime::Builder::new_current_thread()
         .build()
         .unwrap();
-    rt.block_on(async { drop(c.stamp()) });
+    rt.block_on(async {
+        let _ = c.stamp();
+    });
 }
