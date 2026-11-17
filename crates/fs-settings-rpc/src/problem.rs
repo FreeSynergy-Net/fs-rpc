@@ -49,3 +49,16 @@ pub fn from_problem(p: &Problem) -> Option<Coded<SettingCode>> {
     }
     Some(out)
 }
+
+/// What a problem of ANY type means to a settings client: a setting code; the explicit "not possible" of the provider rule
+/// (the person's service has no administrator) is `read-only{which=instance}`; anything else is `store-broken{cause=wire}`.
+#[must_use]
+pub(crate) fn meaning(p: &Problem) -> Coded<SettingCode> {
+    from_problem(p).unwrap_or_else(|| {
+        if p.is_unsupported() {
+            Coded::new(SettingCode::ReadOnly).with_text(fs_settings::keys::WHICH, "instance")
+        } else {
+            crate::wire::broken("problem-type")
+        }
+    })
+}

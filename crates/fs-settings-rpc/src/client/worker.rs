@@ -19,9 +19,8 @@ use fs_rpc::{Connection, Problem, connect};
 use fs_settings::{Coded, SettingCode, keys};
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
-use crate::problem::from_problem;
+use crate::problem::meaning;
 use crate::settings_capnp::{admin, settings_hub, store};
-use crate::wire::broken;
 
 /// Limits, from outside (rule "einstellbar statt fest").
 #[derive(Clone, Copy, Debug)]
@@ -134,7 +133,7 @@ impl Ctx {
 
     fn rpc_error(&self, e: &capnp::Error) -> Coded<SettingCode> {
         match Problem::from_error(e) {
-            Some(p) => from_problem(&p).unwrap_or_else(|| broken("problem-type")),
+            Some(p) => meaning(&p),
             None => self.unreachable(),
         }
     }
@@ -174,7 +173,7 @@ impl Ctx {
             Ok(Ok(t)) => Ok(t),
             Ok(Err(CallError::Coded(c))) => Err(c),
             Ok(Err(CallError::Rpc(e))) => match Problem::from_error(&e) {
-                Some(p) => Err(from_problem(&p).unwrap_or_else(|| broken("problem-type"))),
+                Some(p) => Err(meaning(&p)),
                 None => Err(lost(self)),
             },
             Err(_) => Err(lost(self)),
