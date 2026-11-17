@@ -10,6 +10,10 @@ use capnp_rpc::new_client;
 use fs_interfaces::common_capnp::blob;
 use fs_rpc::{RestartTimes, ServerIdentity, bind_socket, run_until_signal_as, serve};
 
+/// The server threads that `start_new` made: `wait_gone` joins the finished ones, so the process-wide stop flag of a server that ended
+/// is reset (its `Run` guard dropped) before the next test starts a server. A sleep would only hope for that.
+pub static SERVERS: Mutex<Vec<std::thread::JoinHandle<()>>> = Mutex::new(Vec::new());
+
 /// One server run at a time in this process (`stop_self` is a flag of the process).
 pub static ONE_AT_A_TIME: Mutex<()> = Mutex::new(());
 
@@ -79,12 +83,16 @@ pub fn connect_once(socket: &Path) -> bool {
 /// Starts the new server (with `Control`) in this process on its own thread.
 pub fn start_new(socket: &Path, version: &'static str) {
     let socket: PathBuf = socket.to_owned();
-    std::thread::spawn(move || {
+    let handle = std::thread::spawn(move || {
         let _ = run_until_signal_as(&socket, ServerIdentity::new("test", version), || async {
             let root: blob::Client = new_client(Seven);
             Ok(root.client)
         });
     });
+    SERVERS
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .push(handle);
 }
 
 /// Starts the first server and waits until it listens (else "no server" would be what the client finds).
@@ -127,6 +135,24 @@ pub async fn wait_gone(socket: &Path) {
             "server did not end"
         );
         tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    // The socket is gone, the server thread may still be ending: join it (bounded), so its stop request is forgotten.
+    let until = Instant::now() + Duration::from_secs(5);
+    loop {
+        let mut all = SERVERS
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let (done, running): (Vec<_>, Vec<_>) = all.drain(..).partition(|h| h.is_finished());
+        *all = running;
+        let left = all.len();
+        drop(all);
+        for handle in done {
+            let _ = handle.join();
+        }
+        if left == 0 || Instant::now() >= until {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
     }
 }
 
