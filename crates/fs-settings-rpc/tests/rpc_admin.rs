@@ -101,7 +101,7 @@ fn kb16_admin_only_on_instance_service_time_and_user_are_the_services() {
     let seen = spy.seen.lock().unwrap().clone();
     assert_eq!(
         seen.len(),
-        3,
+        4,
         "the refused writes never reached the port: {seen:?}"
     );
     for (user, at, by) in &seen {
