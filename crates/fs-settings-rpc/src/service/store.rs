@@ -76,6 +76,7 @@ where
         Ok(())
     }
 
+    #[allow(clippy::match_wildcard_for_single_variants)] // `Health` is non-exhaustive
     async fn health(
         self: Rc<Self>,
         _: store::HealthParams,
@@ -91,7 +92,6 @@ where
                     &list,
                 );
             }
-            #[allow(clippy::match_wildcard_for_single_variants)] // `Health` is non-exhaustive
             _ => out.set_ok(()),
         }
         Ok(())
