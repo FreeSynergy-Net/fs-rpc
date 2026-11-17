@@ -18,16 +18,14 @@ fn kb12_starts_without_service_and_connects_later() {
     let socket = d.path().join("s.sock");
     let c = RpcSettingsStore::open(&socket, &program("tasks"), times());
     let s0 = c.stamp();
-    match c.health() {
-        Health::Defaults(list) => {
-            assert_eq!(
-                list.iter().map(code).collect::<Vec<_>>(),
-                ["store-unreachable"]
-            );
-            assert_eq!(text(&list[0], "socket"), Some(socket.to_str().unwrap()));
-        }
-        other => panic!("{other:?}"),
-    }
+    let Health::Defaults(list) = c.health() else {
+        panic!("without a service the health must say so");
+    };
+    assert_eq!(
+        list.iter().map(code).collect::<Vec<_>>(),
+        ["store-unreachable"]
+    );
+    assert_eq!(text(&list[0], "socket"), Some(socket.to_str().unwrap()));
     assert_eq!(c.stamp(), c.stamp(), "stable while down");
     assert!(
         c.profile(&Scope::General, Place::Profile, 0)
