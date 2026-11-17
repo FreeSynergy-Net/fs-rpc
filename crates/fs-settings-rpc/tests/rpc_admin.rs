@@ -6,23 +6,15 @@ use std::path::Path;
 use std::sync::Arc;
 
 use fs_rpc::{Expected, SingleTimes};
-use fs_settings::{InstanceStore, LockChange, MemoryStore, Raw, SettingsStore, Stampd};
+use fs_settings::{InstanceStore, LockChange, MemoryStore, Raw, SettingsStore};
 use fs_settings_rpc::{
     RpcInstanceAdmin, RpcSettingsStore, SettingsService, ensure_service, find_service_program,
 };
 use fs_types::Utc;
-use support::{code, dir, key, person, program, serve_on, text, times};
+use support::{Spy, code, dir, key, nobody, person, program, serve_on, text, times};
 
 const ADMIN: &str = "https://example.net/people/admin";
 const THEN: i64 = 1_700_000_000_123;
-
-fn nobody() -> Stampd {
-    Stampd {
-        by: "x".into(),
-        at: Utc::from_millis(0),
-        os_user: None,
-    }
-}
 
 /// KB16: the person's service has no administrator; the instance service answers; time and OS user are the SERVICE's.
 #[test]
@@ -41,13 +33,10 @@ fn kb16_admin_only_on_instance_service_time_and_user_are_the_services() {
         "read-only"
     );
 
-    let istore = MemoryStore::new();
-    let shared = istore.clone();
+    let spy = Spy::new();
+    let shared = spy.clone();
     let server = serve_on(&tmp.path().join("i.sock"), move || {
-        let mut svc = SettingsService::new(
-            Arc::new(shared.clone()) as Arc<dyn SettingsStore>,
-            Some(Arc::new(shared)),
-        );
+        let mut svc = SettingsService::new(shared.clone(), Some(shared));
         svc.now = Arc::new(|| Utc::from_millis(THEN));
         svc.os_user = Arc::new(|| Some("service-says".to_owned()));
         svc
@@ -104,15 +93,26 @@ fn kb16_admin_only_on_instance_service_time_and_user_are_the_services() {
         assert_eq!(
             e.at,
             Utc::from_millis(THEN),
-            "the service'shared clock, not the caller'shared"
+            "the service's clock, not the caller's"
         );
-        assert_eq!(e.os_user.as_deref(), Some("service-says"));
         assert_eq!(e.by, ADMIN);
+    }
+    // The port saw the service's OS user and clock for every write, whatever the caller sent.
+    let seen = spy.seen.lock().unwrap().clone();
+    assert_eq!(
+        seen.len(),
+        3,
+        "the refused writes never reached the port: {seen:?}"
+    );
+    for (user, at, by) in &seen {
+        assert_eq!(user.as_deref(), Some("service-says"));
+        assert_eq!(*at, Utc::from_millis(THEN));
+        assert_eq!(by, ADMIN);
     }
     assert_eq!(log[2].reason.as_deref(), Some("done"));
     let rest = admin.instance_log(Some(log[0].id), 10);
     assert_eq!(rest.len(), 2, "reads on after an id");
-    // The instance layer is readable over the wire, and a person'shared write on a locked key is refused.
+    // The instance layer is readable over the wire, and a person's write on a locked key is refused.
     admin.write_lock(&name, &lock("again"), &nobody()).unwrap();
     let client = RpcSettingsStore::open(&server.socket, &program("tasks"), times());
     assert_eq!(

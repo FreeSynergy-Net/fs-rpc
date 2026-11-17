@@ -9,14 +9,13 @@ repository.workspace = true
 
 [dependencies]
 fs-rpc = { path = "../fs-rpc" }
-# PROVISIONAL (probe): path to a LOCAL stand-in of the port delta B1 (not pushed anywhere): the head 6c05ece of
-# `unreviewed/probe-settingsstore-v1` is marked WIP/not built and has no `os_user` in `Stampd`. Then: git = fs-components, rev = <head B1>
-# ([LOCK-STRIKT]: branch/path pins in the probe only, tags before release).
-fs-settings = { path = "../../../settings-b1/crates/fs-settings" }
+# PROVISIONAL (probe): git pin on the head of the branch `unreviewed/probe-settingsstore-v1` (B1); branch/rev pins are allowed in the
+# probe only ([LOCK-STRIKT]), the tag replaces them before release.
+fs-settings = { git = "https://github.com/FreeSynergy/fs-components", rev = "eda35b36e3a6021615aba925cf7c0c7da64a0969" }
 fs-types = { git = "https://github.com/FreeSynergy/fs-types", tag = "v0.0.1" }
-# PROVISIONAL: the contract `settings` (schema/settings.capnp, draft 0.2) is compiled in this crate until fs-interfaces 0.0.28
-# carries it (B0, `unreviewed/interfaces-settings`); `common.capnp` comes from the v0.0.27 pin of fs-rpc.
-fs-interfaces = { git = "https://github.com/FreeSynergy/fs-interfaces", tag = "v0.0.27" }
+# PROVISIONAL (probe): B0, the branch `unreviewed/interfaces-settings` carries `settings_capnp` (contract draft 0.2); one source for the
+# whole workspace (ADR 0092); the tag 0.0.28 replaces the rev.
+fs-interfaces = { git = "https://github.com/FreeSynergy/fs-interfaces", rev = "08f0a93be4344a79d73058d81250015354c76ebf" }
 capnp = "0.27"
 capnp-rpc = "0.27"
 tokio = { version = "1", features = ["rt", "net", "sync", "macros", "time"] }

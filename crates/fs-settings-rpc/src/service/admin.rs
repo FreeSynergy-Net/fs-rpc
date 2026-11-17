@@ -2,12 +2,14 @@
 //!
 //! Pattern: Adapter (contract -> port `InstanceStore`).
 
+use crate::Coded;
 use std::rc::Rc;
 use std::sync::Arc;
 
 use fs_settings::{
-    Coded, InstanceStore, LockChange, SettingCode, SettingKey, SettingsStore, Stampd, keys,
+    InstanceStore, LockChange, SettingCode, SettingKey, SettingsStore, Stampd, keys,
 };
+use fs_types::Reference;
 
 use super::{Shared, blocking, err};
 use crate::settings_capnp::admin;
@@ -19,11 +21,11 @@ pub const MAX_LOG: u32 = 200;
 pub(crate) struct AdminImpl<S: ?Sized, I: ?Sized> {
     shared: Rc<Shared<S, I>>,
     instance: Arc<I>,
-    by: String,
+    by: Reference,
 }
 
 impl<S: ?Sized, I: ?Sized> AdminImpl<S, I> {
-    pub(crate) fn new(shared: Rc<Shared<S, I>>, instance: Arc<I>, by: String) -> Self {
+    pub(crate) fn new(shared: Rc<Shared<S, I>>, instance: Arc<I>, by: Reference) -> Self {
         Self {
             shared,
             instance,
@@ -36,7 +38,6 @@ impl<S: ?Sized, I: ?Sized> AdminImpl<S, I> {
         Stampd {
             by: self.by.clone(),
             at: (self.shared.svc.now)(),
-            os_user: (self.shared.svc.os_user)(),
         }
     }
 }
@@ -56,7 +57,8 @@ where
         f: impl FnOnce(&I, &Stampd) -> Result<bool, Coded<SettingCode>> + Send + 'static,
     ) -> Result<bool, capnp::Error> {
         let (port, who) = (self.instance.clone(), self.who());
-        let changed = blocking(move || f(port.as_ref(), &who))
+        let os_user = (self.shared.svc.os_user)();
+        let changed = blocking(move || crate::caller::scoped(os_user, || f(port.as_ref(), &who)))
             .await?
             .map_err(|c| err(&c))?;
         if changed {

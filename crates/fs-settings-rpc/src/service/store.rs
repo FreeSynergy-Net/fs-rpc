@@ -2,11 +2,12 @@
 //!
 //! Pattern: Adapter (contract -> port `SettingsStore`) + Guard (the scope check).
 
+use crate::Coded;
 use std::rc::Rc;
 
 use fs_interfaces::common_capnp::subscription;
 use fs_settings::{
-    Coded, InstanceStore, ProfileCode, ProfileSet, Scope, SettingCode, SettingKey, SettingsStore,
+    InstanceStore, ProfileCode, ProfileSet, Scope, SettingCode, SettingKey, SettingsStore,
     Snapshot, keys,
 };
 

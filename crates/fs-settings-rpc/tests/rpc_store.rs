@@ -181,11 +181,7 @@ fn locked_key_is_refused_over_the_wire() {
     let store = MemoryStore::new();
     let server = person(&d.path().join("s.sock"), &store, true);
     let k = key("fs.look.style");
-    let who = fs_settings::Stampd {
-        by: "https://example.net/admin".into(),
-        at: fs_types::Utc::from_millis(1),
-        os_user: None,
-    };
+    let who = support::nobody();
     store
         .write_lock(
             &k,

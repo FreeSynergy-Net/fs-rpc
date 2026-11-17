@@ -1,8 +1,9 @@
 //! What the client knows between two stamps. Pattern: Value object with the one rule "a new stamp drops everything".
 
+use crate::Coded;
 use std::collections::HashMap;
 
-use fs_settings::{Coded, Instance, ProfileSet, Scope, SettingCode, Snapshot, Stamp};
+use fs_settings::{Instance, ProfileSet, Scope, SettingCode, Snapshot, Stamp};
 
 /// Where the service stands, as far as this client saw.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]

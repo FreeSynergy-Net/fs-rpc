@@ -4,9 +4,10 @@
 //!
 //! Pattern: Adapter (code <-> wire problem), one mapping for both directions.
 
+use crate::Coded;
 use fs_rpc::Problem;
+use fs_settings::SettingCode;
 use fs_settings::coded_stub::{ErrorCode, Param, message_key};
-use fs_settings::{Coded, SettingCode};
 
 /// The parameter keys whose values are numbers.
 const NUMBERS: [&str; 3] = ["line", "found", "known"];

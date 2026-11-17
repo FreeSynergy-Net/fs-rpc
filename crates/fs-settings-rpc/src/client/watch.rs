@@ -3,11 +3,12 @@
 //! Pattern: Observer. The listener lives on the worker thread; dropping [`Watching`] lets go of the subscription (and the response
 //! that holds it), which ends it on the service's side.
 
+use crate::Coded;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use fs_settings::{Coded, SettingCode, Stamp};
+use fs_settings::{SettingCode, Stamp};
 
 use super::RpcSettingsStore;
 use super::worker::{CallError, Handle};

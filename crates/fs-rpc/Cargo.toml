@@ -10,7 +10,7 @@ repository.workspace = true
 [dependencies]
 # Pins by tag, each straight from the owner's repository (ADR 0092, ADR 0093): fs-types is no longer reached through fs-interfaces.
 fs-types = { git = "https://github.com/FreeSynergy/fs-types", tag = "v0.0.1" }
-fs-interfaces = { git = "https://github.com/FreeSynergy/fs-interfaces", tag = "v0.0.27" }
+fs-interfaces = { git = "https://github.com/FreeSynergy/fs-interfaces", rev = "08f0a93be4344a79d73058d81250015354c76ebf" } # PROVISIONAL (probe): one source with fs-settings-rpc; tag after the cascade
 fs-objects = { git = "https://github.com/FreeSynergy/fs-objects", tag = "v0.0.6" }
 capnp = "0.27"
 capnp-rpc = "0.27"

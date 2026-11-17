@@ -2,7 +2,8 @@
 //!
 //! Pattern: Adapter (both directions), as `wire`.
 
-use fs_settings::{Coded, InstanceLogEntry, Lock, Raw, SettingCode, SettingKey};
+use crate::Coded;
+use fs_settings::{InstanceLogEntry, Lock, Raw, SettingCode, SettingKey};
 use fs_types::{ObjectId, Utc};
 
 use crate::settings_capnp::{self as w, raw};

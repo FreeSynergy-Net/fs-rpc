@@ -2,6 +2,7 @@
 //!
 //! Pattern: Proxy (a lost connection is mended on the next call, not before).
 
+use crate::Coded;
 use std::any::Any;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -10,7 +11,7 @@ use std::rc::Rc;
 use std::time::Instant;
 
 use fs_rpc::{Problem, connect};
-use fs_settings::{Coded, SettingCode, keys};
+use fs_settings::{SettingCode, keys};
 
 use super::worker::{CallError, ClientTimes, Link, Pinned, Role};
 use crate::problem::meaning;

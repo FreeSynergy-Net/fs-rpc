@@ -3,11 +3,13 @@
 //! Pattern: Adapter. Time and OS user are set by the service, never by the caller: the `Stampd` of the port is not sent (only
 //! `by`, chosen at connection). Reading goes through `manage()`; writing the person's values is refused here (`read-only{which=instance}`).
 
+use crate::Coded;
+use crate::IndexFn;
 use std::path::Path;
 
 use fs_settings::{
-    Coded, Health, IndexFn, Instance, InstanceLogEntry, InstanceStore, LockChange, Place,
-    ProfileSet, Raw, Scope, SettingCode, SettingKey, SettingsStore, Snapshot, Stamp, Stampd, keys,
+    Health, Instance, InstanceLogEntry, InstanceStore, LockChange, Place, ProfileSet, Raw, Scope,
+    SettingCode, SettingKey, SettingsStore, Snapshot, Stamp, Stampd, keys,
 };
 use fs_types::ObjectId;
 

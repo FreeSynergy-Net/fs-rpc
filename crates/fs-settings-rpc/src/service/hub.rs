@@ -2,6 +2,7 @@
 //!
 //! Pattern: Facade (see the module above).
 
+use crate::Coded;
 use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -88,7 +89,7 @@ struct Hub<S: ?Sized, I: ?Sized> {
 }
 
 /// A `Coded` as the RPC error a client reads back.
-pub(crate) fn err(c: &fs_settings::Coded<fs_settings::SettingCode>) -> capnp::Error {
+pub(crate) fn err(c: &crate::Coded<fs_settings::SettingCode>) -> capnp::Error {
     to_problem(c).into_error()
 }
 
@@ -140,9 +141,8 @@ where
                 "this is the person's service; the administrator's commands go to the instance service",
             )));
         };
-        if by.is_empty() {
-            return Err(fs_rpc::invalid_request("by (the actor) is mandatory"));
-        }
+        let by = <fs_types::Reference as fs_types::BasicValue>::parse(&by)
+            .map_err(|_| fs_rpc::invalid_request("by (the actor) is mandatory and an IRI"))?;
         results
             .get()
             .set_admin(capnp_rpc::new_client(admin::AdminImpl::new(

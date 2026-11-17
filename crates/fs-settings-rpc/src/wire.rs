@@ -3,13 +3,14 @@
 //! Pattern: Adapter (both directions). A wire message that does not fit what the port knows is a `Coded` error
 //! (`store-broken{cause=wire}`), never a panic and never a silent default.
 
+use crate::Coded;
 use std::collections::BTreeMap;
 
 use fs_interfaces::common_capnp::problem;
 use fs_rpc::Problem;
 use fs_settings::{
-    Coded, Place, ProfileName, ProfileRef, ProfileSet, ProgramName, Raw, Scope, SettingCode,
-    SettingKey, Snapshot, keys,
+    Place, ProfileName, ProfileRef, ProfileSet, ProgramName, Raw, Scope, SettingCode, SettingKey,
+    Snapshot, keys,
 };
 
 use crate::problem::{from_problem, to_problem};

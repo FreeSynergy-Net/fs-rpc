@@ -3,12 +3,14 @@
 //! Pattern: Proxy. `update_index` is compare-and-set: read the index, let the closure change a copy, `replaceIndex(expected,
 //! wanted)`; the service answers `index-changed` when somebody else changed it in between, then the next round (at most 3).
 
+use crate::Coded;
+use crate::IndexFn;
 use std::collections::BTreeMap;
 use std::sync::PoisonError;
 
 use fs_settings::{
-    Coded, Health, IndexFn, Instance, Place, ProfileCode, ProfileSet, Raw, Scope, SettingCode,
-    SettingKey, SettingsStore, Snapshot, Stamp, keys,
+    Health, Instance, Place, ProfileCode, ProfileSet, Raw, Scope, SettingCode, SettingKey,
+    SettingsStore, Snapshot, Stamp, keys,
 };
 
 use super::RpcSettingsStore;

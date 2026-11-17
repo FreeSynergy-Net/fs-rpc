@@ -5,12 +5,13 @@
 //! folder of the search path must not become the server). No lease (fs-rpc has none, starter O3): the service runs until
 //! `Control.stop` or logout. A failure is `store-unreachable{socket, cause}`; the program goes on with the defaults.
 
+use crate::Coded;
 use std::path::{Path, PathBuf};
 
 use std::ffi::OsStr;
 
 use fs_rpc::{CommandStarter, Expected, ServerStarter, SingleError, SingleTimes, ensure_single};
-use fs_settings::{Coded, SettingCode, keys};
+use fs_settings::{SettingCode, keys};
 
 use crate::settings_capnp::settings_hub;
 

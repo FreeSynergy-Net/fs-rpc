@@ -5,6 +5,7 @@
 //! Why not `fs_rpc::client::Worker`: it needs a connection at start and the provider-rule `Capabilities`; the store must start
 //! WITHOUT a service and say `store-unreachable` (PLAN 5.4 (2)).
 
+use crate::Coded;
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::rc::Rc;
@@ -13,7 +14,7 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use fs_rpc::Connection;
-use fs_settings::{Coded, SettingCode};
+use fs_settings::SettingCode;
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
 use super::ctx::{Ctx, unreachable_at};
