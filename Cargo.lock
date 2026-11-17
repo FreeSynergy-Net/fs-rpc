@@ -630,6 +630,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "fs-settings"
+version = "0.0.29"
+source = "git+https://github.com/FreeSynergy/fs-components?rev=6c05ecebba1963fac3f09b676d9764c532414204#6c05ecebba1963fac3f09b676d9764c532414204"
+dependencies = [
+ "fs-types",
+]
+
+[[package]]
+name = "fs-settings-rpc"
+version = "0.0.2"
+dependencies = [
+ "capnp",
+ "capnp-rpc",
+ "fs-interfaces",
+ "fs-rpc",
+ "fs-settings",
+ "fs-types",
+ "futures",
+ "rustix 1.1.6",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "fs-starter"
 version = "0.0.2"
 dependencies = [
