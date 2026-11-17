@@ -117,7 +117,8 @@ impl From<DataDirError> for io::Error {
     }
 }
 
-/// The facts about a folder that the rule needs.
+/// The facts about a folder that the rule needs (Unix: Windows has no modes, its folder is protected by an ACL).
+#[cfg(unix)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Meta {
     /// It is a directory.
@@ -131,6 +132,7 @@ pub struct Meta {
 }
 
 /// What to do with a folder.
+#[cfg(unix)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Action {
     /// Leave it: it is private already.
@@ -142,6 +144,7 @@ pub enum Action {
 }
 
 /// The rule: only a folder of `me` that is no link is changed, and only by taking the group and other bits away.
+#[cfg(unix)]
 #[must_use]
 pub fn decide(meta: &Meta, me: u32) -> Action {
     if meta.is_symlink {
@@ -157,6 +160,6 @@ pub fn decide(meta: &Meta, me: u32) -> Action {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 #[path = "datadir_tests.rs"]
 mod tests;

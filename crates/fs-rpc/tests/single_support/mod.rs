@@ -6,7 +6,13 @@ use std::process::{Child, Command, Stdio};
 use std::time::Duration;
 use std::time::Instant;
 
-use fs_rpc::{Heartbeat, Saved, bind_socket};
+use std::path::PathBuf;
+
+use fs_interfaces::common_capnp::blob;
+use fs_rpc::{
+    Expected, HangTimes, Heartbeat, RestartTimes, Saved, SingleError, SingleTimes, bind_socket,
+    ensure_single, stop_server,
+};
 
 use crate::handshake_support::*;
 
@@ -102,4 +108,75 @@ pub fn spawn_child(exe: &Path, socket: &Path, mode: &str, marker: Option<&Path>)
         std::thread::sleep(Duration::from_millis(20));
     }
     guard
+}
+
+pub fn times() -> SingleTimes {
+    let ms = |n: u64| Duration::from_millis(n) * scale();
+    SingleTimes {
+        handshake: RestartTimes {
+            call: ms(300),
+            stop: ms(2000),
+            start: ms(3000),
+        },
+        hang: HangTimes {
+            ping: ms(100),
+            no_beat: ms(500),
+            no_progress: ms(700),
+            no_tick: ms(500),
+        },
+        save: ms(2000),
+        term: ms(1500),
+        kill: ms(1500),
+        overall: ms(20_000),
+    }
+}
+
+pub fn expected() -> Expected {
+    Expected::new("0.0.3").with_program("test")
+}
+
+/// The program's starter: the new server runs in this process (what `fs-x serve` does).
+pub fn starter(socket: &Path) -> impl Fn() -> std::io::Result<()> {
+    let socket: PathBuf = socket.to_owned();
+    move || {
+        start_new(&socket, "0.0.3");
+        Ok(())
+    }
+}
+
+/// Connect through `ensure_single`; on success the connection is used once (the server answers), then the server is stopped, all inside
+/// one runtime: the connection lives on the runtime that made it. Answers who was taken over.
+pub fn run(
+    socket: &Path,
+    t: &SingleTimes,
+    exe: Option<&Path>,
+) -> Result<Option<fs_rpc::TakenOver>, SingleError> {
+    let starter = starter(socket);
+    let rt = runtime();
+    tokio::task::LocalSet::new().block_on(&rt, async {
+        let single = ensure_single::<blob::Client>(socket, &expected(), &starter, t, exe).await?;
+        assert_eq!(seven(&single.connection.client).await, 7);
+        let taken = single.taken_over.clone();
+        drop(single);
+        stop_server(socket).await.unwrap();
+        wait_gone(socket).await;
+        Ok(taken)
+    })
+}
+
+pub fn alive(child: &mut Guard) -> bool {
+    child.0.try_wait().unwrap().is_none()
+}
+
+pub fn setup(mode: &str, marker: bool) -> (tempfile::TempDir, PathBuf, Guard, PathBuf) {
+    let dir = tempfile::tempdir().unwrap();
+    let socket = dir.path().join("s.sock");
+    let marker_path = dir.path().join("saved.marker");
+    let child = spawn_child(
+        &std::env::current_exe().unwrap(),
+        &socket,
+        mode,
+        marker.then_some(marker_path.as_path()),
+    );
+    (dir, socket, child, marker_path)
 }

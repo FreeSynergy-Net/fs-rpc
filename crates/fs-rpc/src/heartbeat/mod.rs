@@ -15,6 +15,7 @@ mod types;
 mod watch;
 
 pub use client::{ask_beat, ask_save};
+pub(crate) use client::{ask_beat_from, ask_save_from};
 pub use server::Heartbeat;
 pub use watch::{HangTimes, Hung, Verdict, Watch};
 

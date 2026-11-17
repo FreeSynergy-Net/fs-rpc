@@ -3,7 +3,7 @@
 //! Pattern: Table tests with a clock that is an argument. Mutants (each turns its test red): M1 `Busy` is judged by the answer
 //! alone, never by the progress (a busy program that stands still is never hanging); M2 `Busy` with moving progress is hanging;
 //! M3 no answer is never hanging; M4 no answer is hanging at once (no `no_beat` limit); M5 `Alive` while the contract is silent
-//! is never hanging; M7 the tick age is ignored (a blocked work thread with a live heartbeat counts as alive); M8 `Busy` is judged by the tick; M6 the progress time is reset by every busy answer, also when the number is the same.
+//! is never hanging; M9 the watch window is dropped (a long-running program that is silent for 2 s counts as hanging at once); M7 the tick age is ignored (a blocked work thread with a live heartbeat counts as alive); M8 `Busy` is judged by the tick; M6 the progress time is reset by every busy answer, also when the number is the same.
 
 use std::time::{Duration, Instant};
 
@@ -116,12 +116,41 @@ fn an_answer_resets_the_beat_limit() {
 fn a_heartbeat_that_answers_while_the_work_thread_stands_still_is_hanging_not_alive() {
     let t0 = Instant::now();
     let mut w = Watch::new(times(), t0);
-    assert_eq!(w.observe(at(t0, 2), Some(&alive(Some(1)))), Verdict::Alive);
-    assert_eq!(w.observe(at(t0, 4), Some(&alive(Some(9)))), Verdict::Alive);
     assert_eq!(
-        w.observe(at(t0, 6), Some(&alive(Some(10)))),
-        Verdict::Hung(Hung::NoTick)
+        w.observe(at(t0, 2), Some(&alive(Some(100)))),
+        Verdict::Alive
     );
+    assert_eq!(
+        w.observe(at(t0, 9), Some(&alive(Some(107)))),
+        Verdict::Alive
+    );
+    assert_eq!(
+        w.observe(at(t0, 10), Some(&alive(Some(108)))),
+        Verdict::Hung(Hung::NoTick),
+        "the tick stood still for the whole watch of 10 s"
+    );
+}
+
+#[test]
+fn a_silent_contract_for_two_seconds_never_ends_anything_however_old_the_program_is() {
+    // A program that never ticks and has run for an hour: its tick age is huge at the first ping. The contract was silent for 2 s
+    // (the handshake limit): that only starts the watch; hanging needs the tick to stand still for the whole `no_tick`.
+    let t0 = Instant::now();
+    let mut w = Watch::new(times(), t0);
+    for s in [2, 4, 6, 8] {
+        assert_eq!(
+            w.observe(at(t0, s), Some(&alive(Some(3600)))),
+            Verdict::Alive,
+            "{s} s"
+        );
+    }
+    // A tick that moves during the watch is health, whatever its age was before.
+    let mut w = Watch::new(times(), t0);
+    assert_eq!(
+        w.observe(at(t0, 2), Some(&alive(Some(3600)))),
+        Verdict::Alive
+    );
+    assert_eq!(w.observe(at(t0, 12), Some(&alive(Some(1)))), Verdict::Alive);
 }
 
 #[test]

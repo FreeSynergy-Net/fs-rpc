@@ -171,6 +171,8 @@ pub(super) fn remove_if_same(socket: &Path, ino: Option<u64>) -> bool {
 /// The real system.
 pub(super) struct Real<'a> {
     pub socket: &'a Path,
+    /// The process that listens on the socket: the only one whose heartbeat is believed.
+    pub pid: i32,
     pub call: Duration,
     pub save: Duration,
 }
@@ -207,13 +209,15 @@ impl Env for Real<'_> {
     }
 
     async fn save(&self) -> Saved {
-        crate::ask_save(self.socket, self.save)
+        crate::heartbeat::ask_save_from(self.socket, self.save, Some(self.pid))
             .await
             .unwrap_or(Saved::Nothing)
     }
 
     async fn beat(&self) -> Option<Pulse> {
-        crate::ask_beat(self.socket, self.call).await.ok()
+        crate::heartbeat::ask_beat_from(self.socket, self.call, Some(self.pid))
+            .await
+            .ok()
     }
 
     fn log(&self, line: &str) {

@@ -94,7 +94,11 @@ fn the_heartbeat_answers_while_the_work_thread_is_blocked_and_the_tick_age_shows
         no_progress: Duration::from_secs(90),
         no_tick: Duration::from_millis(300),
     };
-    let mut watch = Watch::new(times, Instant::now());
+    // The watch has lasted longer than `no_tick` (the work thread stood still for all of it).
+    let mut watch = Watch::new(
+        times,
+        Instant::now().checked_sub(Duration::from_secs(1)).unwrap(),
+    );
     assert_eq!(
         watch.observe(Instant::now(), Some(&pulse)),
         Verdict::Hung(Hung::NoTick)

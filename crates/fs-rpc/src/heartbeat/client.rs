@@ -16,10 +16,25 @@ fn timed_out() -> io::Error {
     io::Error::new(io::ErrorKind::TimedOut, "the heartbeat did not answer")
 }
 
-async fn exchange(socket: &Path, line: &str, limit: Duration) -> io::Result<String> {
+async fn exchange(
+    socket: &Path,
+    line: &str,
+    limit: Duration,
+    expect_pid: Option<i32>,
+) -> io::Result<String> {
     let work = async {
         let stream = UnixStream::connect(companion_path(socket, "beat")).await?;
-        if stream.peer_cred()?.uid() != rustix::process::geteuid().as_raw() {
+        let cred = stream.peer_cred()?;
+        if let Some(pid) = expect_pid
+            && cred.pid() != Some(pid)
+        {
+            // A heartbeat of another process (or a leftover file) is no channel of this server.
+            return Err(io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "the heartbeat belongs to another process",
+            ));
+        }
+        if cred.uid() != rustix::process::geteuid().as_raw() {
             return Err(io::Error::new(
                 io::ErrorKind::PermissionDenied,
                 "served by another user",
@@ -41,7 +56,17 @@ async fn exchange(socket: &Path, line: &str, limit: Duration) -> io::Result<Stri
 /// # Errors
 /// No heartbeat there (`NotFound`, `ConnectionRefused`), no answer in `limit` (`TimedOut`), or an answer that is none.
 pub async fn ask_beat(socket: &Path, limit: Duration) -> io::Result<Pulse> {
-    let answer = exchange(socket, "ping", limit).await?;
+    ask_beat_from(socket, limit, None).await
+}
+
+/// [`ask_beat`], believing only the process `pid` (the one that listens on the server's socket): a heartbeat answered by another
+/// process is an error. `ensure_single` uses it, so a leftover file or a neighbour's heartbeat is never taken for a channel.
+pub(crate) async fn ask_beat_from(
+    socket: &Path,
+    limit: Duration,
+    pid: Option<i32>,
+) -> io::Result<Pulse> {
+    let answer = exchange(socket, "ping", limit, pid).await?;
     let bad = || io::Error::new(io::ErrorKind::InvalidData, "not a heartbeat answer");
     let age = |t: &str| -> io::Result<Option<Duration>> {
         if t == "-" {
@@ -71,7 +96,16 @@ pub async fn ask_beat(socket: &Path, limit: Duration) -> io::Result<Pulse> {
 /// # Errors
 /// As for [`ask_beat`].
 pub async fn ask_save(socket: &Path, limit: Duration) -> io::Result<Saved> {
-    match exchange(socket, "save", limit).await?.as_str() {
+    ask_save_from(socket, limit, None).await
+}
+
+/// [`ask_save`] with the process check of [`ask_beat_from`].
+pub(crate) async fn ask_save_from(
+    socket: &Path,
+    limit: Duration,
+    pid: Option<i32>,
+) -> io::Result<Saved> {
+    match exchange(socket, "save", limit, pid).await?.as_str() {
         "saved" => Ok(Saved::Saved),
         "nothing" => Ok(Saved::Nothing),
         "failed" => Ok(Saved::Failed),

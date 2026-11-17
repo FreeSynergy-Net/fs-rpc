@@ -5,7 +5,7 @@
 //! Active object (the program's `Heartbeat` tells "busy" from "hanging"). Generalised from fs-tasks 0.0.10 for every program.
 //!
 //! A server that holds the socket and does not answer `Control.version` within the call limit is looked at. Hanging means: no
-//! heartbeat for 10 s, or no progress for 30 s (a program that says "busy" with a number that moves is never ended). Only a
+//! heartbeat for 10 s, or the work thread's tick stands still for 10 s without `busy`, or no progress for 90 s (a program that says "busy" with a number that moves is never ended). Only a
 //! process that is provably this program of this user is ended: the process is found through the socket (`SO_PEERCRED`), its user
 //! and program file (`/proc/<pid>/exe`: the same file, or the same real path after an update; the name alone never counts) and
 //! its start time are checked before and after a `pidfd` is taken; it is asked to save first (the heartbeat's `save`), then

@@ -13,8 +13,8 @@ use super::ending::{Real, Target, Waits, end_process};
 use super::error::{SingleError, Stuck, TakenOver};
 use super::procfs;
 use super::rule::{Decision, decide};
-use crate::ask_beat;
 use crate::handshake::{ask, is_absent};
+use crate::heartbeat::ask_beat_from;
 use crate::heartbeat::{Verdict, Watch};
 
 /// What `free_socket` found.
@@ -92,8 +92,9 @@ pub(super) async fn free_socket(
     let socket_ino = std::fs::symlink_metadata(socket)
         .ok()
         .map(|m| std::os::unix::fs::MetadataExt::ino(&m));
-    // Does the program have a heartbeat channel at all? Without one it is never killed (only asked to end, then reported).
-    let channel = crate::companion_path(socket, "beat").exists();
+    // A heartbeat channel is PROVEN, not assumed from a file: it must answer in this watch, and the process that answers must be the
+    // one that listens on the socket (`SO_PEERCRED`). Without that proof nothing is signalled, only reported.
+    let mut channel = false;
     let mut watch = Watch::new(times.hang, Instant::now());
     loop {
         match ask::<capnp::capability::Client>(socket, call).await {
@@ -101,7 +102,8 @@ pub(super) async fn free_socket(
             Err(e) if is_absent(&e) => return Ok(Freed::Free(None)),
             Err(_) => {}
         }
-        let pulse = ask_beat(socket, call).await.ok();
+        let pulse = ask_beat_from(socket, call, Some(pid)).await.ok();
+        channel |= pulse.is_some();
         match watch.observe(Instant::now(), pulse.as_ref()) {
             Verdict::Hung(_) => break,
             Verdict::Busy { what, progress } => {
@@ -113,6 +115,7 @@ pub(super) async fn free_socket(
     }
     let real = Real {
         socket,
+        pid,
         call,
         save: times.save,
     };

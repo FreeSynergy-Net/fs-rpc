@@ -36,7 +36,13 @@ pub(super) fn image_of(link: &Path) -> Option<Image> {
     Some(Image {
         dev: meta.dev(),
         ino: meta.ino(),
-        path: path.strip_suffix(" (deleted)").unwrap_or(&path).to_owned(),
+        // ` (deleted)` is the kernel's word for a file that is gone (no link left). A file that merely has that text in its name
+        // (a copy) is not cut: its real name is the name.
+        path: if meta.nlink() == 0 {
+            path.strip_suffix(" (deleted)").unwrap_or(&path).to_owned()
+        } else {
+            path.into_owned()
+        },
     })
 }
 

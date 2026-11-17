@@ -98,7 +98,11 @@ impl Watch {
             Some((Beat::Alive, tick_age)) => {
                 self.last_beat = now;
                 self.progress = None;
-                if tick_age.is_some_and(|age| age >= self.times.no_tick) {
+                // The tick must have stood still for the whole watch: the watch itself lasted `no_tick` and the last tick is older than that.
+                // So the contract falling silent for 2 s never ends anything, however old the program is.
+                if since(self.began) >= self.times.no_tick
+                    && tick_age.is_some_and(|age| age >= self.times.no_tick)
+                {
                     Verdict::Hung(Hung::NoTick)
                 } else if since(self.began) >= self.times.no_progress {
                     Verdict::Hung(Hung::NoProgress)
