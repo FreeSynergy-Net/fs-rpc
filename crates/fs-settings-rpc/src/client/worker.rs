@@ -327,10 +327,10 @@ impl Worker {
 impl Drop for Worker {
     fn drop(&mut self) {
         drop(self.jobs.take());
-        if let Some(t) = self.thread.take() {
-            if t.thread().id() != std::thread::current().id() {
-                let _ = t.join();
-            }
+        if let Some(t) = self.thread.take()
+            && t.thread().id() != std::thread::current().id()
+        {
+            let _ = t.join();
         }
     }
 }

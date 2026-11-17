@@ -81,19 +81,17 @@ impl InstanceStore for RpcInstanceAdmin {
                 let admin = l
                     .admin
                     .ok_or_else(|| capnp::Error::failed("no admin".into()))?;
-                Ok::<bool, CallError>(match raw {
-                    Some(r) => {
-                        let mut req = admin.set_request();
-                        req.get().set_key(key.as_str());
-                        write_raw(req.get().init_value(), &r);
-                        req.send().promise.await?.get()?.get_changed()
-                    }
-                    None => {
-                        let mut req = admin.clear_request();
-                        req.get().set_key(key.as_str());
-                        req.send().promise.await?.get()?.get_changed()
-                    }
-                })
+                let changed = if let Some(r) = raw {
+                    let mut req = admin.set_request();
+                    req.get().set_key(key.as_str());
+                    write_raw(req.get().init_value(), &r);
+                    req.send().promise.await?.get()?.get_changed()
+                } else {
+                    let mut req = admin.clear_request();
+                    req.get().set_key(key.as_str());
+                    req.send().promise.await?.get()?.get_changed()
+                };
+                Ok::<bool, CallError>(changed)
             })
         })
     }

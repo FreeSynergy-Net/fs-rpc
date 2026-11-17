@@ -17,6 +17,7 @@ static NEXT: AtomicU64 = AtomicU64::new(1);
 
 struct Listener(Arc<dyn Fn(Stamp) + Send + Sync>);
 
+#[allow(clippy::unused_async_trait_impl)] // the generated server trait is async
 impl listener::Server for Listener {
     async fn changed(self: Rc<Self>, params: listener::ChangedParams) -> Result<(), capnp::Error> {
         (self.0)(Stamp(params.get()?.get_stamp()));

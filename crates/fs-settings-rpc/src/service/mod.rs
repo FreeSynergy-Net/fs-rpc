@@ -54,6 +54,7 @@ fn system_now() -> Utc {
 }
 
 #[cfg(unix)]
+#[allow(clippy::unnecessary_wraps)] // the same signature as on other systems, where there is no answer
 fn own_os_user() -> Option<String> {
     Some(rustix::process::getuid().as_raw().to_string())
 }
@@ -105,6 +106,7 @@ pub(crate) async fn blocking<T: Send + 'static>(
         .map_err(|e| fs_rpc::failed(format!("port call: {e}")))
 }
 
+#[allow(clippy::unused_async_trait_impl)] // the generated server trait is async
 impl<S, I> settings_hub::Server for Hub<S, I>
 where
     S: SettingsStore + ?Sized + 'static,

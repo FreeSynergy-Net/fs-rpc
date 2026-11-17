@@ -1,6 +1,6 @@
 //! `ensure_service`: one settings service per person.
 //!
-//! Pattern: Facade over fs-rpc `ensure_single` (the same rule as the starter's `SingleGate`, starter_v1). The program file
+//! Pattern: Facade over fs-rpc `ensure_single` (the same rule as the starter's `SingleGate`, `starter_v1`). The program file
 //! `fs-settings` is looked for next to the running program, then in `/usr/bin` (never on `PATH`: a planted file in a
 //! folder of the search path must not become the server). No lease (fs-rpc has none, starter O3): the service runs until
 //! `Control.stop` or logout. A failure is `store-unreachable{socket, cause}`; the program goes on with the defaults.

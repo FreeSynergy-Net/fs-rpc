@@ -18,6 +18,9 @@ use crate::wire::{
     place_to_wire, read_index, read_problems, read_snapshot, write_index, write_raw, write_scope,
 };
 
+/// The index and what went wrong reading it.
+type IndexRead = (ProfileSet<u64>, Vec<Coded<SettingCode>>);
+
 /// Rounds of the compare-and-set of `update_index` before `store-busy`.
 pub const INDEX_ROUNDS: usize = 3;
 

@@ -55,6 +55,7 @@ impl<S: ?Sized, I: ?Sized> StoreImpl<S, I> {
     }
 }
 
+#[allow(clippy::unused_async_trait_impl)] // the generated server trait is async
 impl<S, I> store::Server for StoreImpl<S, I>
 where
     S: SettingsStore + ?Sized + 'static,
@@ -238,8 +239,7 @@ fn replace<S: SettingsStore + ?Sized>(
         Ok(())
     });
     match (refused, r) {
-        (Some(c), _) => Err(c),
+        (Some(c), _) | (None, Err(c)) => Err(c),
         (None, Ok(done)) => Ok((done, port.stamp().0)),
-        (None, Err(c)) => Err(c),
     }
 }
