@@ -14,7 +14,17 @@ The runtime half of the interface contracts: what every program's server and cli
 | `src/code/`, `src/cause.rs` | Value objects, Adapter (`from`) | error code + typed parameters for the program's MessageFormat 2 messages (ADR 0057); `RestartCause` types the reason of a failed replacement |
 | `src/feed.rs`, `pump.rs` | Observer | change feed with a bounded queue |
 | `src/handshake.rs`, `control.rs`, `starter.rs`, `stop.rs`, `finish.rs` | Strategy (`ServerStarter`), Command | version handshake, stop from outside, writes that finish |
+| `src/datadir.rs` | Policy + Guard (`decide` over `Meta`), typed error | the data folder is private to its user; corrected (bits only taken away) or refused with a cause |
+| `src/reconnect/` | Template method (`keep_connected`) + Strategy (`Session`) + Observer (`Resync`), Value object (`Backoff`) | stay connected over a server restart: connect, subscribe, watch (ping, `ended`), pause, deadline, resync hint. Mechanism only; the comparison with `generation()` is the contract's and the program's |
+| `src/heartbeat/` | Active object (own thread, plain line protocol on `<socket>.beat`), State machine (`Watch`), Strategy (`SaveOnTerm`) | tells hanging from busy without the work thread: `alive`/`busy`, tick age of the work thread, `save` on the heartbeat thread |
+| `src/single/` | Template method (`ensure_single`), Policy + Guard (`rule::decide`), Command over an `Env` (`ending`), Gateway (`procfs`) | one server per program; a hanging one of this program is saved, ended and replaced, any other is only reported; generalised from fs-tasks 0.0.10 |
 | `src/client/` | Command (+ Strategy `Remote`, RAII guard `Reply`), Decorator (`call_limited`) | the client half: thread that owns the `!Send` connection, deadlines, `Fault` |
+
+## Hanging versus busy (heartbeat, `ensure_single`)
+
+The contract's control channel is answered by the work thread, so "long" and "stuck" look the same from outside. The heartbeat is a second channel answered by its own thread (no Cap'n Proto, so no schema change). Hanging = no heartbeat for 10 s, or the heartbeat answers but the work thread's tick stands still for 10 s without `busy`, or no progress for 90 s (a `busy` number that stands still, or `alive` while the contract is silent; 90 s because a self-update may stand still 60 s while loading). `busy` with a moving number is never ended. Ping 2 s. Everything is a field of `HangTimes` / `SingleTimes`.
+
+The ending: look (user, program file by inode or real path, start time, never pid <= 1 or itself) -> `save` (heartbeat) -> `pidfd_open` -> look again -> SIGTERM -> wait 10 s -> only if it still stands, the program HAS a heartbeat channel and none answers: look a third time, SIGKILL. A program without a channel (older, or a window before it has one) gets SIGTERM but is never killed: `server-unresponsive` with `why` = `no-control` ("please close it"). Another program: `why` = `other-program`, nothing is saved or signalled. The socket file is removed only if it is the inode that was seen. Every step goes to `<socket>.takeover.log` (0600). Where the pieces belong: the draft auto-save beat (every few seconds) is the job of fs-sessions (it owns drafts and the session); fs-rpc only offers the hook (`SaveOnTerm`) that the beat channel and the program's stop path both call.
 
 ## Generated code (Cap'n Proto)
 
@@ -23,6 +33,8 @@ Checked for v0.0.2: `fs-rpc` needs no code generation of its own. It uses the co
 ## Tests
 
 `tests/catalog_roundtrip.rs` (acceptance test of ADR 0093): the three libraries meet only here. `CatalogServer` and an `Edit` with values of `fs-types` go through the `People` contract over an in-memory pipe (all systems) and a Unix socket (Unix; Windows has the named pipe, tested elsewhere).
+
+`tests/rpc_reconnect.rs`, `tests/rpc_datadir.rs`, `tests/rpc_heartbeat.rs`, `tests/rpc_single.rs` (real child processes that hang: with and without heartbeat, busy moving or standing still, blocked work thread, another program as a copy of the file, a program that ignores SIGTERM); unit tests with made-up facts in `src/single/*_tests.rs`, `src/heartbeat/watch_tests.rs`, `src/datadir_tests.rs`. Each test file lists its mutants in its `//!` head.
 
 ## History
 

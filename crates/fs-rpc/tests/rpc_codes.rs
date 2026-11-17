@@ -62,6 +62,7 @@ fn the_released_names_are_fixed() {
             "io",
             "data-dir-not-private",
             "server-unresponsive",
+            "server-busy",
         ]
     );
 }

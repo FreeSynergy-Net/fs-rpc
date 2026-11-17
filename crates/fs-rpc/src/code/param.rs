@@ -36,6 +36,12 @@ pub mod param_keys {
     pub const CAUSE: &str = "cause";
     /// Why a silent server is not ended: `itself`, `foreign-user`, `unreadable`, `pid-reused`, `other-program`, `unsupported`.
     pub const WHY: &str = "why";
+    /// What a busy server does: a text key the program words (`importing`); from the heartbeat.
+    pub const WHAT: &str = "what";
+    /// How far a busy server is (a number that grows).
+    pub const PROGRESS: &str = "progress";
+    /// What a save before the end came to: `saved`, `nothing`, `failed`.
+    pub const SAVED: &str = "saved";
     /// The program file of the process that holds the socket (its real path), if it could be read.
     pub const EXE: &str = "exe";
     /// The capability a "not possible" is about (`board.open`); from the problem extension `capability`.

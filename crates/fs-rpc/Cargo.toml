@@ -22,7 +22,7 @@ uuid = "1"
 
 [target.'cfg(unix)'.dependencies]
 # Who is on the other end of a Unix socket, and who runs this; the tests send themselves signals.
-rustix = { version = "1", features = ["process"] }
+rustix = { version = "1", features = ["process", "net"] }
 
 [target.'cfg(windows)'.dependencies]
 # Who is on the other end of a named pipe, and who runs this; rights of the pipe and of the data folder.

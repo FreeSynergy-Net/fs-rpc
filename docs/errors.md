@@ -30,7 +30,8 @@ This file is a template. The programs own their `.mf2` files; the texts below ar
 | `rpc-error-io` | `io` | `kind` (`invalid-input` ...) | any other system failure |
 
 | `rpc-error-data-dir-not-private` | `data-dir-not-private` | `cause` (`foreign-owner`, `mode`, `symlink`, `ancestor`, `not-directory`); the path is added by the program (`with_text`) | `prepare_data_dir`: the data folder is not private to this user and could not be made so |
-| `rpc-error-server-unresponsive` | `server-unresponsive` | `pid` (number, left out if unknown), `why` (`itself`, `foreign-user`, `unreadable`, `pid-reused`, `other-program`, `unsupported`), `exe` (real path of the program file, left out if unreadable), `limit-ms` (number) | `ensure_single`: a server holds the socket and does not answer, and it was not ended (never for another program: only reported) |
+| `rpc-error-server-busy` | `server-busy` | `pid`, `what` (a text key the program words, `importing`), `progress` (number) | a server does not answer its contract but says it is busy and its number moves: not ended; say "still working: ..." and try again |
+| `rpc-error-server-unresponsive` | `server-unresponsive` | `pid` (number, left out if unknown), `why` (`itself`, `foreign-user`, `unreadable`, `pid-reused`, `other-program`, `beating`, `no-control`, `not-ending`, `unsupported`), `exe` (real path of the program file, left out if unreadable), `limit-ms` (number) | `ensure_single`: a server holds the socket and does not answer, and it was not ended (never for another program: only reported; `no-control`: a program without a heartbeat channel did not end by SIGTERM and is never killed: say "please close it") |
 
 `prepare_data_dir` (v0.0.3) corrects its own open folder to the owner bits (nothing is ever added, what is inside stays) and refuses a foreign owner, a symbolic link or a non-directory with `data-dir-not-private`. A failure of the file system is `io` (with `kind`), never `socket-unreachable`.
 
@@ -47,6 +48,8 @@ rpc-error-timeout = The server did not answer within {$limit-ms :number} ms.
 rpc-error-connection-lost = The connection to the {$server} server was lost.
 rpc-error-too-large = This is too large: {$size :number} bytes, at most {$limit :number} fit.
 rpc-error-unimplemented = This is not possible here.
+rpc-error-server-busy = The program is still working: {$what} ({$progress :number}).
+rpc-error-server-unresponsive = The program does not answer (process {$pid}). Close it and start it again.
 
 # de
 rpc-error-no-server = Es laeuft kein Server. Starte das Programm neu.
@@ -55,9 +58,11 @@ rpc-error-timeout = Der Server hat nicht innerhalb von {$limit-ms :number} ms ge
 rpc-error-connection-lost = Die Verbindung zum Server {$server} ist abgebrochen.
 rpc-error-too-large = Das ist zu gross: {$size :number} Bytes, hoechstens {$limit :number} passen.
 rpc-error-unimplemented = Das ist hier nicht moeglich.
+rpc-error-server-busy = Das Programm arbeitet noch: {$what} ({$progress :number}).
+rpc-error-server-unresponsive = Das Programm antwortet nicht (Prozess {$pid}). Beende es und starte es neu.
 ```
 
-Parameters that the table says may be left out (version, program, socket) must not be required by the message, or the message gets a variant without them (MessageFormat 2 `.match`). The keys that are not shown follow the same pattern; each program writes all 17 in all its languages.
+Parameters that the table says may be left out (version, program, socket) must not be required by the message, or the message gets a variant without them (MessageFormat 2 `.match`). The keys that are not shown follow the same pattern; each program writes all 18 in all its languages.
 
 ## On the wire
 

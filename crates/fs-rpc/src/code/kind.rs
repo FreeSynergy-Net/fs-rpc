@@ -59,6 +59,9 @@ codes! {
     DataDirNotPrivate,
     /// A server holds the socket and does not answer, and it was not ended (the parameters say which process and why).
     ServerUnresponsive,
+    /// A server does not answer its contract but says it is busy (the parameters `what` and `progress`): it is not ended; the
+    /// person is told it still works.
+    ServerBusy,
 }
 
 impl RpcErrorCode {
@@ -83,6 +86,7 @@ impl RpcErrorCode {
             Self::Io => "io",
             Self::DataDirNotPrivate => "data-dir-not-private",
             Self::ServerUnresponsive => "server-unresponsive",
+            Self::ServerBusy => "server-busy",
         }
     }
 
@@ -107,6 +111,7 @@ impl RpcErrorCode {
             Self::Io => "rpc-error-io",
             Self::DataDirNotPrivate => "rpc-error-data-dir-not-private",
             Self::ServerUnresponsive => "rpc-error-server-unresponsive",
+            Self::ServerBusy => "rpc-error-server-busy",
         }
     }
 }
@@ -141,12 +146,13 @@ mod tests {
             C::Io => 14,
             C::DataDirNotPrivate => 15,
             C::ServerUnresponsive => 16,
+            C::ServerBusy => 17,
         }
     }
 
     #[test]
     fn all_is_complete_and_in_the_order_of_the_enum() {
-        assert_eq!(C::ALL.len(), position(C::ServerUnresponsive) + 1);
+        assert_eq!(C::ALL.len(), position(C::ServerBusy) + 1);
         for (i, code) in C::ALL.into_iter().enumerate() {
             assert_eq!(position(code), i, "{code}");
         }

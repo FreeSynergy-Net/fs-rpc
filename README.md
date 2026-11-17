@@ -14,6 +14,9 @@ Latest tag: `v0.0.2`.
 - Serve a contract on a local socket (`serve`, `run_until_signal`), connect to it (`connect`, `connect_matching` with version handshake and restart of an old server).
 - The client half every program shares: `client::Worker` (the thread that owns the connection), `Timeouts`, `Fault`, deadlines per call.
 - Errors as code and parameters (`RpcError`, `RpcErrorCode`): a program words them through its MessageFormat 2 files (`message_key()`, `params()`, template in `docs/errors.md`); no English sentence reaches a person from this library.
+- `prepare_data_dir`: the data folder private to its user; an open own folder is corrected, a link, a file, a foreign folder is refused (`data-dir-not-private`, parameter `cause`).
+- `keep_connected` (`Session`, `Resync`, `Backoff`): reconnect after a lost connection, a restart, an update or a take-over: connect (and start the server), subscribe again, tell the program `Reconnected { attempt, resync_needed }` so it loads anew; pauses 1 s / 2 s / 5 s, every step with a limit, after 30 s the program is told and the loop ends.
+- `Heartbeat` (Unix): a thread of its own answers `alive` or `busy` (what, progress) and the tick of the work thread, and runs the program's `SaveOnTerm` hook; `ensure_single` (Linux): the one server per program; a hanging server of this program is saved, ended (SIGTERM, SIGKILL only with proof) and replaced; a busy one is never ended; another program is only reported (`server-unresponsive`, `server-busy`).
 - RFC 9457 problems as RPC errors with typed extensions, pages cut by weight, the change feed, stop from outside.
 - Written for Unix (socket, signals) and Windows (named pipe with a protected descriptor).
 
@@ -36,5 +39,7 @@ FreeSynergy is a family of programs that are free for everyone, forever, and tha
 - Licence: MIT OR Apache-2.0.
 
 ## Auf Deutsch
+
+Neu in v0.0.3: Fehler-Codes (18), `prepare_data_dir` mit Typfehler, `keep_connected` (Wiederverbinden mit Voll-Reload-Hinweis), `Heartbeat` und `ensure_single` (haengende Instanz erkennen, retten, beenden; Busy nie; fremdes Programm nur melden).
 
 FreeSynergy RPC ist die gemeinsame Server- und Client-Seite aller Schnittstellenvertraege aus fs-interfaces: ein Socket je Programm (Unix-Socket, unter Windows eine benannte Pipe), ein Cap'n-Proto-RPC-System je Verbindung, Huelle auf dem Draht, Fehler nach RFC 9457, Seiten und Aenderungsstrom. Es war bis v0.0.25 das Modul `rpc` von fs-interfaces (`fs_interfaces::rpc::X` heisst jetzt `fs_rpc::X`). Es enthaelt nur die Laufzeit; Vertraege (fs-interfaces) und Speicher (fs-objects) bleiben getrennt, damit die Repositories keinen Kreis bilden (ADR 0092, akzeptiert). 

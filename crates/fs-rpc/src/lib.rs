@@ -35,6 +35,8 @@ mod expected;
 mod feed;
 mod finish;
 mod handshake;
+#[cfg(unix)]
+mod heartbeat;
 mod ids;
 mod options;
 mod page;
@@ -42,6 +44,8 @@ mod problem;
 mod pump;
 mod reconnect;
 mod serve;
+#[cfg(unix)]
+mod single;
 mod starter;
 mod stop;
 mod transport;
@@ -59,6 +63,10 @@ pub use feed::{
 };
 pub use finish::{FINISH_TIMEOUT, finish_underway, run_to_end};
 pub use handshake::{connect_matching, connect_matching_with};
+#[cfg(unix)]
+pub use heartbeat::{
+    Beat, HangTimes, Heartbeat, Hung, Pulse, SaveOnTerm, Saved, Verdict, Watch, ask_beat, ask_save,
+};
 pub use ids::{from_millis, read_object_id, read_uuid, to_millis, write_object_id, write_uuid};
 pub use options::{
     FACET_FLAG, LOCAL_OWNER, ServerOptions, default_data_dir, facet_from_args, parse_facet,
@@ -80,6 +88,10 @@ pub use serve::{
     Connection, ReadLimits, connect, connect_with, run_until_signal, run_until_signal_as, serve,
     serve_with,
 };
+#[cfg(all(unix, target_os = "linux"))]
+pub use single::{Decision, Image, Own, Peer, Why, decide_takeover};
+#[cfg(unix)]
+pub use single::{Single, SingleError, SingleTimes, Stuck, TakenOver, ensure_single};
 pub use starter::{CommandStarter, ServerStarter};
 pub use stop::stop_self;
 pub use transport::{BoundSocket, bind_socket, companion_path, default_socket};

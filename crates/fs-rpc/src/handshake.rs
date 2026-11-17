@@ -110,7 +110,7 @@ fn other_program(expected: &Expected, info: &ServerInfo) -> RestartCause {
 }
 
 /// No server there, or one that ends while we talk to it (another client stopped it): in both cases nothing to stop.
-fn is_absent(e: &io::Error) -> bool {
+pub(crate) fn is_absent(e: &io::Error) -> bool {
     matches!(
         e.kind(),
         io::ErrorKind::NotFound
@@ -122,7 +122,7 @@ fn is_absent(e: &io::Error) -> bool {
 }
 
 /// Connects and asks `Control.version`; a server that does not know it is [`ServerInfo::default`].
-async fn ask<C: FromClientHook>(
+pub(crate) async fn ask<C: FromClientHook>(
     socket: &Path,
     call: Duration,
 ) -> io::Result<(Connection<C>, ServerInfo)> {
