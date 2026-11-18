@@ -109,7 +109,7 @@ pub async fn ensure_single<C: FromClientHook>(
     .await
 }
 
-/// [`ensure_single`] with the options the program hands in: the setting `rpc.single.ask` and whether a person is there. With both
+/// [`ensure_single`] with the options the program hands in: the setting `fs.rpc.single.ask` and whether a person is there. With both
 /// yes, `no-control` and `not-ending` come back with `can_ask` true and the `choices` `wait`, `replace`, `abort`; else `can_ask` stays false.
 ///
 /// # Errors

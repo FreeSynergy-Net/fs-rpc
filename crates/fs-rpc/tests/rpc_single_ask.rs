@@ -10,7 +10,7 @@ use std::time::Duration;
 use fs_interfaces::common_capnp::blob;
 use fs_rpc::{
     AskPolicy, Choices, RpcError, RpcErrorCode, SingleError, SingleOptions, Stuck, ensure_single,
-    ensure_single_with, has_surface,
+    ensure_single_with,
 };
 
 mod handshake_support;
@@ -80,12 +80,7 @@ fn a_person_is_asked_with_a_surface_and_the_setting_on_never_without_one_or_with
     assert_eq!(off.why, "no-control");
     assert!(!off.can_ask && off.choices == Choices::None);
 
-    // `ensure_single` itself: the default, which asks exactly where there is a surface.
-    let plain = failure(&socket, None);
-    assert_eq!(plain.can_ask, has_surface());
-    assert_eq!(plain.choices == Choices::WaitReplaceAbort, has_surface());
-
-    // The default options ask where there is a surface; the rest of the failure is the same in every row.
+    // The rest of the failure is the same in every row (the default itself is tested in `rpc_surface.rs`, in a child with a made environment).
     assert_eq!((asked.pid, asked.limit), (headless.pid, headless.limit));
     std::thread::sleep(Duration::from_millis(100));
     assert!(

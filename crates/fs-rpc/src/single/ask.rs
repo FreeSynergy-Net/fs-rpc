@@ -4,7 +4,7 @@
 //! adds `can_ask` and `choices` to a [`Stuck`], nothing else). Where the person is asked first: with a surface (a window or a terminal)
 //! `no-control` and `not-ending` come back with `can_ask` true and the choices `wait`, `replace` (end the old one), `abort`; without
 //! one (headless, CI, a service) the program decides and `can_ask` stays false. The value is a setting of the scaffold
-//! (`rpc.single.ask`, a yes/no, default yes; fs-settings, ADR 0100): fs-rpc does not read fs-settings (no dependency, no cycle); the
+//! (`fs.rpc.single.ask`, a yes/no, default yes; fs-settings, ADR 0100): fs-rpc does not read fs-settings (no dependency, no cycle); the
 //! program reads the setting and hands it in with [`AskPolicy::from`] (`bool`) and [`SingleOptions::new`].
 
 use super::stuck::{Choices, Stuck};
@@ -24,7 +24,7 @@ pub enum AskPolicy {
 }
 
 impl From<bool> for AskPolicy {
-    /// The yes/no setting `rpc.single.ask`: `true` asks.
+    /// The yes/no setting `fs.rpc.single.ask`: `true` asks.
     fn from(ask: bool) -> Self {
         if ask { Self::Ask } else { Self::Never }
     }
@@ -34,7 +34,7 @@ impl From<bool> for AskPolicy {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct SingleOptions {
-    /// The setting (`rpc.single.ask`).
+    /// The setting (`fs.rpc.single.ask`).
     pub ask: AskPolicy,
     /// Whether there is a surface the person can answer on (a window or a terminal): [`has_surface`], or what the program knows.
     pub interactive: bool,

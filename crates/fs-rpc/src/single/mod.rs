@@ -15,7 +15,7 @@
 //!
 //! Who decides when it was not ended (`no-control`, `not-ending`): by default the person, first ([`SingleOptions`]): the failure then has
 //! `can_ask` true and the `choices` `wait`, `replace`, `abort`. Without a surface (headless, CI, a service) or with the setting
-//! `rpc.single.ask` off, `can_ask` is false and the program decides. `ensure_single_with` takes the options; `ensure_single` the default.
+//! `fs.rpc.single.ask` off, `can_ask` is false and the program decides. `ensure_single_with` takes the options; `ensure_single` the default.
 
 mod ask;
 #[cfg(test)]
