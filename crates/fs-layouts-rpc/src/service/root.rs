@@ -109,7 +109,15 @@ impl<S: LayoutStore + ?Sized + 'static> l::Server for Root<S> {
                 .with("by", sh.svc.limits.by.as_str());
             return Err(crate::problem::err(&c));
         }
-        let id = sh.listeners.add(p.get()?.get_listener()?);
+        let who = sh.caller.id();
+        if sh.listeners.count_of(who) >= sh.svc.limits.watchers_per_actor_max as usize {
+            let c = Coded::new(LayoutCode::TooMany)
+                .with("what", "watchers-of-caller")
+                .with("max", sh.svc.limits.watchers_per_actor_max)
+                .with("by", sh.svc.limits.by.as_str());
+            return Err(crate::problem::err(&c));
+        }
+        let id = sh.listeners.add(who, p.get()?.get_listener()?);
         let sub = super::listeners::Subscription {
             id,
             listeners: sh.listeners.clone(),

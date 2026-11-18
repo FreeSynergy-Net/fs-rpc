@@ -22,7 +22,7 @@ pub(crate) async fn admin<S: LayoutStore + ?Sized + 'static>(
 ) -> H {
     // K78(c): administration is for the person herself. A connection whose actor is not the person (an AI seat acting on her
     // behalf) is refused, whatever `by` says.
-    let actor = (sh.svc.actor_of_connection)();
+    let actor = sh.actor.clone();
     if actor != sh.svc.person {
         return Err(Coded::new(LayoutCode::Unsupported)
             .with("what", "on-behalf")
@@ -37,7 +37,7 @@ pub(crate) async fn admin<S: LayoutStore + ?Sized + 'static>(
     // service's record of ignored claims, where the program that hosts the service writes it to its log.
     let by = txt(p.get()?.get_by())?;
     if let Some(note) = &sh.svc.claimed_by {
-        note(&by);
+        note(&sh.caller, &by);
     }
     let imp = AdminImpl {
         port,

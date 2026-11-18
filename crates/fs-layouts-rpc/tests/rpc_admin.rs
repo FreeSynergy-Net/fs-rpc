@@ -25,7 +25,7 @@ fn claiming(socket: &std::path::Path) -> (Server, std::sync::mpsc::Receiver<Stri
     let (tx, rx) = std::sync::mpsc::channel::<String>();
     let s = serve_on(socket, move || {
         let mut svc = service(true);
-        svc.claimed_by = Some(Rc::new(move |by: &str| {
+        svc.claimed_by = Some(Rc::new(move |_: &fs_rpc::Caller, by: &str| {
             let _ = tx.send(by.to_owned());
         }));
         svc

@@ -13,7 +13,7 @@ use crate::layouts_capnp::layouts::listener;
 /// The listeners of one service.
 #[derive(Default)]
 pub(crate) struct Listeners {
-    list: RefCell<Vec<(u64, listener::Client)>>,
+    list: RefCell<Vec<(u64, String, listener::Client)>>,
     next: Cell<u64>,
     count: Arc<AtomicUsize>,
     missed: Arc<AtomicUsize>,
@@ -24,18 +24,27 @@ impl Listeners {
         self.list.borrow().len()
     }
 
-    /// Adds a listener and returns its id.
-    pub(crate) fn add(&self, client: listener::Client) -> u64 {
+    /// How many listeners the caller `owner` (`Caller::id`) holds, over all connections.
+    pub(crate) fn count_of(&self, owner: &str) -> usize {
+        self.list
+            .borrow()
+            .iter()
+            .filter(|(_, o, _)| o == owner)
+            .count()
+    }
+
+    /// Adds a listener of the caller `owner` and returns its id.
+    pub(crate) fn add(&self, owner: &str, client: listener::Client) -> u64 {
         let id = self.next.get() + 1;
         self.next.set(id);
-        self.list.borrow_mut().push((id, client));
+        self.list.borrow_mut().push((id, owner.to_owned(), client));
         self.count.fetch_add(1, Ordering::SeqCst);
         id
     }
 
     pub(crate) fn remove(&self, id: u64) {
         let before = self.list.borrow().len();
-        self.list.borrow_mut().retain(|(i, _)| *i != id);
+        self.list.borrow_mut().retain(|(i, _, _)| *i != id);
         if self.list.borrow().len() < before {
             self.count.fetch_sub(1, Ordering::SeqCst);
         }
@@ -49,7 +58,7 @@ impl Listeners {
     /// Tells every listener the new stamp (a stream: no answer is waited for). A listener that cannot be told is dead (its
     /// connection is gone): it is removed at once, not kept until the subscription is dropped.
     pub(crate) fn tell(self: &Rc<Self>, stamp: u64) {
-        for (id, l) in self.list.borrow().iter() {
+        for (id, _, l) in self.list.borrow().iter() {
             let mut req = l.changed_request();
             req.get().set_stamp(stamp);
             let (me, id) = (self.clone(), *id);

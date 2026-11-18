@@ -24,7 +24,7 @@ pub(crate) async fn create<S: LayoutStore + ?Sized>(
     mut r: l::CreateResults,
 ) -> H {
     let p = p.get()?;
-    let (doc, who) = (read_doc(p.get_doc()?)?, sh.svc.who(&txt(p.get_author())?)?);
+    let (doc, who) = (read_doc(p.get_doc()?)?, sh.who(&txt(p.get_author())?)?);
     let report = sh.svc.store.create(doc, &who).await?;
     write_report(r.get().init_report(), &report)?;
     if report.problems.is_empty() {
@@ -39,7 +39,7 @@ pub(crate) async fn import<S: LayoutStore + ?Sized>(
     mut r: l::ImportResults,
 ) -> H {
     let p = p.get()?;
-    let (doc, who) = (read_doc(p.get_doc()?)?, sh.svc.who(&txt(p.get_author())?)?);
+    let (doc, who) = (read_doc(p.get_doc()?)?, sh.who(&txt(p.get_author())?)?);
     let report = sh
         .svc
         .store
@@ -58,7 +58,7 @@ pub(crate) async fn save<S: LayoutStore + ?Sized>(
     mut r: l::SaveResults,
 ) -> H {
     let p = p.get()?;
-    let (doc, who) = (read_doc(p.get_doc()?)?, sh.svc.who(&txt(p.get_author())?)?);
+    let (doc, who) = (read_doc(p.get_doc()?)?, sh.who(&txt(p.get_author())?)?);
     let report = sh
         .svc
         .store
@@ -82,7 +82,7 @@ pub(crate) async fn delete<S: LayoutStore + ?Sized>(
     _: l::DeleteResults,
 ) -> H {
     let p = p.get()?;
-    let who = sh.svc.who(&txt(p.get_author())?)?;
+    let who = sh.who(&txt(p.get_author())?)?;
     sh.svc
         .store
         .delete(&layout_id(p.get_id()?), Rev(p.get_expected_rev()), &who)
@@ -97,7 +97,7 @@ pub(crate) async fn install<S: LayoutStore + ?Sized>(
     mut r: l::InstallResults,
 ) -> H {
     let p = p.get()?;
-    let (doc, who) = (read_doc(p.get_doc()?)?, sh.svc.who(&txt(p.get_author())?)?);
+    let (doc, who) = (read_doc(p.get_doc()?)?, sh.who(&txt(p.get_author())?)?);
     let package = PackageRef {
         package: txt(p.get_package())?,
         version: txt(p.get_version())?,
@@ -120,7 +120,7 @@ pub(crate) async fn uninstall<S: LayoutStore + ?Sized>(
     mut r: l::UninstallResults,
 ) -> H {
     let p = p.get()?;
-    let who = sh.svc.who(&txt(p.get_author())?)?;
+    let who = sh.who(&txt(p.get_author())?)?;
     let reports = sh.svc.store.uninstall(&txt(p.get_package())?, &who).await?;
     let mut out = r.get().init_reports(n(&reports));
     for (i, x) in (0..).zip(&reports) {

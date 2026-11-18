@@ -26,24 +26,28 @@ with this crate** (fs-rpc -> fs-forms git -> fs-rpc would be a repo loop). The a
 connection, never a field of the client: `admin(by)` takes `by` as a claim, hands it to `LayoutService::claimed_by` (the host's
 log) and ignores it otherwise.
 
-## Edge: who is the actor (before fs-access)
+## Edge: who is the actor (fs-rpc `Caller`)
 
-fs-rpc lets in the same OS user only and hands ONE bootstrap capability to every connection of a socket, so a connection cannot yet
-be told from another by its peer credentials. Until fs-access (per-connection identity, bot keys) the actor is therefore bound to
-the capability the caller got: `LayoutService::actor_of_connection`, one service per socket (a human socket, a bot socket, each with
-its own actor, over ONE store). It is never read from a client field. Administration (`admin`) is refused to every connection whose
-actor is not the person (`unsupported{what=on-behalf}`, K78 c). When fs-rpc offers peer credentials per connection, the host fills
-`actor_of_connection` from them; the settings service (fs-settings-rpc) must use the same procedure and helper.
+fs-rpc reads the caller of EVERY connection from the system (`SO_PEERCRED` on Unix, the pipe client's token on Windows) and builds the
+capability of each connection from it (`serve_callers`, `run_until_signal_callers`, `PerConnection`). `LayoutService::per_connection`
+is that factory: the actor of a connection is `LayoutService::actors(&Caller)` and nothing else (`Caller::id`; the name is for
+display only). Never a field of the client: `admin(by)` takes `by` as a claim, hands it with the caller to
+`LayoutService::claimed_by` (the host's log) and ignores it otherwise. A caller the host's mapping does not know gets a capability
+that answers `unknown{what=caller}` on every call; a connection the system could not name is dropped and told to
+`LayoutService::refused` (code `caller-credentials`). Administration (`admin`) is refused to every connection whose actor is not the
+person (`unsupported{what=on-behalf}`, K78 c). The `Hub` shares ONLY the listeners and their counters between the connections of
+one store; no capability that knows a caller lives in shared state (fs-rpc DESIGN H2). Limits of the caller (fs-rpc DESIGN "Caller:
+honest limits"): the system names the OS user, not the program; a bot is told apart by its key, later.
 
-The choice of a socket is NOT a security boundary: every process of the same OS user can open the person's socket and is then
-"the person". K78 (c) acts only against connections to which the host itself gave a bot actor. Peer credentials alone (same OS
-user) would not change this either; what is needed is a bot key per connection or an OS user of its own. No bot socket is offered
-productively until fs-rpc has the per-connection factory (peer credentials, later the bot key).
+The choice of a socket is NOT a security boundary: every process of the same OS user can open any socket and gets the actor the
+host's mapping gives that user. K78 (c) acts only against connections the host maps to a bot actor. Peer credentials name the OS
+user, not the program; what is needed to tell a bot apart is a bot key per connection or an OS user of its own. No bot socket is
+offered productively until the bot key exists.
 
 ## Edge: one hub per store
 
-Several sockets over ONE store must share ONE `Hub` (`LayoutService::bootstrap_in(&hub)`): what is written through socket A is
-heard by the watchers of socket B. `bootstrap()` makes a hub of its own, which is right for a single socket only. The limit
+Several sockets over ONE store must share ONE `Hub` (`LayoutService::per_connection(&hub)`): what is written through socket A is
+heard by the watchers of socket B. The limit
 `watchers_max` counts the watchers of the whole hub.
 
 ## Open before release

@@ -56,6 +56,7 @@ fn a_page_over_the_limit_names_the_limit_and_where_it_came_from() {
         svc.limits = ServiceLimits {
             page_max: 3,
             watchers_max: 1,
+            watchers_per_actor_max: 8,
             by: LimitSource::Ceiling,
         };
         svc

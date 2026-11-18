@@ -11,5 +11,5 @@ mod root;
 mod write;
 
 pub(crate) use hub::Shared;
-pub use hub::{ClaimNote, LayoutService};
+pub use hub::{ActorOf, ClaimNote, LayoutService, Layouts, RefusedNote};
 pub use listeners::{Hub, Watchers};

@@ -8,14 +8,22 @@
 use std::rc::Rc;
 
 use fs_forms_layout::{Coded, LayoutAdmin, LayoutCode, LayoutStore, Reference, Who};
+use fs_rpc::{Caller, CallerError, PerConnection};
 
+use super::listeners::Hub;
 use super::listeners::Listeners;
-use super::listeners::{Hub, Watchers};
 
 use crate::limits::ServiceLimits;
 
-/// Receives the `by` a client claims in `admin(by)`.
-pub type ClaimNote = Rc<dyn Fn(&str)>;
+/// Receives who asked (the caller of the connection, from the system) and the `by` that client claims in `admin(by)`.
+pub type ClaimNote = Rc<dyn Fn(&Caller, &str)>;
+
+/// The host's mapping from the caller of a connection to its actor: the ONLY source of the actor (`Caller::id`, from the system).
+/// `None`: this caller is nobody the service knows; the connection gets a capability that answers `unknown{what=caller}`.
+pub type ActorOf = Rc<dyn Fn(&Caller) -> Option<Reference>>;
+
+/// Told when the system could not say who is on a connection (the connection was dropped, code `caller-credentials`).
+pub type RefusedNote = Rc<dyn Fn(&CallerError)>;
 
 /// The service: which port it serves, for whom, and under which limits.
 pub struct LayoutService<S: LayoutStore + ?Sized> {
@@ -25,18 +33,21 @@ pub struct LayoutService<S: LayoutStore + ?Sized> {
     pub admin: Option<Rc<dyn LayoutAdmin>>,
     /// The person this service serves; `""` as author on the wire means this one.
     pub person: Reference,
-    /// The actor of the connection: until fs-access it is the person (the transport lets in the same OS user only); an AI seat
-    /// later is its own actor.
-    pub actor_of_connection: Rc<dyn Fn() -> Reference>,
-    /// Called with the `by` a client claims in `admin(by)`; it is ignored for everything else (the actor is the connection's). The
-    /// program hosting the service writes it to its log: a forged claim is visible, never effective.
+    /// The actor of a connection, from its [`Caller`] and from nothing else (never from a field of the client). `new` lets in every
+    /// caller as the person (fs-rpc lets in the same OS user only); the host that knows more (a bot user, another account) sets
+    /// its own mapping from `Caller::id`.
+    pub actors: ActorOf,
+    /// Called with the caller and the `by` a client claims in `admin(by)`; it is ignored for everything else (the actor is the
+    /// connection's). The program hosting the service writes it to its log: a forged claim is visible, never effective.
     pub claimed_by: Option<ClaimNote>,
+    /// Called when the system does not tell who is on a connection.
+    pub refused: Option<RefusedNote>,
     /// The limits of the service (settings; rule 57).
     pub limits: ServiceLimits,
 }
 
 impl<S: LayoutStore + ?Sized> LayoutService<S> {
-    /// A service over `store` for `person`, the actor being the person, the declared limits.
+    /// A service over `store` for `person`, every caller being the person, the declared limits.
     #[must_use]
     pub fn new(store: Rc<S>, person: Reference) -> Self {
         let actor = person.clone();
@@ -44,22 +55,10 @@ impl<S: LayoutStore + ?Sized> LayoutService<S> {
             store,
             admin: None,
             person,
-            actor_of_connection: Rc::new(move || actor.clone()),
+            actors: Rc::new(move |_| Some(actor.clone())),
             claimed_by: None,
+            refused: None,
             limits: ServiceLimits::declared(),
-        }
-    }
-
-    /// Builds `Who` from the wire `author`: `""` or the person is this service's person; another person is
-    /// `unknown{what=author}` until fs-access, never silently replaced.
-    pub(crate) fn who(&self, author: &str) -> Result<Who, Coded<LayoutCode>> {
-        if author.is_empty() || author == self.person.0 {
-            Ok(Who {
-                actor: (self.actor_of_connection)(),
-                author: self.person.clone(),
-            })
-        } else {
-            Err(Coded::new(LayoutCode::Unknown).with("what", "author"))
         }
     }
 
@@ -76,34 +75,73 @@ impl<S: LayoutStore + ?Sized> LayoutService<S> {
     }
 }
 
-/// What every capability of one service shares.
+/// What the capability of ONE connection shares: the service (the same for all), who is on this connection, and the hub.
 pub(crate) struct Shared<S: LayoutStore + ?Sized> {
-    pub(crate) svc: LayoutService<S>,
+    pub(crate) svc: Rc<LayoutService<S>>,
+    pub(crate) caller: Caller,
+    pub(crate) actor: Reference,
     pub(crate) listeners: Rc<Listeners>,
 }
 
+impl<S: LayoutStore + ?Sized> Shared<S> {
+    /// Builds `Who` from the wire `author`: `""` or the person is this service's person; another person is
+    /// `unknown{what=author}` until fs-access, never silently replaced. The actor is the connection's.
+    pub(crate) fn who(&self, author: &str) -> Result<Who, Coded<LayoutCode>> {
+        if author.is_empty() || author == self.svc.person.0 {
+            Ok(Who {
+                actor: self.actor.clone(),
+                author: self.svc.person.clone(),
+            })
+        } else {
+            Err(Coded::new(LayoutCode::Unknown).with("what", "author"))
+        }
+    }
+}
+
+/// The program's side for `fs_rpc::serve_callers` / `run_until_signal_callers`: builds the capability of EACH connection from its
+/// caller. Listeners and signals are shared through the [`Hub`]; nothing that knows a caller is shared.
+pub struct Layouts<S: LayoutStore + ?Sized> {
+    svc: Rc<LayoutService<S>>,
+    hub: Hub,
+}
+
 impl<S: LayoutStore + ?Sized + 'static> LayoutService<S> {
-    /// The root capability to hand to `fs_rpc::serve`: `Layouts`, and the handle that counts its watchers. The service has a hub
-    /// of its own; for several sockets over ONE store use [`Self::bootstrap_in`] with one shared [`Hub`].
+    /// The factory of the capabilities, one per connection; the watchers live in `hub` (one hub per store: a write through one
+    /// socket is heard by the watchers of every other).
     #[must_use]
-    pub fn bootstrap(self) -> (capnp::capability::Client, Watchers) {
-        let hub = Hub::new();
-        let watchers = hub.watchers();
-        (self.bootstrap_in(&hub), watchers)
+    pub fn per_connection(self, hub: &Hub) -> Layouts<S> {
+        Layouts {
+            svc: Rc::new(self),
+            hub: hub.clone(),
+        }
+    }
+}
+
+impl<S: LayoutStore + ?Sized + 'static> PerConnection for Layouts<S> {
+    fn bootstrap(&mut self, caller: &Caller) -> capnp::capability::Client {
+        match (self.svc.actors)(caller) {
+            Some(actor) => {
+                let shared = Rc::new(Shared {
+                    svc: self.svc.clone(),
+                    caller: caller.clone(),
+                    actor,
+                    listeners: self.hub.0.clone(),
+                });
+                capnp_rpc::new_client::<crate::layouts_capnp::layouts::Client, _>(
+                    super::root::Root { shared },
+                )
+                .client
+            }
+            None => capnp_rpc::new_broken_cap(crate::problem::err(
+                &Coded::new(LayoutCode::Unknown).with("what", "caller"),
+            )),
+        }
     }
 
-    /// Like [`Self::bootstrap`], but the watchers live in `hub`: every service of the same `hub` tells its watchers about every
-    /// write, whichever socket it came through. The limit `watchers_max` counts the watchers of the whole hub.
-    #[must_use]
-    pub fn bootstrap_in(self, hub: &Hub) -> capnp::capability::Client {
-        let shared = Rc::new(Shared {
-            svc: self,
-            listeners: hub.0.clone(),
-        });
-        capnp_rpc::new_client::<crate::layouts_capnp::layouts::Client, _>(super::root::Root {
-            shared,
-        })
-        .client
+    fn refused(&mut self, why: &CallerError) {
+        if let Some(note) = &self.svc.refused {
+            note(why);
+        }
     }
 }
 

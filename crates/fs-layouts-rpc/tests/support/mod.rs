@@ -12,7 +12,7 @@ use std::time::Duration;
 
 use fs_forms_layout::*;
 use fs_layouts_rpc::{ClientTimes, Hub, LayoutService, RpcLayouts, Watchers};
-use fs_rpc::{bind_socket, serve};
+use fs_rpc::{bind_socket, serve_callers};
 use tempfile::TempDir;
 
 use lax::Lax;
@@ -97,7 +97,7 @@ pub fn service_full(
         LayoutService::<dyn LayoutStore>::new(store.clone(), Reference(PERSON.to_owned()));
     if let Some(actor) = actor {
         let actor = Reference(actor.to_owned());
-        svc.actor_of_connection = Rc::new(move || actor.clone());
+        svc.actors = Rc::new(move |_| Some(actor.clone()));
     }
     if instance {
         svc.admin = Some(store);
@@ -144,9 +144,9 @@ pub fn serve_on(
         let local = tokio::task::LocalSet::new();
         local.block_on(&rt, async move {
             let bound = bind_socket(&path).await.unwrap();
-            let (boot, watchers) = make().bootstrap();
-            ready.send(watchers).unwrap();
-            serve(bound, boot, async move {
+            let hub = Hub::new();
+            ready.send(hub.watchers()).unwrap();
+            serve_callers(bound, make().per_connection(&hub), async move {
                 let _ = stopped.await;
             })
             .await
@@ -246,12 +246,12 @@ pub fn serve_actors_with(
                 }
                 if let Some(actor) = actor {
                     let actor = Reference(actor);
-                    svc.actor_of_connection = Rc::new(move || actor.clone());
+                    svc.actors = Rc::new(move |_| Some(actor.clone()));
                 }
                 let bound = bind_socket(&path).await.unwrap();
-                let boot = svc.bootstrap_in(&hub);
+                let per = svc.per_connection(&hub);
                 let shut = shut.clone();
-                serving.push(serve(bound, boot, async move {
+                serving.push(serve_callers(bound, per, async move {
                     let _ = shut.await;
                 }));
             }

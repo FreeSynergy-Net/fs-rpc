@@ -56,7 +56,7 @@ pub(crate) async fn create_overlay<S: LayoutStore + ?Sized>(
     mut r: l::CreateOverlayResults,
 ) -> H {
     let p = p.get()?;
-    let who = sh.svc.who(&txt(p.get_author())?)?;
+    let who = sh.who(&txt(p.get_author())?)?;
     let (lang, title) = (opt(p.get_lang())?, opt(p.get_title_key())?);
     let id = sh
         .svc
@@ -79,7 +79,7 @@ pub(crate) async fn replace_ops<S: LayoutStore + ?Sized>(
     mut r: l::ReplaceOpsResults,
 ) -> H {
     let p = p.get()?;
-    let who = sh.svc.who(&txt(p.get_author())?)?;
+    let who = sh.who(&txt(p.get_author())?)?;
     let ops = read_kinds(p.get_ops()?)?;
     let report = sh
         .svc
@@ -104,7 +104,7 @@ pub(crate) async fn set_overlay_state<S: LayoutStore + ?Sized>(
     mut r: l::SetOverlayStateResults,
 ) -> H {
     let p = p.get()?;
-    let who = sh.svc.who(&txt(p.get_author())?)?;
+    let who = sh.who(&txt(p.get_author())?)?;
     let rev = sh
         .svc
         .store
@@ -126,7 +126,7 @@ pub(crate) async fn delete_overlay<S: LayoutStore + ?Sized>(
     _: l::DeleteOverlayResults,
 ) -> H {
     let p = p.get()?;
-    let who = sh.svc.who(&txt(p.get_author())?)?;
+    let who = sh.who(&txt(p.get_author())?)?;
     sh.svc
         .store
         .delete_overlay(&overlay_id(p.get_id()?), Rev(p.get_expected_rev()), &who)
@@ -141,7 +141,7 @@ pub(crate) async fn import_overlay<S: LayoutStore + ?Sized>(
     mut r: l::ImportOverlayResults,
 ) -> H {
     let p = p.get()?;
-    let who = sh.svc.who(&txt(p.get_author())?)?;
+    let who = sh.who(&txt(p.get_author())?)?;
     let doc = read_overlay_doc(p.get_doc()?)?;
     let mode = if p.get_dry_run() {
         Mode::DryRun
@@ -162,7 +162,7 @@ pub(crate) async fn resolve_conflict<S: LayoutStore + ?Sized>(
     mut r: l::ResolveConflictResults,
 ) -> H {
     let p = p.get()?;
-    let who = sh.svc.who(&txt(p.get_author())?)?;
+    let who = sh.who(&txt(p.get_author())?)?;
     let how = match txt(p.get_how())?.as_str() {
         "keep" => Resolution::Keep,
         "drop" => Resolution::Drop,
