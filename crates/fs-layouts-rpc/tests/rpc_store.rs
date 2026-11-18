@@ -211,7 +211,7 @@ fn the_standard_menu_is_kind_standard_with_its_word_on_the_wire() {
         let res = req.send().promise.await.unwrap();
         let menu = res.get().unwrap().get_layout().unwrap().get_menu().unwrap();
         let mut seen = Vec::new();
-        for m in menu.iter() {
+        for m in &menu {
             let elem = m.get_elem().unwrap().to_string().unwrap();
             if elem == "menu:help" || elem == "menu:program" {
                 seen.push((
