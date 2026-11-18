@@ -12,24 +12,29 @@ pub fn os_user_of(caller: &Caller) -> Option<String> {
     Some(caller.name().unwrap_or_else(|| caller.id()).to_owned())
 }
 
-/// The default actor of a caller: `urn:fs:os-user:<id>` from `Caller::id` ONLY (the name is display; it may be missing or change).
+/// Is the id of a caller something an actor can be made of: not empty, and only letters, digits, `-`, `_`, `.` (a Unix user id, a Windows
+/// SID)?
+#[must_use]
+pub fn id_usable(id: &str) -> bool {
+    !id.is_empty()
+        && id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.'))
+}
+
+/// The default actor of a caller: `urn:fs:os-user:<id>` from `Caller::id` ONLY (the name is display; it can be chosen by whoever set up the
+/// account). An id that is unusable ([`id_usable`]) is the actor `urn:fs:os-user:unknown`, NEVER the name; the service does not even get
+/// that far: it refuses such a connection (`caller-unknown`, see [`crate::SettingsCallers`]).
 ///
 /// # Panics
 /// Never: the fallback is a fixed valid IRI.
 #[must_use]
 pub fn actor_of(caller: &Caller) -> Reference {
-    let id = caller.id();
-    let usable = !id.is_empty()
-        && id
-            .bytes()
-            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.'));
-    let text = if usable {
-        format!("urn:fs:os-user:{id}")
-    } else {
-        "urn:fs:os-user:unknown".to_owned()
-    };
-    Reference::parse(&text)
-        .unwrap_or_else(|_| Reference::parse("urn:fs:os-user:unknown").expect("valid IRI"))
+    let unknown = || Reference::parse("urn:fs:os-user:unknown").expect("valid IRI");
+    if !id_usable(caller.id()) {
+        return unknown();
+    }
+    Reference::parse(&format!("urn:fs:os-user:{}", caller.id())).unwrap_or_else(|_| unknown())
 }
 
 /// The line a claimed `by` becomes in the log: the claim as written (quoted, so an empty or odd one is visible) and that it was ignored.

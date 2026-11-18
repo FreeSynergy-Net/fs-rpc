@@ -7,6 +7,7 @@
 mod admin;
 mod hub;
 mod listeners;
+mod refused;
 mod store;
 
 pub use hub::{ClaimNote, OsUserOf, SettingsCallers, SettingsService};

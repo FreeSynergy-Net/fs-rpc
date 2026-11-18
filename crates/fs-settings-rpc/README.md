@@ -12,6 +12,12 @@ contract `settings`. This crate holds both ends of that wire:
 Caller identity: the connection (fs-rpc lets in the same OS user only); time and OS user of the instance log are the service's.
 Status: probe, contract draft 0.2 compiled in the crate until fs-interfaces 0.0.28 carries it. Written with Claude (Anthropic).
 
+## Refused callers (stable code)
+
+A connection whose caller the system names with an unusable id (empty, or not only letters, digits, `-`, `_`, `.`) is refused: every call
+answers `caller-unknown` (a client sees `store-broken{cause=caller-unknown}`) and the host's log hears it (`refused_note`). The actor is never
+the name. A connection the system cannot name at all is `caller-credentials` (fs-rpc).
+
 ## Auf Deutsch
 
 Die Einstellungen einer Person liegen in EINER Datenbank eines Prozesses. Dieses Crate enthaelt beide Seiten der Leitung:
