@@ -31,7 +31,6 @@ mod service;
 mod wire;
 
 // The contracts and their generated code are the ones of fs-interfaces v0.0.28 (the owner file of `layouts` and `bind`).
-pub(crate) use fs_interfaces::common_capnp;
 pub use fs_interfaces::{bind_capnp, layouts_capnp};
 
 pub use client::{ClientTimes, RpcLayoutAdmin, RpcLayouts, Watching};
