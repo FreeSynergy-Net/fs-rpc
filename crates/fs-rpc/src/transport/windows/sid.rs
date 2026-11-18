@@ -186,6 +186,12 @@ fn account_name(sid: &Sid) -> Option<String> {
     (ok != 0).then(|| String::from_utf16_lossy(&name[..name_len as usize]))
 }
 
+/// The account name of the user of this process (`None` if the system has none); for the tests, to compare with a caller.
+#[cfg(test)]
+pub(super) fn my_account_name() -> Option<String> {
+    me().ok().and_then(|m| account_name(&m.user))
+}
+
 /// Who runs the client process of this pipe instance, from the process token (the SID, and the account name if the system has
 /// one); asked again for every connection. Compiled on Windows only; not run by the authors (marked unchecked in the CHANGELOG).
 pub(super) fn client_caller(pipe: RawHandle) -> io::Result<(String, Option<String>)> {

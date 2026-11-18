@@ -64,6 +64,7 @@ fn a_caller_the_system_does_not_tell_is_refused_with_a_code_and_gets_nothing() {
     assert_eq!(log.callers.len(), 1);
 }
 
+#[cfg(unix)]
 #[test]
 fn the_name_comes_from_the_entry_with_that_user_id_and_the_first_wins() {
     let passwd = "# c\nroot:x:0:0:r:/root:/bin/sh\nann:x:1000:1000::/h/ann:/bin/sh\nbob:x:1000:1000::/h/bob:/bin/sh\n:x:7:7:::\n";

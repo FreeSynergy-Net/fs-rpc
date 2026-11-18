@@ -12,6 +12,7 @@ use windows_sys::Win32::Security::{
 };
 
 use super::super::endpoint::{Accepted, Endpoint};
+use super::super::peer::CallerSource;
 use super::name::{companion_stem, encode, pipe_name};
 use super::{Windows, bind_socket, sid};
 
@@ -158,4 +159,34 @@ fn the_data_folder_is_made_private_and_comes_back_without_the_prefix_of_the_long
     // Again, now that it exists: still ours.
     Windows::prepare_data_dir(&dir).unwrap();
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// The Windows counterpart of the Unix peer-credential tests: the caller of a real pipe is this user, by SID; the name is the
+/// account name the system gives for that SID (or `None`), never a made-up one (the passwd lookup of Unix does not exist here).
+#[tokio::test]
+async fn the_caller_of_a_pipe_is_this_user_by_sid_with_the_account_name_of_the_system() {
+    let path = unique("caller");
+    let bound = bind_socket(&path).await.unwrap();
+    let (client, accepted) = tokio::join!(Windows::connect(&path), Windows::accept(&bound));
+    let _client = client.unwrap();
+    let Accepted::Peer(served) = accepted.unwrap() else {
+        panic!("the caller is this user and must be served");
+    };
+    let caller = served.caller().unwrap();
+    assert_eq!(caller.id(), sid::my_sid_text().unwrap());
+    assert!(caller.id().starts_with("S-1-"));
+    assert_eq!(caller.name().map(str::to_owned), sid::my_account_name());
+    if let Some(name) = caller.name() {
+        assert!(
+            !name.is_empty() && !name.contains('\\'),
+            "name {name:?} is not a bare account name"
+        );
+    }
+    // Asked again for the next connection, the answer is the same user.
+    let (client2, accepted2) = tokio::join!(Windows::connect(&path), Windows::accept(&bound));
+    let _client2 = client2.unwrap();
+    let Accepted::Peer(served2) = accepted2.unwrap() else {
+        panic!("second caller must be served");
+    };
+    assert_eq!(served2.caller().unwrap().id(), caller.id());
 }
