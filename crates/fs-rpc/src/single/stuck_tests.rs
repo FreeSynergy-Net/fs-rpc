@@ -64,13 +64,13 @@ fn the_description_survives_the_way_through_the_error_and_back() {
 
 #[test]
 fn every_reason_keeps_its_token_through_the_error() {
-    assert_eq!(WHY_TOKENS.len(), 9);
+    assert_eq!(WHY_TOKENS.len(), 10);
     for why in WHY_TOKENS {
         let e = RpcError::from(&Stuck::new(why, Duration::from_secs(1)));
         assert_eq!(text(&e, "why").as_deref(), Some(why));
         assert_eq!(Stuck::from_error(&e).unwrap().why, why);
     }
-    for why in ["beating", "not-ending", "no-control"] {
+    for why in ["same-program", "beating", "not-ending", "no-control"] {
         assert!(WHY_TOKENS.contains(&why), "{why} is not a reason");
     }
 }
@@ -154,4 +154,27 @@ fn the_variants_of_the_single_error_each_give_their_own_code_and_parameters() {
     // Busy and silent are told apart by code, never by a parameter.
     assert_ne!(silent.code(), busy.code());
     assert_ne!(busy.code(), long.code());
+}
+
+#[test]
+fn the_take_over_case_of_fs_tasks_survives_the_way_back() {
+    // fs-tasks (`Decision::TakeOver`): this program, this user, nothing unclear: the person may be asked.
+    let s = Stuck {
+        pid: Some(4242),
+        start: Some(99),
+        since: Some("2026-11-18T11:00:00Z".into()),
+        can_ask: true,
+        ..Stuck::new("same-program", Duration::from_secs(10))
+    };
+    let e = RpcError::from(&s);
+    assert_eq!(text(&e, "why").as_deref(), Some("same-program"));
+    assert_eq!(text(&e, "can-ask").as_deref(), Some("yes"));
+    assert_eq!(Stuck::from_error(&e), Some(s));
+}
+
+#[cfg(debug_assertions)]
+#[test]
+#[should_panic(expected = "is not one of WHY_TOKENS")]
+fn a_reason_that_would_not_read_back_is_refused_when_the_error_is_made() {
+    let _ = RpcError::from(&Stuck::new("bored", Duration::from_secs(1)));
 }

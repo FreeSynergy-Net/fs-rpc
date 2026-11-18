@@ -72,6 +72,7 @@ fn a_hanging_server_without_a_heartbeat_gets_no_signal_only_a_report() {
         coded.param("pid").and_then(fs_rpc::Param::as_number),
         Some(u64::from(child.0.id()))
     );
+    assert_started_just_now(&coded);
     std::thread::sleep(Duration::from_millis(300));
     assert!(alive(&mut child), "no signal: it could not save first");
 }
@@ -168,6 +169,7 @@ fn another_program_is_only_reported() {
         Some(u64::from(child.0.id()))
     );
     assert!(coded.param("exe").is_some());
+    assert_started_just_now(&coded);
     assert!(alive(&mut child), "another program is never ended");
     std::thread::sleep(Duration::from_millis(300));
     assert!(!marker.exists(), "nothing was saved in it either");
@@ -195,4 +197,26 @@ fn the_whole_call_has_a_limit() {
     );
     assert!(matches!(error, SingleError::TooLong(_)), "{error}");
     assert!(alive(&mut child));
+}
+
+/// The failure says when the silent process started (`start` in ticks, `since` as UTC text): a process of this test, a moment ago.
+fn assert_started_just_now(coded: &RpcError) {
+    assert!(
+        coded
+            .param("start")
+            .and_then(fs_rpc::Param::as_number)
+            .is_some()
+    );
+    let since = coded
+        .param("since")
+        .and_then(fs_rpc::Param::as_text)
+        .expect("since");
+    let at = chrono::DateTime::parse_from_rfc3339(since)
+        .expect("RFC 3339")
+        .timestamp();
+    let now = chrono::Utc::now().timestamp();
+    assert!(
+        (now - 600..=now + 2).contains(&at),
+        "{since} is not a start within the last minutes"
+    );
 }

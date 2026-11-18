@@ -14,14 +14,16 @@ use crate::code::param_keys as k;
 use crate::{Param, RpcError, RpcErrorCode};
 
 /// The reasons a silent server was not ended (the values of `why`): the rule says `itself`, `foreign-user`, `unreadable`,
-/// `pid-reused`, `other-program`; the ending says `beating` (it still answers its heartbeat), `not-ending` (it did not end),
+/// `pid-reused`, `other-program`; a program that decides for itself says `same-program` (this program of this user, nothing unclear:
+/// the person may be asked to end it, `can-ask`; fs-tasks); the ending says `beating` (it still answers its heartbeat), `not-ending` (it did not end),
 /// `no-control` (no heartbeat channel: nothing could be saved first); `unsupported` is where nothing can be looked at.
-pub const WHY_TOKENS: [&str; 9] = [
+pub const WHY_TOKENS: [&str; 10] = [
     "itself",
     "foreign-user",
     "unreadable",
     "pid-reused",
     "other-program",
+    "same-program",
     "beating",
     "not-ending",
     "no-control",
@@ -42,7 +44,8 @@ pub struct Stuck {
     pub exe: Option<String>,
     /// Whether the person may say yes to ending it (their own process: the same user, nothing unclear).
     pub can_ask: bool,
-    /// Why it was not ended: one of [`WHY_TOKENS`]. Another program is only reported.
+    /// Why it was not ended: one of [`WHY_TOKENS`] (`RpcError::from(&Stuck)` checks this in a debug build). Another
+    /// program is only reported.
     pub why: &'static str,
     /// How long the wait was.
     pub limit: Duration,
@@ -102,6 +105,11 @@ impl From<&Stuck> for RpcError {
     /// `server-unresponsive` with `pid`, `start`, `since`, `exe` (each left out if unknown), `can-ask` (`yes`, left out if not),
     /// `why` and `limit-ms`.
     fn from(s: &Stuck) -> Self {
+        debug_assert!(
+            WHY_TOKENS.contains(&s.why),
+            "`{}` is not one of WHY_TOKENS: it would not survive the way back",
+            s.why
+        );
         let mut e = Self::new(RpcErrorCode::ServerUnresponsive);
         if let Some(pid) = s.pid {
             e = e.with_number(k::PID, u64::from(pid));

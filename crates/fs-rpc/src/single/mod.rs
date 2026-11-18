@@ -37,6 +37,6 @@ mod watching;
 mod ensure;
 
 pub use ensure::{Single, SingleTimes, ensure_single};
-pub use error::{SingleError, Stuck, TakenOver};
+pub use error::{SingleError, Stuck, TakenOver, WHY_TOKENS};
 #[cfg(target_os = "linux")]
 pub use rule::{Decision, Image, Own, Peer, Why, decide as decide_takeover};

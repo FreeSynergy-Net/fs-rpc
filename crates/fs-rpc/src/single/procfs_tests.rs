@@ -3,7 +3,9 @@
 //! Pattern: Table tests on a temporary tree. Mutants: M1 the start time is read from the wrong field; M2 ` (deleted)` is not cut off;
 //! M3 a zombie or another start time does not count as gone; M5 only the main thread is looked at; M4 the user is taken from the folder without comparing with the socket.
 
-use super::procfs::{image_of, is_gone, own, parse_stat, peer_in};
+use super::procfs::{
+    PROC, boot_time_in, image_of, is_gone, own, parse_stat, peer_in, since_of, since_utc, stat_of,
+};
 
 #[test]
 fn the_start_time_is_the_22nd_field_after_the_last_bracket() {
@@ -96,4 +98,48 @@ fn a_zombie_main_thread_with_a_live_thread_is_not_gone() {
     assert!(!is_gone(root.path(), 77, 500), "a thread still lives");
     std::fs::write(dir.join("task/78/stat"), stat(78, "Z")).unwrap();
     assert!(is_gone(root.path(), 77, 500), "every thread is dead");
+}
+
+#[test]
+fn the_boot_time_is_the_btime_line_and_the_start_is_boot_plus_ticks_over_hz() {
+    let root = tempfile::tempdir().unwrap();
+    assert_eq!(boot_time_in(root.path()), None, "no stat file");
+    std::fs::write(
+        root.path().join("stat"),
+        "cpu  1 2 3\nbtime 1700000000\nprocesses 5\n",
+    )
+    .unwrap();
+    assert_eq!(boot_time_in(root.path()), Some(1_700_000_000));
+    std::fs::write(root.path().join("stat"), "btime soon\n").unwrap();
+    assert_eq!(boot_time_in(root.path()), None);
+    // 1_700_000_000 = 2023-11-14T22:13:20Z; 250 ticks at 100 per second are 2 whole seconds, 25_000 ticks are 250 s.
+    assert_eq!(
+        since_utc(1_700_000_000, 100, 250).as_deref(),
+        Some("2023-11-14T22:13:22Z")
+    );
+    assert_eq!(
+        since_utc(1_700_000_000, 100, 25_000).as_deref(),
+        Some("2023-11-14T22:17:30Z")
+    );
+    assert_eq!(
+        since_utc(1_700_000_000, 0, 5),
+        None,
+        "no ticks per second: nothing is guessed"
+    );
+    assert_eq!(since_utc(u64::MAX, 1, 5), None);
+}
+
+#[test]
+fn this_process_started_some_time_before_now_in_utc_text() {
+    let me = i32::try_from(std::process::id()).unwrap();
+    let (_, ticks) = stat_of(std::path::Path::new(PROC), me).unwrap();
+    let text = since_of(ticks).expect("the real /proc says");
+    let at = chrono::DateTime::parse_from_rfc3339(&text)
+        .unwrap()
+        .timestamp();
+    let now = chrono::Utc::now().timestamp();
+    assert!(
+        (now - 3600..=now + 2).contains(&at),
+        "{text} is not within the last hour"
+    );
 }

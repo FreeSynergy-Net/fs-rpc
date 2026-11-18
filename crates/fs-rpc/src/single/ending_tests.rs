@@ -168,3 +168,17 @@ fn a_program_without_a_heartbeat_channel_gets_no_signal_only_a_report() {
         );
     }
 }
+
+#[test]
+fn a_failure_tells_what_the_system_knows_of_the_process_including_when_it_started() {
+    let mut env = fake(vec![peer(4242)], "term", None);
+    env.channel = false;
+    let Err(super::error::SingleError::Unresponsive(s)) = run(&env) else {
+        panic!("no report");
+    };
+    assert_eq!((s.pid, s.start), (Some(900), Some(4242)));
+    assert_eq!(s.exe.as_deref(), Some("/usr/bin/fs-x"));
+    assert!(!s.can_ask, "ensure_single does not ask: the program does");
+    let since = s.since.expect("the start is known, so is the time");
+    assert_eq!(Some(since), super::procfs::since_of(4242));
+}

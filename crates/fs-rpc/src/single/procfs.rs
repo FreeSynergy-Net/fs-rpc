@@ -116,6 +116,25 @@ fn parse_stat_state(text: &str) -> Option<char> {
         .next()
 }
 
+/// The boot time (seconds since 1970) from the `btime` line of `<root>/stat`.
+pub(super) fn boot_time_in(root: &Path) -> Option<u64> {
+    std::fs::read_to_string(root.join("stat"))
+        .ok()?
+        .lines()
+        .find_map(|l| l.strip_prefix("btime ")?.trim().parse().ok())
+}
+
+/// When a process that started `ticks` after the boot started, as UTC text: the boot time plus `ticks` at `hz` ticks a second.
+pub(super) fn since_utc(boot: u64, hz: u64, ticks: u64) -> Option<String> {
+    Some(utc(boot.checked_add(ticks.checked_div(hz)?)?))
+}
+
+/// When the process with the start time `ticks` (from the real `/proc`) started; `None` if the system does not say.
+pub(super) fn since_of(ticks: u64) -> Option<String> {
+    let hz = rustix::param::clock_ticks_per_second();
+    since_utc(boot_time_in(Path::new(PROC))?, hz, ticks)
+}
+
 /// Seconds since 1970 as `YYYY-MM-DDTHH:MM:SSZ` (the civil-date rule of H. Hinnant), for the log.
 pub(super) fn utc(epoch: u64) -> String {
     let (days, secs) = (epoch / 86_400, epoch % 86_400);

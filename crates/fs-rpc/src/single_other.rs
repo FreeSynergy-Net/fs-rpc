@@ -17,7 +17,7 @@ use std::time::Duration;
 
 use capnp::capability::FromClientHook;
 
-pub use error::{SingleError, Stuck, TakenOver};
+pub use error::{SingleError, Stuck, TakenOver, WHY_TOKENS};
 
 use crate::{Connection, Expected, RestartTimes, ServerStarter, connect_matching_with};
 

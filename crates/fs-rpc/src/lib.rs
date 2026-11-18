@@ -95,7 +95,7 @@ pub use serve::{
 };
 #[cfg(all(unix, target_os = "linux"))]
 pub use single::{Decision, Image, Own, Peer, Why, decide_takeover};
-pub use single::{Single, SingleError, SingleTimes, Stuck, TakenOver, ensure_single};
+pub use single::{Single, SingleError, SingleTimes, Stuck, TakenOver, WHY_TOKENS, ensure_single};
 pub use starter::{CommandStarter, ServerStarter};
 pub use stop::stop_self;
 pub use transport::{

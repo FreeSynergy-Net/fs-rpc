@@ -9,7 +9,7 @@ use std::time::Duration;
 use crate::code::param_keys as k;
 use crate::{HandshakeError, RpcError, RpcErrorCode};
 
-pub use super::stuck::Stuck;
+pub use super::stuck::{Stuck, WHY_TOKENS};
 
 /// A process of this program that was ended.
 #[derive(Clone, Debug, PartialEq, Eq)]

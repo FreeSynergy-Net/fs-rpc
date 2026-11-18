@@ -34,7 +34,7 @@ pub mod param_keys {
     pub const KIND: &str = "kind";
     /// Why a data folder is refused: `foreign-owner`, `mode`, `symlink`, `ancestor`, `not-directory`.
     pub const CAUSE: &str = "cause";
-    /// Why a silent server is not ended: `itself`, `foreign-user`, `unreadable`, `pid-reused`, `other-program`, `beating`, `no-control`, `not-ending`, `unsupported`.
+    /// Why a silent server is not ended: `itself`, `foreign-user`, `unreadable`, `pid-reused`, `other-program`, `same-program`, `beating`, `no-control`, `not-ending`, `unsupported`.
     pub const WHY: &str = "why";
     /// When the silent server started, as UTC text (RFC 3339); left out if not known.
     pub const SINCE: &str = "since";

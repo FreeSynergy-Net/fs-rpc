@@ -80,6 +80,7 @@ pub(super) async fn free_socket(
         return Err(SingleError::Unresponsive(Stuck {
             pid: u32::try_from(pid).ok(),
             start: first.start,
+            since: first.start.and_then(procfs::since_of),
             exe: first.exe.as_ref().map(|e| e.path.clone()),
             ..Stuck::new(why.code(), times.overall)
         }));

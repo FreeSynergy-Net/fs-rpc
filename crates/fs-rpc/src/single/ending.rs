@@ -52,6 +52,7 @@ fn stuck(peer: &Peer, why: &'static str, limit: Duration) -> SingleError {
     SingleError::Unresponsive(Stuck {
         pid: u32::try_from(peer.pid).ok(),
         start: peer.start,
+        since: peer.start.and_then(super::procfs::since_of),
         exe: peer.exe.as_ref().map(|e| e.path.clone()),
         ..Stuck::new(why, limit)
     })
