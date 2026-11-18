@@ -51,9 +51,9 @@ pub(super) struct Waits {
 fn stuck(peer: &Peer, why: &'static str, limit: Duration) -> SingleError {
     SingleError::Unresponsive(Stuck {
         pid: u32::try_from(peer.pid).ok(),
-        why,
+        start: peer.start,
         exe: peer.exe.as_ref().map(|e| e.path.clone()),
-        limit,
+        ..Stuck::new(why, limit)
     })
 }
 

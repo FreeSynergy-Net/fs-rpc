@@ -49,12 +49,7 @@ async fn listener(socket: &Path, call: std::time::Duration) -> Listener {
 }
 
 fn unknown(times: &SingleTimes) -> SingleError {
-    SingleError::Unresponsive(Stuck {
-        pid: None,
-        why: "unreadable",
-        exe: None,
-        limit: times.overall,
-    })
+    SingleError::Unresponsive(Stuck::new("unreadable", times.overall))
 }
 
 /// Look at the silent server and, if it is this program of this user and hangs, save it, end it and remove its socket file.
@@ -84,9 +79,9 @@ pub(super) async fn free_socket(
     if let Decision::Refuse(why) = decide(Some(start), &first, &own) {
         return Err(SingleError::Unresponsive(Stuck {
             pid: u32::try_from(pid).ok(),
-            why: why.code(),
+            start: first.start,
             exe: first.exe.as_ref().map(|e| e.path.clone()),
-            limit: times.overall,
+            ..Stuck::new(why.code(), times.overall)
         }));
     }
     let socket_ino = std::fs::symlink_metadata(socket)

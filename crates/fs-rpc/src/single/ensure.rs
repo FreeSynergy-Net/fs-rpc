@@ -70,12 +70,10 @@ mod other {
         _: Option<&std::path::Path>,
         _: &BusySeen,
     ) -> Result<Freed, super::SingleError> {
-        Err(super::SingleError::Unresponsive(super::Stuck {
-            pid: None,
-            why: "unsupported",
-            exe: None,
-            limit: times.overall,
-        }))
+        Err(super::SingleError::Unresponsive(super::Stuck::new(
+            "unsupported",
+            times.overall,
+        )))
     }
 }
 #[cfg(target_os = "linux")]

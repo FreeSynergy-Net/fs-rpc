@@ -34,8 +34,15 @@ pub mod param_keys {
     pub const KIND: &str = "kind";
     /// Why a data folder is refused: `foreign-owner`, `mode`, `symlink`, `ancestor`, `not-directory`.
     pub const CAUSE: &str = "cause";
-    /// Why a silent server is not ended: `itself`, `foreign-user`, `unreadable`, `pid-reused`, `other-program`, `unsupported`.
+    /// Why a silent server is not ended: `itself`, `foreign-user`, `unreadable`, `pid-reused`, `other-program`, `beating`, `no-control`, `not-ending`, `unsupported`.
     pub const WHY: &str = "why";
+    /// When the silent server started, as UTC text (RFC 3339); left out if not known.
+    pub const SINCE: &str = "since";
+    /// The start time of the silent server's process in clock ticks since the boot (a number; what a confirmation to end it is
+    /// checked against, so a reused process number is never ended); left out if not known.
+    pub const START: &str = "start";
+    /// `yes` when the person may say yes to ending the silent server (their own process, nothing unclear); left out otherwise.
+    pub const CAN_ASK: &str = "can-ask";
     /// What a busy server does: a text key the program words (`importing`); from the heartbeat.
     pub const WHAT: &str = "what";
     /// How far a busy server is (a number that grows).

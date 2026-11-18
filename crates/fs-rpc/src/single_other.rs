@@ -6,6 +6,11 @@
 
 #[path = "single/error.rs"]
 mod error;
+#[path = "single/stuck.rs"]
+mod stuck;
+#[cfg(test)]
+#[path = "single/stuck_tests.rs"]
+mod stuck_tests;
 
 use std::path::Path;
 use std::time::Duration;
@@ -64,12 +69,10 @@ pub async fn ensure_single<C: FromClientHook>(
             connection,
             taken_over: None,
         }),
-        Ok(Err(e)) if error::is_silent(&e) => Err(SingleError::Unresponsive(Stuck {
-            pid: None,
-            why: "unsupported",
-            exe: None,
-            limit: times.overall,
-        })),
+        Ok(Err(e)) if error::is_silent(&e) => Err(SingleError::Unresponsive(Stuck::new(
+            "unsupported",
+            times.overall,
+        ))),
         Ok(Err(e)) => Err(SingleError::Handshake(e)),
         Err(_) => Err(SingleError::TooLong(times.overall)),
     }

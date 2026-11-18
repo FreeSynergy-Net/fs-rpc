@@ -28,6 +28,9 @@ mod procfs_tests;
 mod rule;
 #[cfg(all(test, target_os = "linux"))]
 mod rule_tests;
+mod stuck;
+#[cfg(test)]
+mod stuck_tests;
 #[cfg(target_os = "linux")]
 mod watching;
 

@@ -9,19 +9,7 @@ use std::time::Duration;
 use crate::code::param_keys as k;
 use crate::{HandshakeError, RpcError, RpcErrorCode};
 
-/// A server that holds the socket, does not answer and was not ended.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Stuck {
-    /// Its process, if known.
-    pub pid: Option<u32>,
-    /// Why it was not ended (`itself`, `foreign-user`, `unreadable`, `pid-reused`, `other-program`, `beating`, `unsupported`,
-    /// `not-ending`): another program is only reported.
-    pub why: &'static str,
-    /// The real path of its program file, if it could be read.
-    pub exe: Option<String>,
-    /// How long the wait was.
-    pub limit: Duration,
-}
+pub use super::stuck::Stuck;
 
 /// A process of this program that was ended.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -63,17 +51,7 @@ impl From<&SingleError> for RpcError {
     fn from(e: &SingleError) -> Self {
         match e {
             SingleError::Handshake(h) => Self::from(h),
-            SingleError::Unresponsive(s) => {
-                let mut e = Self::new(RpcErrorCode::ServerUnresponsive);
-                if let Some(pid) = s.pid {
-                    e = e.with_number(k::PID, u64::from(pid));
-                }
-                e = e.with_text(k::WHY, s.why);
-                if let Some(exe) = &s.exe {
-                    e = e.with_text(k::EXE, exe.as_str());
-                }
-                e.with_number(k::LIMIT_MS, millis(s.limit))
-            }
+            SingleError::Unresponsive(s) => Self::from(s),
             SingleError::Busy {
                 pid,
                 what,
