@@ -157,3 +157,44 @@ impl InstanceStore for Spy {
         self.inner.instance_log(after, size)
     }
 }
+
+/// A port whose `profile` BLOCKS (a database that takes its time); everything else is quick.
+pub struct Slow {
+    pub inner: MemoryStore,
+    pub delay: std::time::Duration,
+}
+
+impl SettingsStore for Slow {
+    fn stamp(&self) -> Stamp {
+        self.inner.stamp()
+    }
+    fn health(&self) -> Health {
+        self.inner.health()
+    }
+    fn instance(&self) -> Instance {
+        self.inner.instance()
+    }
+    fn profile(&self, s: &Scope, p: Place, id: u64) -> Snapshot {
+        std::thread::sleep(self.delay);
+        self.inner.profile(s, p, id)
+    }
+    fn write(
+        &self,
+        s: &Scope,
+        p: Place,
+        id: u64,
+        k: &SettingKey,
+        r: Option<&Raw>,
+    ) -> Result<(), Coded<SettingCode>> {
+        self.inner.write(s, p, id, k, r)
+    }
+    fn clear(&self, s: &Scope, id: u64) -> Result<(), Coded<SettingCode>> {
+        self.inner.clear(s, id)
+    }
+    fn index(&self) -> (ProfileSet<u64>, Vec<Coded<SettingCode>>) {
+        self.inner.index()
+    }
+    fn update_index(&self, f: &mut IndexFn<'_>) -> Result<ProfileSet<u64>, Coded<SettingCode>> {
+        self.inner.update_index(f)
+    }
+}

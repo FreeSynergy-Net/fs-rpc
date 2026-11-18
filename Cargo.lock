@@ -632,7 +632,7 @@ dependencies = [
 [[package]]
 name = "fs-settings"
 version = "0.0.29"
-source = "git+https://github.com/FreeSynergy/fs-components?rev=e06631191fb20f3de63cdc5d9e977b2398eefac0#e06631191fb20f3de63cdc5d9e977b2398eefac0"
+source = "git+https://github.com/FreeSynergy/fs-components?rev=245ddc5fcaed3cbc951e39ae2f38e56a70bb2976#245ddc5fcaed3cbc951e39ae2f38e56a70bb2976"
 dependencies = [
  "fs-types",
 ]
