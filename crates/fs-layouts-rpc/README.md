@@ -35,8 +35,30 @@ its own actor, over ONE store). It is never read from a client field. Administra
 actor is not the person (`unsupported{what=on-behalf}`, K78 c). When fs-rpc offers peer credentials per connection, the host fills
 `actor_of_connection` from them; the settings service (fs-settings-rpc) must use the same procedure and helper.
 
+The choice of a socket is NOT a security boundary: every process of the same OS user can open the person's socket and is then
+"the person". K78 (c) acts only against connections to which the host itself gave a bot actor. Peer credentials alone (same OS
+user) would not change this either; what is needed is a bot key per connection or an OS user of its own. No bot socket is offered
+productively until fs-rpc has the per-connection factory (peer credentials, later the bot key).
+
+## Edge: one hub per store
+
+Several sockets over ONE store must share ONE `Hub` (`LayoutService::bootstrap_in(&hub)`): what is written through socket A is
+heard by the watchers of socket B. `bootstrap()` makes a hub of its own, which is right for a single socket only. The limit
+`watchers_max` counts the watchers of the whole hub.
+
+## Open before release
+
+These stay open on purpose; they belong to fs-forms / the contract owner, not to this probe:
+
+- (b) the UUIDs of layouts and overlays come from the store (fs-forms); then the uuid wrapper of the tests and wire goes.
+- (d) the words of the 8 remaining enums (FilterOp, FilterCond, Origin, OverlayState, Position, Cause, Field, LogAction) move into
+  `Words` of `fs-forms-layout`.
+- (f) `PAGE_MAX` (1000, fixed in `fs-forms-layout`) becomes a setting there.
+- (g) `sha2` in ONE version in the fs-forms tree (fs-forms-layout on 0.11; today 0.10 + 0.11 side by side).
+- (e) contract 0.3: the flags `hasValue/hasLow/hasHigh` etc. are a PROPOSAL; the contract owner decides the form.
+
 ## Auf Deutsch
 
 Die Beschreibungen der Frontends liegen in EINER Datenbank eines Prozesses (`fs-forms serve`). Dieses Crate enthaelt beide Seiten
 der Leitung: Client (`RpcLayouts`, `RpcLayoutAdmin`), Server-Geruest (`LayoutService`) und `ensure_service`. Fehler sind Codes mit
-Parametern, Grenzen sind Einstellungen. Stand: Probe.
+Parametern, Grenzen sind Einstellungen. Stand: Probe. Die Wahl des Sockets ist keine Sicherheitsgrenze (jeder Prozess desselben OS-Nutzers kann den Personen-Socket oeffnen); mehrere Sockets eines Speichers teilen EINEN `Hub`. Offen vor Release: (b), (d), (f), (g), (e) siehe oben.

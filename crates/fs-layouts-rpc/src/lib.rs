@@ -45,4 +45,4 @@ pub use ensure::{
 };
 pub use limits::ServiceLimits;
 pub use problem::{from_problem, to_problem};
-pub use service::{ClaimNote, LayoutService, Watchers};
+pub use service::{ClaimNote, Hub, LayoutService, Watchers};

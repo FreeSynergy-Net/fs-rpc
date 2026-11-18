@@ -166,8 +166,59 @@ fn a_watcher_hears_every_write_path() {
         heard_one!("create_overlay (2)");
         c.admin().lock(&pk, None, "audit", &who()).await.unwrap();
         heard_one!("admin lock");
+        c.admin()
+            .unlock(&pk, None, "audit done", &who())
+            .await
+            .unwrap();
+        heard_one!("admin unlock");
+        c.admin()
+            .create_instance_overlay(&pk, None, None, &who())
+            .await
+            .unwrap();
+        heard_one!("admin create_instance_overlay");
         c.set_state(&o2, Rev(1), false, &who()).await.unwrap();
         heard_one!("set_state");
+        // an overlay with an edit, then a changed original: a conflict, and its resolution
+        let o3 = c.create_overlay(&pk, None, None, &who()).await.unwrap();
+        heard_one!("create_overlay (3)");
+        c.replace_ops(&o3, Rev(1), vec![set_text(Field::TextKey, "mine")], &who())
+            .await
+            .unwrap();
+        heard_one!("replace_ops");
+        let mut v2 = doc("board");
+        v2.pages[0].v.blocks[0].v.text_key = Some("theirs".into());
+        let r = c
+            .install(v2, &pkg("2.0"), Mode::Apply, &who())
+            .await
+            .unwrap();
+        heard_one!("install (2)");
+        assert_eq!(r.conflicts.len(), 1, "{r:?}");
+        c.resolve_conflict(&o3, 0, "2.0", Resolution::Keep, &who())
+            .await
+            .unwrap();
+        heard_one!("resolve_conflict");
+        let od = OverlayDoc {
+            format: 1,
+            package: "net.example.pkg".into(),
+            extends: "net.example.Tasks".into(),
+            frontend: "board".into(),
+            base_version: "2.0".into(),
+            lang: None,
+            title_key: None,
+            ops: vec![Item {
+                elem: Some(elem("block:board/main")),
+                line: 0,
+                v: set_text(Field::TextKey, "imported"),
+            }],
+        };
+        let dry = c
+            .import_overlay(od.clone(), Mode::DryRun, &who())
+            .await
+            .unwrap();
+        assert!(dry.problems.is_empty(), "{dry:?}");
+        let done = c.import_overlay(od, Mode::Apply, &who()).await.unwrap();
+        assert!(done.problems.is_empty(), "{done:?}");
+        heard_one!("import_overlay");
         c.save(&own, Rev(1), doc("own"), &who()).await.unwrap();
         heard_one!("save");
         c.import(doc("imp"), Mode::Apply, &who()).await.unwrap();

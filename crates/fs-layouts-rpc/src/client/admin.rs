@@ -1,5 +1,5 @@
-//! `LayoutAdmin` over the contract (`admin(by)`, then `lock`/`unlock`/`createInstanceOverlay`). `by` is the acting person of
-//! `Who.actor`; the person service answers `unsupported{what=admin}`. One round trip more per call (the capability is asked for
+//! `LayoutAdmin` over the contract (`admin(by)`, then `lock`/`unlock`/`createInstanceOverlay`). `by` is only a claim (`Who.actor`
+//! as the caller says it); the service ignores it and records it, the actor is the connection's. The person service answers `unsupported{what=admin}`. One round trip more per call (the capability is asked for
 //! each time): the administrator's commands are rare, and a held capability would have to outlive a lost link.
 //!
 //! Pattern: Adapter (port -> contract), Proxy.
