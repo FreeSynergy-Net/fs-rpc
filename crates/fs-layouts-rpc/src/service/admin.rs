@@ -22,7 +22,8 @@ pub(crate) async fn admin<S: LayoutStore + ?Sized + 'static>(
 ) -> H {
     // K78(c): administration is for the person herself. A connection whose actor is not the person (an AI seat acting on her
     // behalf) is refused, whatever `by` says.
-    if (sh.svc.actor_of_connection)() != sh.svc.person {
+    let actor = (sh.svc.actor_of_connection)();
+    if actor != sh.svc.person {
         return Err(Coded::new(LayoutCode::Unsupported)
             .with("what", "on-behalf")
             .into());
@@ -42,7 +43,7 @@ pub(crate) async fn admin<S: LayoutStore + ?Sized + 'static>(
         port,
         listeners: sh.listeners.clone(),
         store: sh.clone().into_stamp(),
-        actor: (sh.svc.actor_of_connection)(),
+        actor,
         person: sh.svc.person.clone(),
     };
     r.get().set_admin(capnp_rpc::new_client(imp));

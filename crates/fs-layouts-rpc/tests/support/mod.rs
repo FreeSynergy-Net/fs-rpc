@@ -210,6 +210,14 @@ pub fn put_uuid(mut out: fs_interfaces::common_capnp::uuid::Builder<'_>, text: &
 /// ONE store and ONE hub, several sockets, each socket one actor of the connection (the actor is bound to the connection the caller got, never
 /// to a field it sends): `sockets` = (path, actor; `None` = the person).
 pub fn serve_actors(sockets: Vec<(PathBuf, Option<String>)>) -> Server {
+    serve_actors_with(sockets, None)
+}
+
+/// Like [`serve_actors`], with `watchers_max` of every service (the limit counts the watchers of the whole hub).
+pub fn serve_actors_with(
+    sockets: Vec<(PathBuf, Option<String>)>,
+    watchers_max: Option<u32>,
+) -> Server {
     use futures::FutureExt;
     let (stop, stopped) = oneshot::channel::<()>();
     let (ready, up) = std::sync::mpsc::channel();
@@ -230,6 +238,9 @@ pub fn serve_actors(sockets: Vec<(PathBuf, Option<String>)>) -> Server {
                     Reference(PERSON.to_owned()),
                 );
                 svc.admin = Some(Rc::new(Lax));
+                if let Some(max) = watchers_max {
+                    svc.limits.watchers_max = max;
+                }
                 if let Some(actor) = actor {
                     let actor = Reference(actor);
                     svc.actor_of_connection = Rc::new(move || actor.clone());

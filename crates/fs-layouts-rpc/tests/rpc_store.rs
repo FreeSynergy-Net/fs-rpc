@@ -190,3 +190,45 @@ fn the_log_reads_back_with_its_cursor() {
         assert_eq!(rest[0].id, all[1].id);
     });
 }
+
+/// The standard menus travel as `kind = "standard"` with `standard = "program" | "help"` (what a reader that is not Rust takes),
+/// never as one invented word: the wire is read raw here, not through our own reader.
+#[test]
+fn the_standard_menu_is_kind_standard_with_its_word_on_the_wire() {
+    let d = dir();
+    let s = person(&d.path().join("l.sock"));
+    run(async {
+        let c = client(&s.socket);
+        let id = c
+            .create(rich("board"), &who())
+            .await
+            .unwrap()
+            .layout
+            .unwrap();
+        let conn = raw(&s.socket).await;
+        let mut req = conn.client.original_request();
+        put_uuid(req.get().init_id(), &id.0.0);
+        let res = req.send().promise.await.unwrap();
+        let menu = res.get().unwrap().get_layout().unwrap().get_menu().unwrap();
+        let mut seen = Vec::new();
+        for m in menu.iter() {
+            let elem = m.get_elem().unwrap().to_string().unwrap();
+            if elem == "menu:help" || elem == "menu:program" {
+                seen.push((
+                    elem,
+                    m.get_kind().unwrap().to_string().unwrap(),
+                    m.get_standard().unwrap().to_string().unwrap(),
+                ));
+            }
+        }
+        seen.sort();
+        let t = |a: &str, b: &str, c: &str| (a.to_owned(), b.to_owned(), c.to_owned());
+        assert_eq!(
+            seen,
+            [
+                t("menu:help", "standard", "help"),
+                t("menu:program", "standard", "program")
+            ]
+        );
+    });
+}

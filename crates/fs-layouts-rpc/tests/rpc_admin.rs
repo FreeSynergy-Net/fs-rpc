@@ -144,7 +144,7 @@ fn a_watcher_hears_every_write_path() {
             ($what:literal) => {{
                 expect += 1;
                 assert!(
-                    until(|| heard.get() >= expect).await,
+                    until(|| heard.get() == expect).await,
                     concat!("no change heard after ", $what)
                 );
             }};
@@ -216,6 +216,9 @@ fn a_watcher_hears_every_write_path() {
             .await
             .unwrap();
         assert!(dry.problems.is_empty(), "{dry:?}");
+        // a dry run writes nothing: after a pause that lets a wrong notice arrive, the count is still the writes so far
+        tokio::time::sleep(Duration::from_millis(200)).await;
+        assert_eq!(heard.get(), expect, "a dry run was heard as a change");
         let done = c.import_overlay(od, Mode::Apply, &who()).await.unwrap();
         assert!(done.problems.is_empty(), "{done:?}");
         heard_one!("import_overlay");

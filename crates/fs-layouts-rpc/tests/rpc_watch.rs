@@ -211,3 +211,33 @@ fn a_write_through_one_socket_is_heard_on_the_other_socket() {
         assert!(until(|| *on_a.borrow() == 1).await, "the watcher on A");
     });
 }
+
+/// The limit counts the watchers of the HUB, not of one socket: with one place, the first watch on socket A takes it and a watch on
+/// socket B is refused with the limit named.
+#[test]
+fn the_watcher_limit_counts_the_whole_hub_not_one_socket() {
+    let d = dir();
+    let (a, b) = (d.path().join("a.sock"), d.path().join("b.sock"));
+    let s = serve_actors_with(
+        vec![
+            (a.clone(), None),
+            (b.clone(), Some("https://example.org/bots/seat".into())),
+        ],
+        Some(1),
+    );
+    run(async {
+        let (ca, cb) = (client(&a), client(&b));
+        let _first = ca.watch(Rc::new(|_| {}), Rc::new(|| {})).await.unwrap();
+        assert!(until(|| s.watchers.count() == 1).await);
+        let e = cb
+            .watch(Rc::new(|_| {}), Rc::new(|| {}))
+            .await
+            .map(drop)
+            .unwrap_err();
+        assert_eq!(
+            (code(&e), param(&e, "what"), param(&e, "max")),
+            ("too-many", Some("watchers"), Some("1")),
+            "the limit was counted per socket"
+        );
+    });
+}
