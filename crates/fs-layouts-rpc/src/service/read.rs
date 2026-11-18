@@ -102,7 +102,9 @@ pub(crate) async fn resolve<S: LayoutStore + ?Sized>(
     let mut out = r.get();
     out.set_found(found.is_some());
     if let Some(x) = found {
-        write_resolved(out.init_resolved(), &x)?;
+        // the real summary (origin, package, owner, counters) is the store's; `Resolved` itself does not carry it
+        let summary = sh.svc.store.original(&x.id).await?.map(|(_, s)| s);
+        write_resolved(out.init_resolved(), &x, summary.as_ref())?;
     }
     Ok(())
 }

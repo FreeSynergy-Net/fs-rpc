@@ -20,6 +20,13 @@ pub(crate) async fn admin<S: LayoutStore + ?Sized + 'static>(
     p: l::AdminParams,
     mut r: l::AdminResults,
 ) -> H {
+    // K78(c): administration is for the person herself. A connection whose actor is not the person (an AI seat acting on her
+    // behalf) is refused, whatever `by` says.
+    if (sh.svc.actor_of_connection)() != sh.svc.person {
+        return Err(Coded::new(LayoutCode::Unsupported)
+            .with("what", "on-behalf")
+            .into());
+    }
     let Some(port) = sh.svc.admin.clone() else {
         return Err(Coded::new(LayoutCode::Unsupported)
             .with("what", "admin")

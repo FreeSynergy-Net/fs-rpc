@@ -5,6 +5,8 @@ use std::cell::Cell;
 use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
@@ -77,9 +79,23 @@ pub fn service_with(
     instance: bool,
     providers: Option<Rc<dyn ProviderCatalogs>>,
 ) -> LayoutService<dyn LayoutStore> {
-    let store = Rc::new(UuidStore(mem(instance, providers)));
+    service_full(instance, providers, Arc::default(), None)
+}
+
+/// Everything switchable: the providers, a store that cannot say its stamp (`stamp_fail`), another actor of the connection.
+pub fn service_full(
+    instance: bool,
+    providers: Option<Rc<dyn ProviderCatalogs>>,
+    stamp_fail: Arc<AtomicBool>,
+    actor: Option<&str>,
+) -> LayoutService<dyn LayoutStore> {
+    let store = Rc::new(UuidStore(mem(instance, providers), stamp_fail));
     let mut svc =
         LayoutService::<dyn LayoutStore>::new(store.clone(), Reference(PERSON.to_owned()));
+    if let Some(actor) = actor {
+        let actor = Reference(actor.to_owned());
+        svc.actor_of_connection = Rc::new(move || actor.clone());
+    }
     if instance {
         svc.admin = Some(store);
     }
@@ -189,4 +205,89 @@ pub fn put_uuid(mut out: fs_interfaces::common_capnp::uuid::Builder<'_>, text: &
     let hex: String = text.chars().filter(|c| *c != '-').collect();
     out.set_hi(u64::from_str_radix(&hex[..16], 16).unwrap());
     out.set_lo(u64::from_str_radix(&hex[16..], 16).unwrap());
+}
+
+/// ONE store, several sockets, each socket one actor of the connection (the actor is bound to the connection the caller got, never
+/// to a field it sends): `sockets` = (path, actor; `None` = the person).
+pub fn serve_actors(sockets: Vec<(PathBuf, Option<String>)>) -> Server {
+    use futures::FutureExt;
+    let (stop, stopped) = oneshot::channel::<()>();
+    let (ready, up) = std::sync::mpsc::channel();
+    let first = sockets[0].0.clone();
+    let thread = std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        tokio::task::LocalSet::new().block_on(&rt, async move {
+            let store = Rc::new(UuidStore(mem(true, None), Arc::default()));
+            let shut = stopped.shared();
+            let mut serving = Vec::new();
+            let mut watchers = None;
+            for (path, actor) in sockets {
+                let mut svc = LayoutService::<dyn LayoutStore>::new(
+                    store.clone(),
+                    Reference(PERSON.to_owned()),
+                );
+                svc.admin = Some(Rc::new(Lax));
+                if let Some(actor) = actor {
+                    let actor = Reference(actor);
+                    svc.actor_of_connection = Rc::new(move || actor.clone());
+                }
+                let bound = bind_socket(&path).await.unwrap();
+                let (boot, w) = svc.bootstrap();
+                watchers.get_or_insert(w);
+                let shut = shut.clone();
+                serving.push(serve(bound, boot, async move {
+                    let _ = shut.await;
+                }));
+            }
+            ready.send(watchers.unwrap()).unwrap();
+            for r in futures::future::join_all(serving).await {
+                r.unwrap();
+            }
+        });
+    });
+    let watchers = up.recv().unwrap();
+    Server {
+        socket: first,
+        watchers,
+        stop: Some(stop),
+        thread: Some(thread),
+    }
+}
+
+/// An administrator port that checks nothing (a store without the on-behalf rule): what refuses a bot is then the service alone.
+struct Lax;
+
+impl LayoutAdmin for Lax {
+    fn lock<'a>(
+        &'a self,
+        _: &'a LayoutId,
+        _: Option<&'a ElemRef>,
+        _: &'a str,
+        _: &'a Who,
+    ) -> Pending<'a, bool> {
+        Box::pin(std::future::ready(Ok(true)))
+    }
+    fn unlock<'a>(
+        &'a self,
+        _: &'a LayoutId,
+        _: Option<&'a ElemRef>,
+        _: &'a str,
+        _: &'a Who,
+    ) -> Pending<'a, bool> {
+        Box::pin(std::future::ready(Ok(true)))
+    }
+    fn create_instance_overlay<'a>(
+        &'a self,
+        _: &'a LayoutId,
+        _: Option<&'a str>,
+        _: Option<&'a str>,
+        _: &'a Who,
+    ) -> Pending<'a, OverlayId> {
+        Box::pin(std::future::ready(Err(
+            Coded::new(LayoutCode::Unsupported).with("what", "test")
+        )))
+    }
 }

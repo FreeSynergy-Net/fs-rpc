@@ -102,6 +102,15 @@ pub fn rich(frontend: &str) -> LayoutDoc {
         view: None,
         children: vec![],
     };
+    let std_program = MenuDoc {
+        kind: MenuKind::Standard(MenuStandard::Program),
+        label_key: None,
+        command: None,
+        on: None,
+        shortcut: None,
+        view: None,
+        children: vec![],
+    };
     let std_help = MenuDoc {
         kind: MenuKind::Standard(MenuStandard::Help),
         label_key: None,
@@ -125,6 +134,7 @@ pub fn rich(frontend: &str) -> LayoutDoc {
             },
         ),
         item("menu:help", std_help),
+        item("menu:program", std_program),
     ];
     let page = &mut d.pages[0].v;
     page.navigation = Navigation::ListDetail;

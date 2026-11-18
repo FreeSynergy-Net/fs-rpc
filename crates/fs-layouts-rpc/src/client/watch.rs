@@ -60,7 +60,8 @@ impl RpcLayouts {
         on_change: Rc<dyn Fn(Stamp)>,
         on_end: Rc<dyn Fn()>,
     ) -> Result<Watching, Coded<LayoutCode>> {
-        let released = Rc::new(Cell::new(false));
+        // `released` is true until the service has accepted the subscription: a refused `watch` never reports an end
+        let released = Rc::new(Cell::new(true));
         let flag = released.clone();
         let held = self
             .ctx
@@ -74,6 +75,7 @@ impl RpcLayouts {
                 Ok(req.send().promise.await?)
             })
             .await?;
+        released.set(false);
         Ok(Watching {
             released,
             _held: Box::new(held),
