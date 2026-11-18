@@ -9,8 +9,8 @@ use std::time::Duration;
 
 use fs_interfaces::common_capnp::blob;
 use fs_rpc::{
-    AskPolicy, Choices, RpcError, RpcErrorCode, SingleError, SingleOptions, Stuck,
-    ensure_single_with,
+    AskPolicy, Choices, RpcError, RpcErrorCode, SingleError, SingleOptions, Stuck, ensure_single,
+    ensure_single_with, has_surface,
 };
 
 mod handshake_support;
@@ -23,13 +23,27 @@ fn helper_hanging_server() {
     hanging_server_main();
 }
 
-fn failure(socket: &std::path::Path, options: SingleOptions) -> Stuck {
+fn failure(socket: &std::path::Path, options: Option<SingleOptions>) -> Stuck {
     let starter = starter(socket);
     let rt = runtime();
     let result = tokio::task::LocalSet::new().block_on(&rt, async {
-        ensure_single_with::<blob::Client>(socket, &expected(), &starter, &times(), None, &options)
-            .await
-            .map(|_| ())
+        match &options {
+            Some(options) => {
+                ensure_single_with::<blob::Client>(
+                    socket,
+                    &expected(),
+                    &starter,
+                    &times(),
+                    None,
+                    options,
+                )
+                .await
+            }
+            None => {
+                ensure_single::<blob::Client>(socket, &expected(), &starter, &times(), None).await
+            }
+        }
+        .map(|_| ())
     });
     let Err(SingleError::Unresponsive(stuck)) = result else {
         panic!("expected a silent server, got {:?}", result.err());
@@ -48,20 +62,28 @@ fn a_person_is_asked_with_a_surface_and_the_setting_on_never_without_one_or_with
     let (_dir, socket, mut child, _) = setup("silent", false);
 
     // Surface and setting on (the default): a question, with the three choices as parameters.
-    let asked = failure(&socket, SingleOptions::new(AskPolicy::Ask, true));
+    let asked = failure(&socket, Some(SingleOptions::new(AskPolicy::Ask, true)));
     assert_eq!(asked.why, "no-control");
     assert!(asked.can_ask);
     assert_eq!(asked.choices.tokens(), ["wait", "replace", "abort"]);
 
     // Headless (no surface): the program decides.
-    let headless = failure(&socket, SingleOptions::new(AskPolicy::Ask, false));
+    let headless = failure(&socket, Some(SingleOptions::new(AskPolicy::Ask, false)));
     assert_eq!(headless.why, "no-control");
     assert!(!headless.can_ask && headless.choices == Choices::None);
 
     // The setting off, with a surface: the program decides.
-    let off = failure(&socket, SingleOptions::new(AskPolicy::from(false), true));
+    let off = failure(
+        &socket,
+        Some(SingleOptions::new(AskPolicy::from(false), true)),
+    );
     assert_eq!(off.why, "no-control");
     assert!(!off.can_ask && off.choices == Choices::None);
+
+    // `ensure_single` itself: the default, which asks exactly where there is a surface.
+    let plain = failure(&socket, None);
+    assert_eq!(plain.can_ask, has_surface());
+    assert_eq!(plain.choices == Choices::WaitReplaceAbort, has_surface());
 
     // The default options ask where there is a surface; the rest of the failure is the same in every row.
     assert_eq!((asked.pid, asked.limit), (headless.pid, headless.limit));
