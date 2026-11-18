@@ -63,7 +63,7 @@ impl Listeners {
 
     /// After a write: tell the watchers the store's stamp. A store that cannot say its stamp right after a write is counted
     /// (`Watchers::missed`), never ignored; the write itself stays answered, the watchers hear with the next change.
-    pub(crate) fn heard<E>(self: &Rc<Self>, stamp: Result<fs_forms_layout::Stamp, E>) {
+    pub(crate) fn heard<E>(self: &Rc<Self>, stamp: &Result<fs_forms_layout::Stamp, E>) {
         match stamp {
             Ok(s) => self.tell(s.0),
             Err(_) => {

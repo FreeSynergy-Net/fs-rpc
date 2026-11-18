@@ -13,6 +13,9 @@ use super::listeners::{Listeners, Watchers};
 
 use crate::limits::ServiceLimits;
 
+/// Receives the `by` a client claims in `admin(by)`.
+pub type ClaimNote = Rc<dyn Fn(&str)>;
+
 /// The service: which port it serves, for whom, and under which limits.
 pub struct LayoutService<S: LayoutStore + ?Sized> {
     /// The person's descriptions.
@@ -26,7 +29,7 @@ pub struct LayoutService<S: LayoutStore + ?Sized> {
     pub actor_of_connection: Rc<dyn Fn() -> Reference>,
     /// Called with the `by` a client claims in `admin(by)`; it is ignored for everything else (the actor is the connection's). The
     /// program hosting the service writes it to its log: a forged claim is visible, never effective.
-    pub claimed_by: Option<Rc<dyn Fn(&str)>>,
+    pub claimed_by: Option<ClaimNote>,
     /// The limits of the service (settings; rule 57).
     pub limits: ServiceLimits,
 }
@@ -102,6 +105,6 @@ impl<S: LayoutStore + ?Sized> Shared<S> {
     /// After a write that went through: tell the watchers the new stamp. If the store cannot say the stamp right after a write,
     /// the write stays answered (it happened); the watchers hear with the next change.
     pub(crate) async fn changed(&self) {
-        self.listeners.heard(self.svc.store.stamp().await);
+        self.listeners.heard(&self.svc.store.stamp().await);
     }
 }

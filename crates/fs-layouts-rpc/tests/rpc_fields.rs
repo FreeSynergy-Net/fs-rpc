@@ -61,7 +61,7 @@ fn the_wire_fields_the_contract_appended_carry_what_the_store_said() {
             shape(c.log(None, 100).await.unwrap()),
             shape(local.log(None, 100).await.unwrap()),
         );
-        assert!(!want.is_empty());
+        assert!(!want.is_empty(), "the local log is empty");
         assert_eq!(got, want);
     });
 }

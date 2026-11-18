@@ -76,7 +76,7 @@ impl AdminImpl {
     }
 
     async fn changed(&self) {
-        self.listeners.heard(self.store.stamp().await);
+        self.listeners.heard(&self.store.stamp().await);
     }
 }
 
