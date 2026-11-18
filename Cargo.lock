@@ -605,7 +605,7 @@ dependencies = [
 [[package]]
 name = "fs-forms-layout"
 version = "0.0.2"
-source = "git+https://github.com/FreeSynergy/fs-forms?rev=91aea6b727ff2a7cd3908bb0fd6dadd7a57c314e#91aea6b727ff2a7cd3908bb0fd6dadd7a57c314e"
+source = "git+https://github.com/FreeSynergy/fs-forms?rev=ef6c818fecb51bc4102b9c1fd74f37a303e16335#ef6c818fecb51bc4102b9c1fd74f37a303e16335"
 dependencies = [
  "sha2 0.10.9",
 ]

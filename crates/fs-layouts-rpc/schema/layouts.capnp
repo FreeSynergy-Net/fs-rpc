@@ -32,7 +32,8 @@ struct Page { elem @0 :Text; page @1 :Text; frame @2 :Text; navigation @3 :Text;
 struct Action { elem @0 :Text; n @1 :UInt32; trigger @2 :Text; target @3 :Text; source @4 :UInt32; command @5 :Text; workflow @6 :Text; confirm @7 :Text; }
 struct Order { elem @0 :Text; by @1 :Text; name @2 :Text; descending @3 :Bool; }
 struct FilterNode { elem @0 :Text; op @1 :Text; cond @2 :Text; path @3 :Text; value @4 :Text; low @5 :Text; high @6 :Text;
-                    values @7 :List(Scheme); children @8 :List(FilterNode); }   # values reuse (elem, text)
+                    values @7 :List(Scheme); children @8 :List(FilterNode);
+                    hasValue @9 :Bool; hasLow @10 :Bool; hasHigh @11 :Bool; }   # PROPOSAL contract 0.3 (c0 18.11.): "not given" is typed, never the empty string; value/low/high are meaningful only with their flag   # values reuse (elem, text)
 struct View { elem @0 :Text; view @1 :Text; owner @2 :Text; grouping @3 :Text; orders @4 :List(Order); hasFilter @5 :Bool;
               filter @6 :FilterNode; searchKind @7 :Text; }
 struct Message { elem @0 :Text; key @1 :Text; lang @2 :Text; message @3 :Text; }

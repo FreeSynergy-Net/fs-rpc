@@ -24,6 +24,9 @@ pub struct LayoutService<S: LayoutStore + ?Sized> {
     /// The actor of the connection: until fs-access it is the person (the transport lets in the same OS user only); an AI seat
     /// later is its own actor.
     pub actor_of_connection: Rc<dyn Fn() -> Reference>,
+    /// Called with the `by` a client claims in `admin(by)`; it is ignored for everything else (the actor is the connection's). The
+    /// program hosting the service writes it to its log: a forged claim is visible, never effective.
+    pub claimed_by: Option<Rc<dyn Fn(&str)>>,
     /// The limits of the service (settings; rule 57).
     pub limits: ServiceLimits,
 }
@@ -38,6 +41,7 @@ impl<S: LayoutStore + ?Sized> LayoutService<S> {
             admin: None,
             person,
             actor_of_connection: Rc::new(move || actor.clone()),
+            claimed_by: None,
             limits: ServiceLimits::declared(),
         }
     }
@@ -79,7 +83,7 @@ impl<S: LayoutStore + ?Sized + 'static> LayoutService<S> {
     #[must_use]
     pub fn bootstrap(self) -> (capnp::capability::Client, Watchers) {
         let listeners = Rc::new(Listeners::default());
-        let watchers = Watchers(listeners.counter());
+        let watchers = Watchers(listeners.counter(), listeners.missed_counter());
         let shared = Rc::new(Shared {
             svc: self,
             listeners,
@@ -98,8 +102,6 @@ impl<S: LayoutStore + ?Sized> Shared<S> {
     /// After a write that went through: tell the watchers the new stamp. If the store cannot say the stamp right after a write,
     /// the write stays answered (it happened); the watchers hear with the next change.
     pub(crate) async fn changed(&self) {
-        if let Ok(stamp) = self.svc.store.stamp().await {
-            self.listeners.tell(stamp.0);
-        }
+        self.listeners.heard(self.svc.store.stamp().await);
     }
 }

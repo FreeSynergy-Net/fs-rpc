@@ -50,8 +50,8 @@ pub fn dir() -> TempDir {
         .unwrap()
 }
 
-/// The memory store with a counting clock, behind the id mapping, as a service for `PERSON`.
-pub fn service(instance: bool) -> LayoutService<dyn LayoutStore> {
+/// The memory store with a counting clock (the same one for the service and for the local copy the tests compare with).
+pub fn mem(instance: bool, providers: Option<Rc<dyn ProviderCatalogs>>) -> MemoryLayoutStore {
     let t = Cell::new(1_000_i64);
     let clock = move || {
         t.set(t.get() + 10);
@@ -62,13 +62,35 @@ pub fn service(instance: bool) -> LayoutService<dyn LayoutStore> {
     if instance {
         mem = mem.as_instance();
     }
-    let store = Rc::new(UuidStore(mem));
+    if let Some(p) = providers {
+        mem = mem.with_providers(p);
+    }
+    mem
+}
+
+/// The memory store behind the id mapping, as a service for `PERSON`.
+pub fn service(instance: bool) -> LayoutService<dyn LayoutStore> {
+    service_with(instance, None)
+}
+
+pub fn service_with(
+    instance: bool,
+    providers: Option<Rc<dyn ProviderCatalogs>>,
+) -> LayoutService<dyn LayoutStore> {
+    let store = Rc::new(UuidStore(mem(instance, providers)));
     let mut svc =
         LayoutService::<dyn LayoutStore>::new(store.clone(), Reference(PERSON.to_owned()));
     if instance {
         svc.admin = Some(store);
     }
     svc
+}
+
+/// The contract without the port: raw requests, for what the port has no word for.
+pub async fn raw(
+    socket: &Path,
+) -> fs_rpc::Connection<fs_layouts_rpc::layouts_capnp::layouts::Client> {
+    fs_rpc::connect(socket).await.unwrap()
 }
 
 /// A server on its own thread; stopped (and the socket removed) on drop.
@@ -160,4 +182,11 @@ pub fn refusal(r: Result<Report, Coded<LayoutCode>>) -> Coded<LayoutCode> {
             .next()
             .expect("the write was refused"),
     }
+}
+
+/// Writes a UUID text (`8-4-4-4-12`) into a wire id.
+pub fn put_uuid(mut out: fs_interfaces::common_capnp::uuid::Builder<'_>, text: &str) {
+    let hex: String = text.chars().filter(|c| *c != '-').collect();
+    out.set_hi(u64::from_str_radix(&hex[..16], 16).unwrap());
+    out.set_lo(u64::from_str_radix(&hex[16..], 16).unwrap());
 }

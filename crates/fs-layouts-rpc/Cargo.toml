@@ -11,7 +11,7 @@ repository.workspace = true
 fs-rpc = { path = "../fs-rpc" }
 # PROVISIONAL (probe): git pin on the head of the fs-forms branch `unreviewed/probe-forms-f1b` (the ports and the model, probe F1b);
 # a rev pin is allowed in the probe only ([LOCK-STRIKT]); the tag replaces it before release. fs-forms-layout brings sha2 and nothing else.
-fs-forms-layout = { git = "https://github.com/FreeSynergy/fs-forms", rev = "91aea6b727ff2a7cd3908bb0fd6dadd7a57c314e" }
+fs-forms-layout = { git = "https://github.com/FreeSynergy/fs-forms", rev = "ef6c818fecb51bc4102b9c1fd74f37a303e16335" }
 # `common.capnp` stays at the tag v0.0.27 (one source with fs-rpc), as in fs-settings-rpc. The contracts `layouts` and `bind` are
 # provisional copies of the drafts (see README), compiled into this crate.
 fs-interfaces = { git = "https://github.com/FreeSynergy/fs-interfaces", tag = "v0.0.27" }

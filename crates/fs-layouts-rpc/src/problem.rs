@@ -50,7 +50,12 @@ pub fn from_problem(p: &Problem) -> Option<Coded<LayoutCode>> {
 pub(crate) fn meaning(p: &Problem) -> Coded<LayoutCode> {
     from_problem(p).unwrap_or_else(|| {
         if p.is_unsupported() {
-            Coded::new(LayoutCode::Unsupported).with("what", &p.detail)
+            Coded::new(LayoutCode::Unsupported).with(
+                "what",
+                p.detail
+                    .split_once(": ")
+                    .map_or(p.detail.as_str(), |(what, _)| what),
+            )
         } else {
             Coded::new(LayoutCode::FormatInvalid).with("found", "problem-type")
         }
