@@ -22,7 +22,7 @@ fn forged_and_empty_by_do_not_change_the_actor() {
         let mut svc = SettingsService::new(shared.clone(), Some(shared));
         svc.actor_of_connection = Arc::new(|| reference("urn:fs:os-user:conn"));
         svc.claimed_by = Some(Arc::new(move |by: &str| {
-            noted.lock().unwrap().push(by.to_owned())
+            noted.lock().unwrap().push(by.to_owned());
         }));
         svc
     });
