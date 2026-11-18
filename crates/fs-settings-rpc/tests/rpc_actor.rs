@@ -213,3 +213,19 @@ fn a_claim_at_the_persons_service_is_reported_and_obeyed_by_nobody() {
         "no write reached the port under any actor"
     );
 }
+
+/// An empty or unusable id never makes an actor of its own, and never falls back to the NAME: the actor is `unknown` (display names are
+/// not identities, they can be chosen by whoever configured the account).
+#[test]
+fn an_unusable_id_is_unknown_never_the_name() {
+    for id in ["", "a b", "x/y", "bad id\n", "ü"] {
+        for name in [Some("alice"), Some("urn:fs:os-user:1"), None] {
+            let caller = Caller::new(id, name.map(str::to_owned));
+            assert_eq!(
+                fs_types::BasicValue::canonical(&fs_settings_rpc::actor_of(&caller)),
+                "urn:fs:os-user:unknown",
+                "id {id:?} with name {name:?}"
+            );
+        }
+    }
+}
