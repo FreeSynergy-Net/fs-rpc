@@ -4,7 +4,6 @@
 
 mod support;
 
-use std::os::unix::fs::MetadataExt;
 use std::sync::Arc;
 
 use fs_settings::{InstanceStore, Raw};
@@ -19,7 +18,8 @@ fn kb20_os_user_is_the_peer_not_the_environment() {
         unsafe { std::env::set_var(var, "mallory-from-environment") };
     }
     let d = dir();
-    let uid = std::fs::metadata(d.path()).unwrap().uid().to_string();
+    // One form: the name the system has for the effective user (the number when it has none).
+    let expected = fs_settings_rpc::os_user_name();
     let spy = Spy::new();
     let shared = spy.clone();
     let server = serve_on(&d.path().join("i.sock"), move || {
@@ -39,7 +39,7 @@ fn kb20_os_user_is_the_peer_not_the_environment() {
     assert_eq!(seen.len(), 1);
     assert_eq!(
         seen[0].0.as_deref(),
-        Some(uid.as_str()),
+        Some(expected.as_str()),
         "the kernel's peer user"
     );
     assert!(!seen[0].0.as_deref().unwrap().contains("mallory"));

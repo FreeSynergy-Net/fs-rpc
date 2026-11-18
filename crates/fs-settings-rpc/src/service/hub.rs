@@ -15,15 +15,25 @@ use crate::problem::to_problem;
 use crate::settings_capnp::settings_hub;
 use crate::wire::{write_lock, write_snapshot};
 
-/// The service: which port it serves, and the clock and OS user it knows.
+/// What the service is told about a `by` a client claims in `admin(by)`.
+pub type ClaimNote = Arc<dyn Fn(&str) + Send + Sync>;
+
+/// The service: which port it serves, and the clock, the OS user and the actor it knows.
 pub struct SettingsService<S: ?Sized, I: ?Sized> {
     /// The person's settings.
     pub person: Arc<S>,
     /// `Some` only for `serve --instance` (admin calls); `None`: `admin` answers "not possible".
     pub instance: Option<Arc<I>>,
-    /// The OS user of the caller as the system says (fs-rpc lets only the SAME OS user connect, so it is the service's own);
-    /// only for the log.
+    /// The OS user of the caller, as a NAME (the number when the system has no name; one form, see [`crate::os_user_name`]). fs-rpc
+    /// admits only a peer whose effective user is the service's own (`SO_PEERCRED`, `geteuid` semantics), so it is this
+    /// user; only for the log.
     pub os_user: Arc<dyn Fn() -> Option<String> + Send + Sync>,
+    /// The actor of every admin call: the identity of the CONNECTION (default `urn:fs:os-user:<name>`), never a field of the
+    /// client. Until fs-access it is the OS user; an AI seat would be its own actor.
+    pub actor_of_connection: Arc<dyn Fn() -> fs_types::Reference + Send + Sync>,
+    /// Called with the `by` a client claims in `admin(by)` (also an empty one). It is never the actor: the host writes it to its
+    /// log, so a forged claim is visible and never effective ([AKTEUR-AUS-VERBINDUNG]; `by` leaves the contract in 0.3).
+    pub claimed_by: Option<ClaimNote>,
     /// The clock of the service (UTC ms); tests inject one.
     pub now: Arc<dyn Fn() -> Utc + Send + Sync>,
 }
@@ -35,7 +45,9 @@ impl<S: ?Sized, I: ?Sized> SettingsService<S, I> {
         Self {
             person,
             instance,
-            os_user: Arc::new(own_os_user),
+            os_user: Arc::new(|| Some(crate::identity::os_user_name())),
+            actor_of_connection: Arc::new(crate::identity::actor_of_os_user),
+            claimed_by: None,
             now: Arc::new(system_now),
         }
     }
@@ -46,17 +58,6 @@ fn system_now() -> Utc {
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| i64::try_from(d.as_millis()).unwrap_or(i64::MAX));
     Utc::from_millis(ms)
-}
-
-#[cfg(unix)]
-#[allow(clippy::unnecessary_wraps)] // the same signature as on other systems, where there is no answer
-fn own_os_user() -> Option<String> {
-    Some(rustix::process::getuid().as_raw().to_string())
-}
-
-#[cfg(not(unix))]
-fn own_os_user() -> Option<String> {
-    None
 }
 
 /// What every capability of one service shares.
@@ -133,21 +134,24 @@ where
         params: settings_hub::AdminParams,
         mut results: settings_hub::AdminResults,
     ) -> Result<(), capnp::Error> {
-        let by = params.get()?.get_by()?.to_str()?.trim().to_owned();
+        // `by` is what the client CLAIMS: it goes to the host's record of claims and is ignored otherwise.
+        let claimed = params.get()?.get_by()?.to_str()?.to_owned();
+        if let Some(note) = &self.shared.svc.claimed_by {
+            note(&claimed);
+        }
         let Some(instance) = self.shared.svc.instance.clone() else {
             return Err(fs_rpc::unsupported(&fs_interfaces::Unsupported::new(
                 "settings.admin",
                 "this is the person's service; the administrator's commands go to the instance service",
             )));
         };
-        let by = <fs_types::Reference as fs_types::BasicValue>::parse(&by)
-            .map_err(|_| fs_rpc::invalid_request("by (the actor) is mandatory and an IRI"))?;
+        let actor = (self.shared.svc.actor_of_connection)();
         results
             .get()
             .set_admin(capnp_rpc::new_client(admin::AdminImpl::new(
                 self.shared.clone(),
                 instance,
-                by,
+                actor,
             )));
         Ok(())
     }

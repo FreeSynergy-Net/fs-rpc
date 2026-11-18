@@ -7,6 +7,10 @@ license.workspace = true
 rust-version.workspace = true
 repository.workspace = true
 
+[features]
+# The suite `store` of fs-settings over RPC (tests only; never in the normal graph).
+conformance = ["fs-settings/conformance"]
+
 [dependencies]
 fs-rpc = { path = "../fs-rpc" }
 # PROVISIONAL (probe): git pin on the head of fs-components main (B1 landed) (B1); branch/rev pins are allowed in the
@@ -26,5 +30,7 @@ futures = "0.3"
 rustix = { version = "1", features = ["process"] }
 
 [dev-dependencies]
+# The frame of the suites, from the same source as fs-settings uses (probe pin, rev of fs-types main).
+fs-conformance = { git = "https://github.com/FreeSynergy/fs-types", rev = "339aa24fa61bc8e6c39ea7875d826ec6993cd24f" }
 tempfile = "3"
 tokio = { version = "1", features = ["rt", "net", "sync", "macros", "time", "rt-multi-thread"] }

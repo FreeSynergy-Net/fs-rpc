@@ -1,4 +1,5 @@
-//! `Admin`: the port `InstanceStore` for ONE actor. The actor is `by` of the connection; time and OS user are the service's.
+//! `Admin`: the port `InstanceStore` for ONE actor. The actor is the identity of the CONNECTION (never the `by` a client claims);
+//! time and OS user are the service's.
 //!
 //! Pattern: Adapter (contract -> port `InstanceStore`).
 
@@ -21,22 +22,22 @@ pub const MAX_LOG: u32 = 200;
 pub(crate) struct AdminImpl<S: ?Sized, I: ?Sized> {
     shared: Rc<Shared<S, I>>,
     instance: Arc<I>,
-    by: Reference,
+    actor: Reference,
 }
 
 impl<S: ?Sized, I: ?Sized> AdminImpl<S, I> {
-    pub(crate) fn new(shared: Rc<Shared<S, I>>, instance: Arc<I>, by: Reference) -> Self {
+    pub(crate) fn new(shared: Rc<Shared<S, I>>, instance: Arc<I>, actor: Reference) -> Self {
         Self {
             shared,
             instance,
-            by,
+            actor,
         }
     }
 
     /// Who and when: the actor of the connection, the service's clock and the OS user the service saw.
     fn who(&self) -> Stampd {
         Stampd {
-            by: self.by.clone(),
+            by: self.actor.clone(),
             at: (self.shared.svc.now)(),
         }
     }

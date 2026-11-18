@@ -1,7 +1,7 @@
 //! The administrator's client: [`RpcInstanceAdmin`] is the port `InstanceStore` over `SettingsHub.admin(by)`.
 //!
-//! Pattern: Adapter. Time and OS user are set by the service, never by the caller: the `Stampd` of the port is not sent (only
-//! `by`, chosen at connection). Reading goes through `manage()`; writing the person's values is refused here (`read-only{which=instance}`).
+//! Pattern: Adapter. Time and OS user are set by the service, never by the caller: the `Stampd` of the port is not sent (only a
+//! claim `by`, which the service never takes as the actor). Reading goes through `manage()`; writing the person's values is refused here (`read-only{which=instance}`).
 
 use crate::Coded;
 use crate::IndexFn;
@@ -17,13 +17,13 @@ use super::RpcSettingsStore;
 use super::worker::{CallError, ClientTimes, Role};
 use crate::wire::{read_log_entry, write_id, write_raw};
 
-/// The admin client. `by` is the actor IRI (mandatory); the service writes it into the log.
+/// The admin client. `by` is only a CLAIM (the contract 0.2 still carries it); the service takes the actor from the connection.
 pub struct RpcInstanceAdmin {
     inner: RpcSettingsStore,
 }
 
 impl RpcInstanceAdmin {
-    /// Connects for the actor `by`. Like [`RpcSettingsStore::open`] it does not fail without a service.
+    /// Connects, claiming `by`. Like [`RpcSettingsStore::open`] it does not fail without a service.
     #[must_use]
     pub fn open(socket: &Path, by: &str, times: ClientTimes) -> Self {
         Self {

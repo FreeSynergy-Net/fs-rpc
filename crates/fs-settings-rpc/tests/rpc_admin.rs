@@ -13,7 +13,9 @@ use fs_settings_rpc::{
 use fs_types::Utc;
 use support::{Spy, code, dir, key, nobody, person, program, serve_on, text, times};
 
+/// What the client CLAIMS in `admin(by)`; the actor is the connection's, below.
 const ADMIN: &str = "https://example.net/people/admin";
+const ACTOR: &str = "urn:fs:os-user:from-the-connection";
 const THEN: i64 = 1_700_000_000_123;
 
 /// KB16: the person's service has no administrator; the instance service answers; time and OS user are the SERVICE's.
@@ -39,6 +41,7 @@ fn kb16_admin_only_on_instance_service_time_and_user_are_the_services() {
         let mut svc = SettingsService::new(shared.clone(), Some(shared));
         svc.now = Arc::new(|| Utc::from_millis(THEN));
         svc.os_user = Arc::new(|| Some("service-says".to_owned()));
+        svc.actor_of_connection = Arc::new(|| support::reference(ACTOR));
         svc
     });
     let admin = RpcInstanceAdmin::open(&server.socket, ADMIN, times());
@@ -95,7 +98,7 @@ fn kb16_admin_only_on_instance_service_time_and_user_are_the_services() {
             Utc::from_millis(THEN),
             "the service's clock, not the caller's"
         );
-        assert_eq!(e.by, ADMIN);
+        assert_eq!(e.by, ACTOR, "the connection's actor, not the claim");
     }
     // The port saw the service's OS user and clock for every write, whatever the caller sent.
     let seen = spy.seen.lock().unwrap().clone();
@@ -107,7 +110,7 @@ fn kb16_admin_only_on_instance_service_time_and_user_are_the_services() {
     for (user, at, by) in &seen {
         assert_eq!(user.as_deref(), Some("service-says"));
         assert_eq!(*at, Utc::from_millis(THEN));
-        assert_eq!(by, ADMIN);
+        assert_eq!(by, ACTOR);
     }
     assert_eq!(log[2].reason.as_deref(), Some("done"));
     let rest = admin.instance_log(Some(log[0].id), 10);

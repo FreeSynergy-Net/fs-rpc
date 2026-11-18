@@ -9,8 +9,11 @@
 //! - [`to_problem`] / [`from_problem`]: the one mapping between a code with parameters and a `Problem`.
 //!
 //! Who calls: the OS user is the connection (fs-rpc lets only the same OS user in); the program is the word of `open` (an API
-//! promise, no security boundary until fs-access); the actor of the administrator is `by`; time and OS user of the log are the
-//! service's, never the caller's.
+//! promise, no security boundary until fs-access); the actor of the administrator is the identity of the CONNECTION
+//! (`urn:fs:os-user:<name>`, from the OS user the transport admits), NEVER the `by` a client sends: that is only a claim, handed to
+//! `SettingsService::claimed_by` for the host's log and ignored otherwise ([AKTEUR-AUS-VERBINDUNG]; `by` leaves the contract in
+//! 0.3). Time and OS user of the log are the service's, never the caller's. The OS user is one form: the name, the number when
+//! the system knows no name.
 //!
 //! PROVISIONAL (probe): the contract `settings` (draft 0.2) is a byte-equal copy of the files of the fs-interfaces branch
 //! `unreviewed/interfaces-settings` (08f0a93: `schema/settings.capnp`, `settings_capnp.rs`) until fs-interfaces 0.0.28 carries it.
@@ -24,6 +27,7 @@
 mod caller;
 mod client;
 mod ensure;
+mod identity;
 mod problem;
 mod service;
 // The copy of B0's generated file names `crate::common_capnp`, as it does inside fs-interfaces.
@@ -40,5 +44,6 @@ pub(crate) use fs_settings::{Coded, IndexFn};
 pub use caller::current_os_user;
 pub use client::{ClientTimes, RpcInstanceAdmin, RpcSettingsStore, Watching, unreachable_at};
 pub use ensure::{SERVICE_PROGRAM, ensure_service, ensure_service_with, find_service_program};
+pub use identity::{actor_of_os_user, name_in_passwd, os_user_name};
 pub use problem::{from_problem, to_problem};
-pub use service::SettingsService;
+pub use service::{ClaimNote, SettingsService};
