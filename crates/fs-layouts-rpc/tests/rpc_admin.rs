@@ -8,7 +8,6 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use fs_forms_layout::*;
-use fs_layouts_rpc::layouts_capnp::layouts;
 use support::*;
 
 async fn until(mut done: impl FnMut() -> bool) -> bool {

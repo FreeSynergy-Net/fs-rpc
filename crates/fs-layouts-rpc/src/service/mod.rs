@@ -10,6 +10,6 @@ mod read;
 mod root;
 mod write;
 
-pub use hub::LayoutService;
 pub(crate) use hub::Shared;
+pub use hub::{ClaimNote, LayoutService};
 pub use listeners::Watchers;
