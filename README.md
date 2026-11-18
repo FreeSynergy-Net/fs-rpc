@@ -11,7 +11,7 @@ What is different here: it holds only the runtime. The contracts (schemas and ge
 Latest tag: `v0.0.2`.
 
 - `catalog::CatalogServer`: answers `TypeCatalog.describe` from a `fs_types::TypeRegistry` (the server half of ADR 0066; it was in fs-types).
-- Serve a contract on a local socket (`serve`, `run_until_signal`), connect to it (`connect`, `connect_matching` with version handshake and restart of an old server).
+- Serve a contract on a local socket (`serve`, `run_until_signal`; a stop while the program still opens its store ends the run in bounded time, `open` is dropped, no socket stays), connect to it (`connect`, `connect_matching` with version handshake and restart of an old server).
 - The client half every program shares: `client::Worker` (the thread that owns the connection), `Timeouts`, `Fault`, deadlines per call.
 - Errors as code and parameters (`RpcError`, `RpcErrorCode`): a program words them through its MessageFormat 2 files (`message_key()`, `params()`, template in `docs/errors.md`); no English sentence reaches a person from this library.
 - `prepare_data_dir`: the data folder private to its user; an open own folder is corrected, a link, a file, a foreign folder is refused (`data-dir-not-private`, parameter `cause`).

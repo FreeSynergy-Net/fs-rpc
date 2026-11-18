@@ -169,6 +169,7 @@ pub async fn connect_with<C: FromClientHook>(
 /// then serve what `open` builds (and `Control`, see [`stop_server`](super::stop_server)) until Ctrl-C, SIGTERM (a stop request of the system), [`stop_server`](super::stop_server) or [`stop_self`](super::stop_self). Connections wait in the backlog meanwhile.
 /// After the signal it waits up to [`FINISH_TIMEOUT`] for [`run_to_end`](super::run_to_end) work, and
 /// holds the socket and its lock until then, so a successor cannot open the same data during the wait.
+/// A stop that comes while `open` still runs drops `open` and ends the run with `Ok(())`, the socket removed.
 /// Runs its own single-threaded runtime and `LocalSet`.
 ///
 /// # Errors
@@ -229,12 +230,24 @@ where
                 () = super::stop::requested() => {}
             }
         };
+        tokio::pin!(stop);
         let bound = bind_socket(socket).await?;
-        let mut per = open().await?;
-        let make = move |s: &<System as Endpoint>::ServerStream| {
-            bootstrap_for(s, &mut per).map(|c| super::control::with_control(c, identity.clone()))
+        // The stop also reaches `open`: a store that hangs (a lock, a disk) must not hold the program past its stop. The
+        // unfinished `open` is dropped, the socket goes with `bound` below, and the run ends without an error (exit code 0).
+        let opened = tokio::select! {
+            () = &mut stop => None,
+            per = open() => Some(per?),
         };
-        let served = accept_until(&bound, make, stop, ReadLimits::default()).await;
+        let served = match opened {
+            None => Ok(()),
+            Some(mut per) => {
+                let make = move |s: &<System as Endpoint>::ServerStream| {
+                    bootstrap_for(s, &mut per)
+                        .map(|c| super::control::with_control(c, identity.clone()))
+                };
+                accept_until(&bound, make, stop, ReadLimits::default()).await
+            }
+        };
         let finished = finish_underway(FINISH_TIMEOUT).await;
         drop(bound);
         served.and(finished)
