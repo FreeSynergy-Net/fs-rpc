@@ -7,10 +7,16 @@ use fs_forms_layout::*;
 
 use super::uuid_ids::*;
 
-pub struct UuidStore<S>(pub S);
+/// The id mapping; the second field makes `stamp` fail (a store that cannot say its stamp).
+pub struct UuidStore<S>(pub S, pub std::sync::Arc<std::sync::atomic::AtomicBool>);
 
 impl<S: LayoutRead> LayoutRead for UuidStore<S> {
     fn stamp(&self) -> Pending<'_, Stamp> {
+        if self.1.load(std::sync::atomic::Ordering::SeqCst) {
+            return Box::pin(std::future::ready(Err(
+                Coded::new(LayoutCode::StoreBusy).with("file", "test")
+            )));
+        }
         self.0.stamp()
     }
     fn health(&self) -> Pending<'_, Health> {

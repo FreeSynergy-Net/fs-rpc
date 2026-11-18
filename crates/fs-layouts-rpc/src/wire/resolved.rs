@@ -6,9 +6,10 @@
 
 use fs_forms_layout::{
     ElemKind, ElemRef, FrontendKey, Layer, LayerInfo, Layout, OverlayScope, Reference, Resolved,
-    Rev, Stamp,
+    Rev, Stamp, Summary,
 };
 
+use super::answers::write_summary;
 use super::conflict::{read_conflict, read_lock, write_conflict, write_lock};
 use super::doc_in::read_doc;
 use super::doc_out::write_doc;
@@ -17,8 +18,15 @@ use super::text::{R, bad, n, read_problems, txt, word, write_problems};
 use super::words::Words;
 use crate::layouts_capnp as w;
 
-pub(crate) fn write_resolved(mut out: w::resolved::Builder<'_>, resolved: &Resolved) -> R<()> {
-    write_summary_part(out.reborrow().init_summary(), resolved)?;
+pub(crate) fn write_resolved(
+    mut out: w::resolved::Builder<'_>,
+    resolved: &Resolved,
+    summary: Option<&Summary>,
+) -> R<()> {
+    match summary {
+        Some(s) => write_summary(out.reborrow().init_summary(), s)?,
+        None => write_summary_part(out.reborrow().init_summary(), resolved)?,
+    }
     write_doc(out.reborrow().init_layout(), &resolved.layout.to_doc());
     out.set_stamp(resolved.stamp.0);
     write_layers(out.reborrow().init_layers(n(&resolved.layers)), resolved)?;

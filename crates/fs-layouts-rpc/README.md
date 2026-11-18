@@ -26,6 +26,15 @@ with this crate** (fs-rpc -> fs-forms git -> fs-rpc would be a repo loop). The a
 connection, never a field of the client: `admin(by)` takes `by` as a claim, hands it to `LayoutService::claimed_by` (the host's
 log) and ignores it otherwise.
 
+## Edge: who is the actor (before fs-access)
+
+fs-rpc lets in the same OS user only and hands ONE bootstrap capability to every connection of a socket, so a connection cannot yet
+be told from another by its peer credentials. Until fs-access (per-connection identity, bot keys) the actor is therefore bound to
+the capability the caller got: `LayoutService::actor_of_connection`, one service per socket (a human socket, a bot socket, each with
+its own actor, over ONE store). It is never read from a client field. Administration (`admin`) is refused to every connection whose
+actor is not the person (`unsupported{what=on-behalf}`, K78 c). When fs-rpc offers peer credentials per connection, the host fills
+`actor_of_connection` from them; the settings service (fs-settings-rpc) must use the same procedure and helper.
+
 ## Auf Deutsch
 
 Die Beschreibungen der Frontends liegen in EINER Datenbank eines Prozesses (`fs-forms serve`). Dieses Crate enthaelt beide Seiten

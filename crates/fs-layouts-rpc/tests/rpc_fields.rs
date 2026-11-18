@@ -204,36 +204,49 @@ fn a_provider_warning_reaches_the_host_and_a_blocking_problem_stays_a_problem() 
 }
 
 #[test]
-fn resolve_does_not_invent_an_origin_and_list_says_the_real_one() {
+fn resolve_carries_the_real_summary() {
     let d = dir();
     let s = person(&d.path().join("l.sock"));
     run(async {
         let c = client(&s.socket);
-        c.install(doc("board"), &pkg("1.0"), Mode::Apply, &who())
+        let id = c
+            .install(doc("board"), &pkg("1.0"), Mode::Apply, &who())
             .await
+            .unwrap()
+            .layout
             .unwrap();
+        c.create_overlay(&id, None, None, &who()).await.unwrap();
+        let listed = c
+            .list(&LayoutFilter::default(), None, 5)
+            .await
+            .unwrap()
+            .items
+            .remove(0);
         let conn = raw(&s.socket).await;
         let mut req = conn.client.resolve_request();
         req.get().set_extends("net.example.Tasks");
         req.get().set_frontend("board");
         let r = req.send().promise.await.unwrap();
-        let origin = r
+        let sum = r
             .get()
             .unwrap()
             .get_resolved()
             .unwrap()
             .get_summary()
-            .unwrap()
-            .get_origin()
-            .unwrap()
-            .to_str()
             .unwrap();
-        assert_eq!(origin, "", "resolve made up an origin");
-        let page = c.list(&LayoutFilter::default(), None, 5).await.unwrap();
-        assert_eq!(page.items[0].origin, Origin::Package);
+        assert_eq!(sum.get_origin().unwrap().to_str().unwrap(), "package");
+        assert_eq!(
+            sum.get_package().unwrap().to_str().unwrap(),
+            "net.example.pkg"
+        );
+        assert_eq!(
+            (sum.get_overlays(), sum.get_open_conflicts()),
+            (listed.overlays, listed.open_conflicts)
+        );
+        assert_eq!(listed.overlays, 1);
+        assert_eq!(listed.origin, Origin::Package);
     });
 }
-
 #[test]
 fn the_filter_keeps_the_difference_between_empty_and_not_given() {
     let d = dir();

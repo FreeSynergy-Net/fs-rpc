@@ -99,3 +99,81 @@ fn the_watcher_limit_is_a_setting_with_its_source() {
         );
     });
 }
+
+#[test]
+fn a_refused_watch_never_reports_an_end() {
+    let d = dir();
+    let s = serve_on(&d.path().join("l.sock"), || {
+        let mut svc = service(false);
+        svc.limits.watchers_max = 1;
+        svc
+    });
+    run(async {
+        let c = client(&s.socket);
+        let _first = c.watch(Rc::new(|_| {}), Rc::new(|| {})).await.unwrap();
+        let ended = Rc::new(std::cell::Cell::new(false));
+        let e2 = ended.clone();
+        let e = c
+            .watch(Rc::new(|_| {}), Rc::new(move || e2.set(true)))
+            .await
+            .err()
+            .expect("refused");
+        assert_eq!(code(&e), "too-many");
+        tokio::time::sleep(Duration::from_millis(300)).await;
+        assert!(!ended.get(), "a refused watch reported an end");
+    });
+}
+
+/// A listener that answers `changed` with an error (a protocol breach): the service drops it at once, while its subscription is
+/// still held by the other side.
+struct Broken;
+
+#[allow(clippy::unused_async_trait_impl)]
+impl fs_layouts_rpc::layouts_capnp::layouts::listener::Server for Broken {
+    async fn changed(
+        self: Rc<Self>,
+        _: fs_layouts_rpc::layouts_capnp::layouts::listener::ChangedParams,
+    ) -> Result<(), capnp::Error> {
+        Err(capnp::Error::failed("broken listener".into()))
+    }
+}
+
+#[test]
+fn a_dead_listener_is_removed_while_its_subscription_is_still_held() {
+    let d = dir();
+    let s = person(&d.path().join("l.sock"));
+    run(async {
+        let conn = raw(&s.socket).await;
+        let mut req = conn.client.watch_request();
+        req.get().set_listener(capnp_rpc::new_client(Broken));
+        let _held = req.send().promise.await.unwrap();
+        assert!(until(|| s.watchers.count() == 1).await);
+        let c = client(&s.socket);
+        for n in 0..6 {
+            c.create(doc(&format!("f{n}")), &who()).await.unwrap();
+            tokio::time::sleep(Duration::from_millis(30)).await;
+        }
+        assert!(
+            until(|| s.watchers.count() == 0).await,
+            "a dead listener is still kept"
+        );
+    });
+}
+
+#[test]
+fn a_store_that_cannot_say_its_stamp_is_counted() {
+    let d = dir();
+    let fail = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let f2 = fail.clone();
+    let s = serve_on(&d.path().join("l.sock"), move || {
+        service_full(false, None, f2, None)
+    });
+    run(async {
+        let c = client(&s.socket);
+        c.create(doc("a"), &who()).await.unwrap();
+        assert_eq!(s.watchers.missed(), 0);
+        fail.store(true, std::sync::atomic::Ordering::SeqCst);
+        c.create(doc("b"), &who()).await.unwrap();
+        assert_eq!(s.watchers.missed(), 1, "the failed stamp was not counted");
+    });
+}
