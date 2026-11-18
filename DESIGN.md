@@ -47,3 +47,8 @@ Known limit: `keep_connected` pings `Control.version`, which the work thread ans
 ## History
 
 The design notes, limits and findings of this code up to v0.0.25 are in the DESIGN file of `fs-interfaces` (sections on `rpc`, hardening, handshake; kept there as record).
+
+## Caller: honest limits
+
+- H1: the transport admits only the server's own user (`is_me` / `client_is_me`), so today `Caller::id()` is always the server's user. Actor = `Caller::id()`; the name is display only and `None` for NSS/LDAP users. The per-connection API starts to tell callers apart once a transport admits other users.
+- H2: consumers never store a `Caller`-bound capability in state shared between connections (that would carry an actor over to another connection).

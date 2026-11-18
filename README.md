@@ -20,6 +20,12 @@ Latest tag: `v0.0.2`.
 - RFC 9457 problems as RPC errors with typed extensions, pages cut by weight, the change feed, stop from outside.
 - Written for Unix (socket, signals) and Windows (named pipe with a protected descriptor).
 
+## Who is calling (Caller)
+
+- The caller of a connection comes from the system only (`SO_PEERCRED` on Unix, the pipe client's token on Windows), never from a field the client sends, an argument or the environment. The actor of a request is `Caller::id()`; `Caller::name()` is for display only and is `None` for users that only NSS or LDAP know (the name is read from `/etc/passwd`).
+- Today the transport lets only the user who runs the server connect, so the caller is always the server's own user: the API is built per connection and tells callers apart as soon as a transport admits other users, but with the current transport it cannot yet tell two apart.
+- A program MUST NOT put a `Caller`-bound capability (or anything it reaches) into state that other connections can fetch: a capability handed to a second connection would carry the first caller's identity over.
+
 ## Lift note (v0.0.3, for callers)
 
 - `prepare_data_dir` answers `Result<PathBuf, DataDirError>` instead of `io::Result<PathBuf>`: a caller with an `io::Result` annotation and no `?` must convert (`io::Error::from(e)`) or use `?`; an open own folder is now corrected, not refused.

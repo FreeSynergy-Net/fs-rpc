@@ -240,3 +240,7 @@ where
         served.and(finished)
     })
 }
+
+#[cfg(all(test, unix))]
+#[path = "serve_tests.rs"]
+mod tests;
