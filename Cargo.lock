@@ -594,12 +594,13 @@ dependencies = [
 
 [[package]]
 name = "fs-objects"
-version = "0.0.6"
-source = "git+https://github.com/FreeSynergy/fs-objects?tag=v0.0.6#cc3102a53968c4fc8e900a8193d4d15593e12881"
+version = "0.0.8"
+source = "git+https://github.com/FreeSynergy/fs-objects?rev=3395bf18bc37c3eb3c6ec7500416f995a196badb#3395bf18bc37c3eb3c6ec7500416f995a196badb"
 dependencies = [
  "async-trait",
  "base64",
  "chrono",
+ "rustix 1.1.6",
  "serde",
  "serde_json",
  "sha2",
@@ -627,6 +628,33 @@ dependencies = [
  "tokio-util",
  "uuid",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "fs-settings"
+version = "0.0.29"
+source = "git+https://github.com/FreeSynergy/fs-components?rev=81a83e28b75cad1b5e25baa8695d50ce9ebd7490#81a83e28b75cad1b5e25baa8695d50ce9ebd7490"
+dependencies = [
+ "async-trait",
+ "fs-conformance",
+ "fs-types",
+]
+
+[[package]]
+name = "fs-settings-rpc"
+version = "0.0.2"
+dependencies = [
+ "capnp",
+ "capnp-rpc",
+ "fs-conformance",
+ "fs-interfaces",
+ "fs-rpc",
+ "fs-settings",
+ "fs-types",
+ "futures",
+ "rustix 1.1.6",
+ "tempfile",
+ "tokio",
 ]
 
 [[package]]
