@@ -9,6 +9,22 @@ use fs_rpc::Problem;
 use fs_settings::SettingCode;
 use fs_settings::coded_stub::{ErrorCode, Param, message_key};
 
+/// The code of a connection whose caller the system could not name with a usable id: every call of such a connection answers it
+/// (a client sees `store-broken{cause=caller-unknown}`).
+pub const CALLER_UNKNOWN: &str = "caller-unknown";
+
+/// The refusal as the RPC error every method of a refused hub answers.
+#[must_use]
+pub(crate) fn caller_unknown() -> capnp::Error {
+    Problem::new(
+        format!("setting-error-{CALLER_UNKNOWN}"),
+        CALLER_UNKNOWN,
+        CALLER_UNKNOWN,
+        403,
+    )
+    .into_error()
+}
+
 /// The parameter keys whose values are numbers.
 const NUMBERS: [&str; 3] = ["line", "found", "known"];
 
@@ -63,7 +79,9 @@ pub fn from_problem(p: &Problem) -> Option<Coded<SettingCode>> {
 #[must_use]
 pub(crate) fn meaning(p: &Problem) -> Coded<SettingCode> {
     from_problem(p).unwrap_or_else(|| {
-        if p.is_unsupported() {
+        if p.problem_type == format!("setting-error-{CALLER_UNKNOWN}") {
+            Coded::new(SettingCode::StoreBroken).with_text(fs_settings::keys::CAUSE, CALLER_UNKNOWN)
+        } else if p.is_unsupported() {
             Coded::new(SettingCode::ReadOnly).with_text(fs_settings::keys::WHICH, "instance")
         } else {
             crate::wire::broken("problem-type")

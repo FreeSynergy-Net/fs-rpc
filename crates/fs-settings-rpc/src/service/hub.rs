@@ -105,6 +105,15 @@ where
     I: InstanceStore + ?Sized + 'static,
 {
     fn bootstrap(&mut self, caller: &Caller) -> capnp::capability::Client {
+        // A caller whose id cannot make an actor is REFUSED, with the code `caller-unknown` on every call and a line in the log (never served
+        // under `unknown`, never under the name).
+        if !crate::identity::id_usable(caller.id()) {
+            if let Some(note) = &self.shared.svc.refused_note {
+                note(crate::problem::CALLER_UNKNOWN);
+            }
+            return capnp_rpc::new_client::<settings_hub::Client, _>(super::refused::Refused)
+                .client;
+        }
         capnp_rpc::new_client::<settings_hub::Client, _>(Hub {
             shared: self.shared.clone(),
             caller: caller.clone(),
