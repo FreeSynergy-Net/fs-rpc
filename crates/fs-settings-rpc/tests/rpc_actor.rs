@@ -180,3 +180,36 @@ fn the_real_transport_names_the_user_and_the_default_hooks_are_there() {
         "an empty claim is visible too"
     );
 }
+
+/// A claim at the PERSON's service (it has no administrator): the admin call is refused (`read-only{which=instance}`), the claim is
+/// still handed to the host, and no actor is ever made of it (nothing reaches the instance port).
+#[test]
+fn a_claim_at_the_persons_service_is_reported_and_obeyed_by_nobody() {
+    let tmp = dir();
+    let spy = Spy::new();
+    let shared = spy.clone();
+    let claims = Arc::new(Mutex::new(Vec::<String>::new()));
+    let noted = claims.clone();
+    let server = serve_per(&tmp.path().join("p.sock"), move || {
+        let mut svc = SettingsService::new(shared, None::<Arc<Spy>>);
+        svc.claimed_by = Some(Arc::new(move |by: &str| {
+            noted.lock().unwrap().push(by.to_owned());
+        }));
+        svc.callers()
+    });
+    let admin = RpcInstanceAdmin::open(&server.socket, FORGED, times());
+    let refused = admin
+        .write_instance(&key("fs.look.style"), Some(&Raw::Int(1)), &nobody())
+        .unwrap_err();
+    assert_eq!(support::code(&refused), "read-only");
+    assert_eq!(support::text(&refused, "which"), Some("instance"));
+    assert_eq!(
+        *claims.lock().unwrap(),
+        [FORGED],
+        "the claim is reported although the call is refused"
+    );
+    assert!(
+        spy.seen.lock().unwrap().is_empty(),
+        "no write reached the port under any actor"
+    );
+}
