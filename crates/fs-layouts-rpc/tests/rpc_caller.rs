@@ -128,3 +128,24 @@ fn a_connection_the_system_could_not_name_is_told_to_the_host() {
     per.refused(&CallerError::Credentials(std::io::Error::other("no")));
     assert_eq!(told.borrow().as_slice(), ["caller-credentials"]);
 }
+
+#[test]
+fn each_connection_is_built_from_its_own_caller_in_order() {
+    let ids = Rc::new(std::cell::RefCell::new(Vec::<String>::new()));
+    let i2 = ids.clone();
+    let mut svc = service(false);
+    svc.actors = Rc::new(move |c: &Caller| {
+        i2.borrow_mut().push(c.id().to_owned());
+        Some(Reference(PERSON.to_owned()))
+    });
+    let hub = fs_layouts_rpc::Hub::new();
+    let mut per = svc.per_connection(&hub);
+    for id in ["1000", "2000", "3000"] {
+        let _ = per.bootstrap(&Caller::new(id, None));
+    }
+    assert_eq!(
+        ids.borrow().as_slice(),
+        ["1000", "2000", "3000"],
+        "a connection was built from another caller or from an earlier capability"
+    );
+}
