@@ -48,4 +48,4 @@ pub use client::{ClientTimes, RpcInstanceAdmin, RpcSettingsStore, Watching, unre
 pub use ensure::{SERVICE_PROGRAM, ensure_service, ensure_service_with, find_service_program};
 pub use identity::{actor_of, claim_line, log_claim, log_refused, os_user_of, refused_line};
 pub use problem::{from_problem, to_problem};
-pub use service::{ClaimNote, SettingsCallers, SettingsService};
+pub use service::{ClaimNote, OsUserOf, SettingsCallers, SettingsService};
