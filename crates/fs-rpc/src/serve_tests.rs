@@ -1,4 +1,5 @@
 //! The accept loop when the system does not tell who is on a connection: made-up caller source, a real socket.
+//! Platform neutral (a pipe on Windows, a socket on Unix): nothing here asks the system for a caller.
 //! Pattern: Test double (a `CallerSource` that always fails) + Mutant-proof (the connection is dropped and `refused` is called).
 use std::io;
 use std::time::Duration;
@@ -10,6 +11,22 @@ use tokio::sync::oneshot;
 
 use super::{ReadLimits, accept_until, bind_socket, connect};
 use crate::transport::{Caller, CallerError, CallerSource, PerConnection, bootstrap_for};
+
+/// Where the test server listens: a file in a temp folder on Unix, a pipe name of its own on Windows.
+#[cfg(unix)]
+fn socket_path() -> (tempfile::TempDir, std::path::PathBuf) {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("r.sock");
+    (dir, path)
+}
+
+#[cfg(windows)]
+fn socket_path() -> ((), std::path::PathBuf) {
+    (
+        (),
+        format!(r"\\.\pipe\freesynergy-test-serve-{}", std::process::id()).into(),
+    )
+}
 
 struct Unknown;
 
@@ -44,8 +61,7 @@ impl PerConnection for Log {
 
 #[test]
 fn a_connection_whose_caller_is_not_told_is_dropped_and_refused_is_called_for_each() {
-    let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("r.sock");
+    let (_dir, path) = socket_path();
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()

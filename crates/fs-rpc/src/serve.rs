@@ -241,6 +241,6 @@ where
     })
 }
 
-#[cfg(all(test, unix))]
+#[cfg(test)]
 #[path = "serve_tests.rs"]
 mod tests;

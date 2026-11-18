@@ -6,13 +6,14 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE;
 use windows_sys::Win32::Security::Authorization::{GetSecurityInfo, SE_KERNEL_OBJECT};
 use windows_sys::Win32::Security::{
     ACL, ACL_SIZE_INFORMATION, AclSizeInformation, DACL_SECURITY_INFORMATION, GetAclInformation,
 };
 
 use super::super::endpoint::{Accepted, Endpoint};
-use super::super::peer::CallerSource;
+use super::super::peer::{CallerError, CallerSource};
 use super::name::{companion_stem, encode, pipe_name};
 use super::{Windows, bind_socket, sid};
 
@@ -189,4 +190,12 @@ async fn the_caller_of_a_pipe_is_this_user_by_sid_with_the_account_name_of_the_s
         panic!("second caller must be served");
     };
     assert_eq!(served2.caller().unwrap().id(), caller.id());
+}
+
+/// The system cannot tell who is on a handle that is no pipe: the answer is the error with its code, never a made-up user.
+#[test]
+fn a_handle_the_system_cannot_ask_gives_the_credentials_error_not_a_default_user() {
+    let err = sid::client_caller(INVALID_HANDLE_VALUE).unwrap_err();
+    let err = CallerError::Credentials(err);
+    assert_eq!(err.code(), "caller-credentials");
 }
