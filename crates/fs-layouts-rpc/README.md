@@ -13,10 +13,10 @@ and every other program reach them through the contract `layouts`. This crate ho
 Errors are codes with parameters (`layout-error-<code>`), never sentences. Limits are settings the program passes in with their
 source (`ServiceLimits`, `ClientTimes`).
 
-Status: probe. The contracts `schema/layouts.capnp` (draft 0.1) and `schema/bind.capnp` are provisional copies of the F1b and H1
-sketches, compiled with our own `fs-capnpc` into `src/*_capnp.rs` (command: `capnp-compiler` with `--src-prefix schema`, import path
-the folder with `common.capnp` of fs-interfaces v0.0.27; a throwaway helper did it, it is not part of this repo). Questions to the
-owner of the contract are listed at the head of the schema (appended fields).
+Status: probe. The contracts `layouts` (draft 0.1) and `bind` are the owner files `schema/layouts.capnp` and `schema/bind.capnp` of
+fs-interfaces v0.0.28, with their generated code and their final schema ids (`fs_interfaces::layouts_capnp`, `bind_capnp`, re-exported
+here). The provisional copies that this crate carried before (and their provisional ids) are gone. Questions to the owner of the
+contract are listed at the head of the schema (appended fields).
 Written with Claude (Anthropic).
 
 ## Edge: where this crate lives (D4, c0 18.11.: yes)

@@ -1,6 +1,6 @@
 # fs-rpc – Design
 
-The runtime half of the interface contracts: what every program's server and client share (ADR 0043 §4). The topic contracts (schemas, generated code, `provider`) are in `fs-interfaces`; the value objects and `types.capnp` are in `fs-types`; this crate adds no schema. Repo graph (ADR 0093): `fs-types` <- {`fs-interfaces`, `fs-objects`, `fs-jscalendar`} <- `fs-rpc` <- programs. No edge goes upward. Pins of v0.0.2: `fs-types` v0.0.1, `fs-interfaces` v0.0.27, `fs-objects` v0.0.6.
+The runtime half of the interface contracts: what every program's server and client share (ADR 0043 §4). The topic contracts (schemas, generated code, `provider`) are in `fs-interfaces`; the value objects and `types.capnp` are in `fs-types`; this crate adds no schema. Repo graph (ADR 0093): `fs-types` <- {`fs-interfaces`, `fs-objects`, `fs-jscalendar`} <- `fs-rpc` <- programs. No edge goes upward. Pins of v0.0.3: `fs-types` v0.0.4, `fs-interfaces` v0.0.28, `fs-objects` v0.0.8 (`fs-conformance`, optional in `fs-starter`, is the same fs-types tag).
 
 ## Structure and pattern map
 

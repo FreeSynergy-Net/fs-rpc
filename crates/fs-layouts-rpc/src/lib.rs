@@ -13,8 +13,8 @@
 //! program with their source; only the 64 MiB of one message are fixed (`fs_rpc::MAX_MESSAGE_BYTES`). Nothing is silent: what the
 //! port cannot do (the exchange files, `repair`, `bind`) answers `unsupported{what}`.
 //!
-//! PROVISIONAL (probe): the contract `layouts` (draft 0.1) and the host's `bind` are provisional copies in `schema/` of the F1b and
-//! H1 sketches (with four appended fields, see the schema); `fs-forms-layout` is a git pin. The tag replaces both before release.
+//! PROVISIONAL (probe): the contracts `layouts` and `bind` are the owner files of fs-interfaces v0.0.28 (no copies here any more);
+//! `fs-forms-layout` is a git pin. The crate moves to fs-forms (K5) before release; the tag replaces the pin.
 //!
 //! Pattern: Adapter (both directions) + Proxy (client link) + Facade (service) + Observer (watch).
 //! Written with Claude (Anthropic) as the coding assistant.
@@ -30,14 +30,9 @@ mod problem;
 mod service;
 mod wire;
 
-// The generated files name `crate::common_capnp` and `crate::bind_capnp`, as they do inside fs-interfaces.
+// The contracts and their generated code are the ones of fs-interfaces v0.0.28 (the owner file of `layouts` and `bind`).
 pub(crate) use fs_interfaces::common_capnp;
-#[rustfmt::skip]
-#[allow(clippy::all, clippy::pedantic, unused_parens, dead_code, missing_docs)]
-pub mod bind_capnp;
-#[rustfmt::skip]
-#[allow(clippy::all, clippy::pedantic, unused_parens, dead_code, missing_docs)]
-pub mod layouts_capnp;
+pub use fs_interfaces::{bind_capnp, layouts_capnp};
 
 pub use client::{ClientTimes, RpcLayoutAdmin, RpcLayouts, Watching};
 pub use ensure::{
