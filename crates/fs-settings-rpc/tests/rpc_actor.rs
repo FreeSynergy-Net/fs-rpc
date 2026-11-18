@@ -85,3 +85,42 @@ fn name_in_passwd_finds_the_name_or_nothing() {
         "a line without a name names nobody"
     );
 }
+
+/// A service as it comes from `new` logs a claim (it is not silent): the hook is there, and its line carries the claim as written.
+#[test]
+fn a_service_logs_a_claim_by_default() {
+    let spy = Spy::new();
+    let svc = SettingsService::new(spy.clone(), Some(spy));
+    assert!(
+        svc.claimed_by.is_some(),
+        "no claim hook: a forged claim would not be logged"
+    );
+    let line = fs_settings_rpc::claim_line(FORGED);
+    assert!(line.contains(FORGED) && line.contains("ignored"), "{line}");
+    assert!(
+        fs_settings_rpc::claim_line("").contains("\"\""),
+        "an empty claim is visible too"
+    );
+}
+
+/// One form: the OS user of the connection is the NAME the system has for the effective user (the number only when it has none),
+/// checked against an independent source (`id`), not against the function itself.
+#[cfg(unix)]
+#[test]
+fn os_user_is_the_name_from_the_system_not_the_number() {
+    let id = |flag: &str| {
+        let out = std::process::Command::new("id")
+            .arg(flag)
+            .output()
+            .expect("id");
+        out.status
+            .success()
+            .then(|| String::from_utf8(out.stdout).unwrap().trim().to_owned())
+    };
+    let expected = id("-un").unwrap_or_else(|| id("-u").expect("id -u"));
+    assert_eq!(fs_settings_rpc::os_user_name(), expected);
+    assert_eq!(
+        fs_types::BasicValue::canonical(&fs_settings_rpc::actor_of_os_user()),
+        format!("urn:fs:os-user:{expected}")
+    );
+}

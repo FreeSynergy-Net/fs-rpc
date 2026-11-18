@@ -51,3 +51,16 @@ pub fn actor_of_os_user() -> Reference {
     Reference::parse(&text)
         .unwrap_or_else(|_| Reference::parse("urn:fs:os-user:unknown").expect("valid IRI"))
 }
+
+/// The line a claimed `by` becomes in the log: the claim as written (quoted, so an empty or odd one is visible) and that it was ignored.
+#[must_use]
+pub fn claim_line(by: &str) -> String {
+    format!(
+        "fs-settings-rpc: admin claimed-by={by:?} ignored (the actor is the identity of the connection)"
+    )
+}
+
+/// The default `claimed_by` of a service: the claim goes to standard error (a host logs it its own way by setting `claimed_by`).
+pub fn log_claim(by: &str) {
+    eprintln!("{}", claim_line(by));
+}

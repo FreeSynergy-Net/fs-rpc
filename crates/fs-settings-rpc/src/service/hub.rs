@@ -31,8 +31,9 @@ pub struct SettingsService<S: ?Sized, I: ?Sized> {
     /// The actor of every admin call: the identity of the CONNECTION (default `urn:fs:os-user:<name>`), never a field of the
     /// client. Until fs-access it is the OS user; an AI seat would be its own actor.
     pub actor_of_connection: Arc<dyn Fn() -> fs_types::Reference + Send + Sync>,
-    /// Called with the `by` a client claims in `admin(by)` (also an empty one). It is never the actor: the host writes it to its
-    /// log, so a forged claim is visible and never effective ([AKTEUR-AUS-VERBINDUNG]; `by` leaves the contract in 0.3).
+    /// Called with the `by` a client claims in `admin(by)` (also an empty one). It is never the actor. The default writes the claim
+    /// to standard error ([`crate::log_claim`]), so a forged claim is visible and never effective ([AKTEUR-AUS-VERBINDUNG]; `by`
+    /// leaves the contract in 0.3); a host replaces it with its own log, `None` is silent (tests only).
     pub claimed_by: Option<ClaimNote>,
     /// The clock of the service (UTC ms); tests inject one.
     pub now: Arc<dyn Fn() -> Utc + Send + Sync>,
@@ -47,7 +48,7 @@ impl<S: ?Sized, I: ?Sized> SettingsService<S, I> {
             instance,
             os_user: Arc::new(|| Some(crate::identity::os_user_name())),
             actor_of_connection: Arc::new(crate::identity::actor_of_os_user),
-            claimed_by: None,
+            claimed_by: Some(Arc::new(crate::identity::log_claim)),
             now: Arc::new(system_now),
         }
     }

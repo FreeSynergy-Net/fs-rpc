@@ -44,6 +44,6 @@ pub(crate) use fs_settings::{Coded, IndexFn};
 pub use caller::current_os_user;
 pub use client::{ClientTimes, RpcInstanceAdmin, RpcSettingsStore, Watching, unreachable_at};
 pub use ensure::{SERVICE_PROGRAM, ensure_service, ensure_service_with, find_service_program};
-pub use identity::{actor_of_os_user, name_in_passwd, os_user_name};
+pub use identity::{actor_of_os_user, claim_line, log_claim, name_in_passwd, os_user_name};
 pub use problem::{from_problem, to_problem};
 pub use service::{ClaimNote, SettingsService};
