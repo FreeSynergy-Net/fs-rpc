@@ -18,7 +18,9 @@ use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 
 use super::control::ServerIdentity;
 use super::finish::{FINISH_TIMEOUT, finish_underway};
-use super::transport::{Accepted, BoundSocket, Endpoint, System, bind_socket};
+use super::transport::{
+    Accepted, BoundSocket, Endpoint, PerConnection, Shared, System, bind_socket, bootstrap_for,
+};
 
 /// What this end of a connection reads at most in one message; the default is
 /// [`MAX_MESSAGE_BYTES`](super::MAX_MESSAGE_BYTES). It says nothing about what the other end reads, so
@@ -65,12 +67,33 @@ pub async fn serve_with(
     shutdown: impl Future<Output = ()>,
     limits: ReadLimits,
 ) -> io::Result<()> {
-    accept_until(&socket, bootstrap, shutdown, limits).await
+    let mut per = Shared(bootstrap);
+    accept_until(&socket, |s| bootstrap_for(s, &mut per), shutdown, limits).await
+}
+
+/// [`serve`], but the program builds the capability of each connection from who is on it ([`PerConnection`]): the caller is
+/// read from the system for every connection (`SO_PEERCRED` on Unix, the token of the pipe client on Windows) and never from
+/// anything the client sends. A connection whose caller the system does not tell is dropped ([`PerConnection::refused`]).
+///
+/// # Errors
+/// As for [`serve`].
+pub async fn serve_callers<P: PerConnection>(
+    socket: BoundSocket,
+    mut per: P,
+    shutdown: impl Future<Output = ()>,
+) -> io::Result<()> {
+    accept_until(
+        &socket,
+        |s| bootstrap_for(s, &mut per),
+        shutdown,
+        ReadLimits::default(),
+    )
+    .await
 }
 
 async fn accept_until(
     socket: &BoundSocket,
-    bootstrap: Client,
+    mut bootstrap: impl FnMut(&<System as Endpoint>::ServerStream) -> Option<Client>,
     shutdown: impl Future<Output = ()>,
     limits: ReadLimits,
 ) -> io::Result<()> {
@@ -80,10 +103,12 @@ async fn accept_until(
             () = &mut shutdown => return Ok(()),
             accepted = System::accept(socket) => match accepted? {
                 Accepted::Peer(stream) => {
-                    let rpc = system(stream, Side::Server, Some(bootstrap.clone()), limits);
-                    tokio::task::spawn_local(async move {
-                        drop(rpc.await);
-                    });
+                    if let Some(client) = bootstrap(&stream) {
+                        let rpc = system(stream, Side::Server, Some(client), limits);
+                        tokio::task::spawn_local(async move {
+                            drop(rpc.await);
+                        });
+                    }
                 }
                 Accepted::Skip => {}
                 Accepted::Pause => {
@@ -170,6 +195,24 @@ where
     F: FnOnce() -> Fut,
     Fut: Future<Output = io::Result<Client>>,
 {
+    run_until_signal_callers(socket, identity, || async { Ok(Shared(open().await?)) })
+}
+
+/// [`run_until_signal_as`] with a capability built for each connection from its caller ([`PerConnection`], see
+/// [`serve_callers`]). The program gets the caller on every connection, from the system only.
+///
+/// # Errors
+/// As for [`run_until_signal`].
+pub fn run_until_signal_callers<F, Fut, P>(
+    socket: &Path,
+    identity: ServerIdentity,
+    open: F,
+) -> io::Result<()>
+where
+    F: FnOnce() -> Fut,
+    Fut: Future<Output = io::Result<P>>,
+    P: PerConnection,
+{
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?;
@@ -187,8 +230,11 @@ where
             }
         };
         let bound = bind_socket(socket).await?;
-        let bootstrap = super::control::with_control(open().await?, identity);
-        let served = accept_until(&bound, bootstrap, stop, ReadLimits::default()).await;
+        let mut per = open().await?;
+        let make = |s: &<System as Endpoint>::ServerStream| {
+            bootstrap_for(s, &mut per).map(|c| super::control::with_control(c, identity.clone()))
+        };
+        let served = accept_until(&bound, make, stop, ReadLimits::default()).await;
         let finished = finish_underway(FINISH_TIMEOUT).await;
         drop(bound);
         served.and(finished)

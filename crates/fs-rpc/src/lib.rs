@@ -90,12 +90,15 @@ pub use reconnect::{
 };
 pub use saved::Saved;
 pub use serve::{
-    Connection, ReadLimits, connect, connect_with, run_until_signal, run_until_signal_as, serve,
-    serve_with,
+    Connection, ReadLimits, connect, connect_with, run_until_signal, run_until_signal_as,
+    run_until_signal_callers, serve, serve_callers, serve_with,
 };
 #[cfg(all(unix, target_os = "linux"))]
 pub use single::{Decision, Image, Own, Peer, Why, decide_takeover};
 pub use single::{Single, SingleError, SingleTimes, Stuck, TakenOver, ensure_single};
 pub use starter::{CommandStarter, ServerStarter};
 pub use stop::stop_self;
-pub use transport::{BoundSocket, bind_socket, companion_path, default_socket};
+pub use transport::{
+    BoundSocket, Caller, CallerError, CallerSource, PerConnection, bind_socket, companion_path,
+    default_socket,
+};

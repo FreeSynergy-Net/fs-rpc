@@ -23,6 +23,7 @@ use tokio::net::windows::named_pipe::{ClientOptions, NamedPipeClient, NamedPipeS
 use tokio::sync::Mutex;
 
 use super::endpoint::{Accepted, Endpoint};
+use super::peer::{Caller, CallerError, CallerSource};
 use crate::datadir::DataDirError;
 use name::{companion_stem, default_name, pipe_name};
 
@@ -124,6 +125,14 @@ fn plain(path: PathBuf) -> PathBuf {
 
 /// The Windows transport.
 pub struct Windows;
+
+impl CallerSource for NamedPipeServer {
+    fn caller(&self) -> Result<Caller, CallerError> {
+        let (id, name) =
+            sid::client_caller(self.as_raw_handle()).map_err(CallerError::Credentials)?;
+        Ok(Caller::new(id, name))
+    }
+}
 
 impl Endpoint for Windows {
     type ServerStream = NamedPipeServer;

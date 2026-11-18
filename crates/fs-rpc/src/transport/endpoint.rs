@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 
 use tokio::io::{AsyncRead, AsyncWrite};
 
+use super::peer::CallerSource;
 use crate::datadir::DataDirError;
 
 /// What the listener of a server found when it looked at the next caller.
@@ -22,7 +23,7 @@ pub enum Accepted<S> {
 /// The transport of one system.
 pub trait Endpoint {
     /// The server end of a connection.
-    type ServerStream: AsyncRead + AsyncWrite + Unpin + 'static;
+    type ServerStream: AsyncRead + AsyncWrite + Unpin + CallerSource + 'static;
     /// The client end of a connection.
     type ClientStream: AsyncRead + AsyncWrite + Unpin + 'static;
     /// The place that is bound.

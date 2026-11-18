@@ -9,8 +9,8 @@ use std::sync::OnceLock;
 use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, LocalFree};
 use windows_sys::Win32::Security::Authorization::ConvertSidToStringSidW;
 use windows_sys::Win32::Security::{
-    EqualSid, GetLengthSid, GetTokenInformation, PSID, TOKEN_OWNER, TOKEN_QUERY, TOKEN_USER,
-    TokenOwner, TokenUser,
+    EqualSid, GetLengthSid, GetTokenInformation, LookupAccountSidW, PSID, SID_NAME_USE,
+    TOKEN_OWNER, TOKEN_QUERY, TOKEN_USER, TokenOwner, TokenUser,
 };
 use windows_sys::Win32::System::Pipes::{GetNamedPipeClientProcessId, GetNamedPipeServerProcessId};
 use windows_sys::Win32::System::Threading::{
@@ -149,4 +149,55 @@ pub(super) fn client_is_me(pipe: RawHandle) -> bool {
 pub(super) fn server_is_me(pipe: RawHandle) -> bool {
     let mut pid = 0_u32;
     unsafe { GetNamedPipeServerProcessId(pipe, &raw mut pid) != 0 && process_is_me(pid) }
+}
+
+/// The account name of a SID (`name` of `DOMAIN\\name`); `None` if the system has none.
+fn account_name(sid: &Sid) -> Option<String> {
+    let (mut name_len, mut domain_len) = (0_u32, 0_u32);
+    let mut kind: SID_NAME_USE = 0;
+    // The first call only asks how long the buffers must be.
+    unsafe {
+        LookupAccountSidW(
+            std::ptr::null(),
+            sid.ptr(),
+            null_mut(),
+            &raw mut name_len,
+            null_mut(),
+            &raw mut domain_len,
+            &raw mut kind,
+        )
+    };
+    if name_len == 0 {
+        return None;
+    }
+    let mut name = vec![0_u16; name_len as usize];
+    let mut domain = vec![0_u16; domain_len.max(1) as usize];
+    let ok = unsafe {
+        LookupAccountSidW(
+            std::ptr::null(),
+            sid.ptr(),
+            name.as_mut_ptr(),
+            &raw mut name_len,
+            domain.as_mut_ptr(),
+            &raw mut domain_len,
+            &raw mut kind,
+        )
+    };
+    (ok != 0).then(|| String::from_utf16_lossy(&name[..name_len as usize]))
+}
+
+/// Who runs the client process of this pipe instance, from the process token (the SID, and the account name if the system has
+/// one); asked again for every connection. Compiled on Windows only; not run by the authors (marked unchecked in the CHANGELOG).
+pub(super) fn client_caller(pipe: RawHandle) -> io::Result<(String, Option<String>)> {
+    let mut pid = 0_u32;
+    if unsafe { GetNamedPipeClientProcessId(pipe, &raw mut pid) } == 0 {
+        return Err(io::Error::last_os_error());
+    }
+    let process = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid) };
+    if process.is_null() {
+        return Err(io::Error::last_os_error());
+    }
+    let process = Handle(process);
+    let who = who_of(&token_of(process.0)?)?;
+    Ok((who.user.text()?, account_name(&who.user)))
 }
