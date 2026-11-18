@@ -9,7 +9,8 @@ use std::rc::Rc;
 
 use fs_forms_layout::{Coded, LayoutAdmin, LayoutCode, LayoutStore, Reference, Who};
 
-use super::listeners::{Listeners, Watchers};
+use super::listeners::Listeners;
+use super::listeners::{Hub, Watchers};
 
 use crate::limits::ServiceLimits;
 
@@ -82,22 +83,27 @@ pub(crate) struct Shared<S: LayoutStore + ?Sized> {
 }
 
 impl<S: LayoutStore + ?Sized + 'static> LayoutService<S> {
-    /// The root capability to hand to `fs_rpc::serve`: `Layouts`, and the handle that counts its watchers.
+    /// The root capability to hand to `fs_rpc::serve`: `Layouts`, and the handle that counts its watchers. The service has a hub
+    /// of its own; for several sockets over ONE store use [`Self::bootstrap_in`] with one shared [`Hub`].
     #[must_use]
     pub fn bootstrap(self) -> (capnp::capability::Client, Watchers) {
-        let listeners = Rc::new(Listeners::default());
-        let watchers = Watchers(listeners.counter(), listeners.missed_counter());
+        let hub = Hub::new();
+        let watchers = hub.watchers();
+        (self.bootstrap_in(&hub), watchers)
+    }
+
+    /// Like [`Self::bootstrap`], but the watchers live in `hub`: every service of the same `hub` tells its watchers about every
+    /// write, whichever socket it came through. The limit `watchers_max` counts the watchers of the whole hub.
+    #[must_use]
+    pub fn bootstrap_in(self, hub: &Hub) -> capnp::capability::Client {
         let shared = Rc::new(Shared {
             svc: self,
-            listeners,
+            listeners: hub.0.clone(),
         });
-        (
-            capnp_rpc::new_client::<crate::layouts_capnp::layouts::Client, _>(super::root::Root {
-                shared,
-            })
-            .client,
-            watchers,
-        )
+        capnp_rpc::new_client::<crate::layouts_capnp::layouts::Client, _>(super::root::Root {
+            shared,
+        })
+        .client
     }
 }
 

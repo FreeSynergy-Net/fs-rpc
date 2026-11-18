@@ -177,3 +177,37 @@ fn a_store_that_cannot_say_its_stamp_is_counted() {
         assert_eq!(s.watchers.missed(), 1, "the failed stamp was not counted");
     });
 }
+
+/// The hub of a store is shared by all its sockets: a write through socket A is heard by a watcher on socket B and the watchers of both sockets are counted together.
+#[test]
+fn a_write_through_one_socket_is_heard_on_the_other_socket() {
+    let d = dir();
+    let (a, b) = (d.path().join("a.sock"), d.path().join("b.sock"));
+    let s = serve_actors(vec![
+        (a.clone(), None),
+        (b.clone(), Some("https://example.org/bots/seat".into())),
+    ]);
+    run(async {
+        let (ca, cb) = (client(&a), client(&b));
+        let (on_a, on_b) = (Rc::new(RefCell::new(0_u32)), Rc::new(RefCell::new(0_u32)));
+        let (ha, hb) = (on_a.clone(), on_b.clone());
+        let _wa = ca
+            .watch(Rc::new(move |_| *ha.borrow_mut() += 1), Rc::new(|| {}))
+            .await
+            .unwrap();
+        let _wb = cb
+            .watch(Rc::new(move |_| *hb.borrow_mut() += 1), Rc::new(|| {}))
+            .await
+            .unwrap();
+        assert!(
+            until(|| s.watchers.count() == 2).await,
+            "one hub counts both"
+        );
+        ca.create(doc("board"), &who()).await.unwrap();
+        assert!(
+            until(|| *on_b.borrow() == 1).await,
+            "the watcher on socket B did not hear the write through socket A"
+        );
+        assert!(until(|| *on_a.borrow() == 1).await, "the watcher on A");
+    });
+}

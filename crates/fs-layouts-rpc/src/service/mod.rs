@@ -12,4 +12,4 @@ mod write;
 
 pub(crate) use hub::Shared;
 pub use hub::{ClaimNote, LayoutService};
-pub use listeners::Watchers;
+pub use listeners::{Hub, Watchers};

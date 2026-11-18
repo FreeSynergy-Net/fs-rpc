@@ -11,7 +11,7 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use fs_forms_layout::*;
-use fs_layouts_rpc::{ClientTimes, LayoutService, RpcLayouts, Watchers};
+use fs_layouts_rpc::{ClientTimes, Hub, LayoutService, RpcLayouts, Watchers};
 use fs_rpc::{bind_socket, serve};
 use tempfile::TempDir;
 use tokio::sync::oneshot;
@@ -207,7 +207,7 @@ pub fn put_uuid(mut out: fs_interfaces::common_capnp::uuid::Builder<'_>, text: &
     out.set_lo(u64::from_str_radix(&hex[16..], 16).unwrap());
 }
 
-/// ONE store, several sockets, each socket one actor of the connection (the actor is bound to the connection the caller got, never
+/// ONE store and ONE hub, several sockets, each socket one actor of the connection (the actor is bound to the connection the caller got, never
 /// to a field it sends): `sockets` = (path, actor; `None` = the person).
 pub fn serve_actors(sockets: Vec<(PathBuf, Option<String>)>) -> Server {
     use futures::FutureExt;
@@ -223,7 +223,7 @@ pub fn serve_actors(sockets: Vec<(PathBuf, Option<String>)>) -> Server {
             let store = Rc::new(UuidStore(mem(true, None), Arc::default()));
             let shut = stopped.shared();
             let mut serving = Vec::new();
-            let mut watchers = None;
+            let hub = Hub::new();
             for (path, actor) in sockets {
                 let mut svc = LayoutService::<dyn LayoutStore>::new(
                     store.clone(),
@@ -235,14 +235,13 @@ pub fn serve_actors(sockets: Vec<(PathBuf, Option<String>)>) -> Server {
                     svc.actor_of_connection = Rc::new(move || actor.clone());
                 }
                 let bound = bind_socket(&path).await.unwrap();
-                let (boot, w) = svc.bootstrap();
-                watchers.get_or_insert(w);
+                let boot = svc.bootstrap_in(&hub);
                 let shut = shut.clone();
                 serving.push(serve(bound, boot, async move {
                     let _ = shut.await;
                 }));
             }
-            ready.send(watchers.unwrap()).unwrap();
+            ready.send(hub.watchers()).unwrap();
             for r in futures::future::join_all(serving).await {
                 r.unwrap();
             }

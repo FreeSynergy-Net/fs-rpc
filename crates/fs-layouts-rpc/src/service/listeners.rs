@@ -77,6 +77,26 @@ impl Listeners {
     }
 }
 
+/// The listeners of ONE database, shared by EVERY service (socket, connection) that serves it: what is written through one socket
+/// is heard by the watchers of every other. Make one `Hub` per store, hand it to [`LayoutService::bootstrap_in`](super::LayoutService::bootstrap_in)
+/// for each socket. Not `Send`: it lives on the thread of the `LocalSet` that serves.
+#[derive(Clone, Default)]
+pub struct Hub(pub(crate) Rc<Listeners>);
+
+impl Hub {
+    /// A hub without listeners.
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// The counters of this hub (readable from any thread).
+    #[must_use]
+    pub fn watchers(&self) -> Watchers {
+        Watchers(self.0.counter(), self.0.missed_counter())
+    }
+}
+
 /// How many watchers a service has right now (for tests and for the program's own status); readable from any thread.
 #[derive(Clone)]
 pub struct Watchers(pub(crate) Arc<AtomicUsize>, pub(crate) Arc<AtomicUsize>);
