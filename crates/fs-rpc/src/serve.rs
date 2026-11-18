@@ -231,7 +231,7 @@ where
         };
         let bound = bind_socket(socket).await?;
         let mut per = open().await?;
-        let make = |s: &<System as Endpoint>::ServerStream| {
+        let make = move |s: &<System as Endpoint>::ServerStream| {
             bootstrap_for(s, &mut per).map(|c| super::control::with_control(c, identity.clone()))
         };
         let served = accept_until(&bound, make, stop, ReadLimits::default()).await;

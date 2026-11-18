@@ -57,7 +57,7 @@ fn a_caller_the_system_does_not_tell_is_refused_with_a_code_and_gets_nothing() {
     let mut log = Log::default();
     let bad = Fake(Err(io::ErrorKind::PermissionDenied));
     assert!(bootstrap_for(&bad, &mut log).is_none());
-    assert!(log.callers.is_empty());
+    assert_eq!(log.callers.len(), 0);
     assert_eq!(log.refused, ["caller-credentials"]);
     // The next connection is not poisoned by it.
     assert!(bootstrap_for(&user("1000"), &mut log).is_some());
