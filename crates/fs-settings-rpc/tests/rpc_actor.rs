@@ -129,7 +129,7 @@ fn a_connection_without_a_caller_is_reported() {
     let noted = heard.clone();
     let mut svc = SettingsService::new(spy.clone(), Some(spy));
     svc.refused_note = Some(Arc::new(move |code: &str| {
-        noted.lock().unwrap().push(code.to_owned())
+        noted.lock().unwrap().push(code.to_owned());
     }));
     let mut callers = svc.callers();
     callers.refused(&CallerError::Credentials(std::io::Error::other(

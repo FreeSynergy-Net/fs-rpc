@@ -9,5 +9,5 @@ mod hub;
 mod listeners;
 mod store;
 
-pub use hub::{ClaimNote, SettingsCallers, SettingsService};
+pub use hub::{ClaimNote, OsUserOf, SettingsCallers, SettingsService};
 pub(crate) use hub::{Shared, blocking, err};
