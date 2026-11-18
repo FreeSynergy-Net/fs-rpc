@@ -148,5 +148,7 @@ pub fn instance_port(store: &MemoryStore) -> &dyn InstanceStore {
     store
 }
 
+mod more_ports;
 mod ports;
+pub use more_ports::*;
 pub use ports::*;
