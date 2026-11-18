@@ -6,6 +6,7 @@
 //! reads the stamp (feed rule of fs-rpc: subscribe first, then read).
 
 use std::any::Any;
+use std::cell::Cell;
 use std::rc::Rc;
 
 use fs_forms_layout::{Coded, LayoutCode, Stamp};
@@ -13,19 +14,40 @@ use fs_forms_layout::{Coded, LayoutCode, Stamp};
 use super::RpcLayouts;
 use crate::layouts_capnp::layouts::listener;
 
-struct Listener(Rc<dyn Fn(Stamp)>);
+/// The listener lives as long as the connection or the [`Watching`]. If it goes away while the `Watching` is still held, the
+/// connection ended: `on_end` tells the host (never a silently lost subscription).
+struct Listener {
+    on_change: Rc<dyn Fn(Stamp)>,
+    on_end: Rc<dyn Fn()>,
+    released: Rc<Cell<bool>>,
+}
+
+impl Drop for Listener {
+    fn drop(&mut self) {
+        if !self.released.get() {
+            (self.on_end)();
+        }
+    }
+}
 
 #[allow(clippy::unused_async_trait_impl)] // the generated server trait is async
 impl listener::Server for Listener {
     async fn changed(self: Rc<Self>, params: listener::ChangedParams) -> Result<(), capnp::Error> {
-        (self.0)(Stamp(params.get()?.get_stamp()));
+        (self.on_change)(Stamp(params.get()?.get_stamp()));
         Ok(())
     }
 }
 
 /// A running subscription; dropping it ends it.
 pub struct Watching {
+    released: Rc<Cell<bool>>,
     _held: Box<dyn Any>,
+}
+
+impl Drop for Watching {
+    fn drop(&mut self) {
+        self.released.set(true);
+    }
 }
 
 impl RpcLayouts {
@@ -33,17 +55,27 @@ impl RpcLayouts {
     ///
     /// # Errors
     /// `unreachable{socket}` when no service answers; `too-many{what=watchers,...}` when the service keeps no more listeners.
-    pub async fn watch(&self, on_change: Rc<dyn Fn(Stamp)>) -> Result<Watching, Coded<LayoutCode>> {
+    pub async fn watch(
+        &self,
+        on_change: Rc<dyn Fn(Stamp)>,
+        on_end: Rc<dyn Fn()>,
+    ) -> Result<Watching, Coded<LayoutCode>> {
+        let released = Rc::new(Cell::new(false));
+        let flag = released.clone();
         let held = self
             .ctx
             .call(async move |c| {
                 let mut req = c.watch_request();
-                req.get()
-                    .set_listener(capnp_rpc::new_client(Listener(on_change)));
+                req.get().set_listener(capnp_rpc::new_client(Listener {
+                    on_change,
+                    on_end,
+                    released: flag,
+                }));
                 Ok(req.send().promise.await?)
             })
             .await?;
         Ok(Watching {
+            released,
             _held: Box::new(held),
         })
     }

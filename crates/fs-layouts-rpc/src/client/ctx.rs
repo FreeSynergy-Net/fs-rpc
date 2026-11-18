@@ -104,7 +104,13 @@ impl Ctx {
         let client = self.link().await?;
         match tokio::time::timeout(self.times.call, f(client)).await {
             Ok(Ok(t)) => Ok(t),
-            Ok(Err(fail)) => Err(fail.into_coded().unwrap_or_else(|_| self.lost())),
+            Ok(Err(fail)) => Err(match fail.into_coded() {
+                Ok(code) => code,
+                // only a lost connection is `unreachable`; any other error without a problem (a message too large, a method the
+                // server does not know) is an answer of the service and keeps the link
+                Err(e) if fs_rpc::client::connection_lost(&e) => self.lost(),
+                Err(_) => crate::wire::text::bad("rpc-error"),
+            }),
             Err(_) => Err(self.lost()),
         }
     }

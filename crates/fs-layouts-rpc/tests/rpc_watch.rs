@@ -30,7 +30,10 @@ fn a_write_tells_the_watcher_the_new_stamp_and_a_dry_run_does_not() {
         let heard = Rc::new(RefCell::new(Vec::<u64>::new()));
         let h = heard.clone();
         let watching = c
-            .watch(Rc::new(move |st: Stamp| h.borrow_mut().push(st.0)))
+            .watch(
+                Rc::new(move |st: Stamp| h.borrow_mut().push(st.0)),
+                Rc::new(|| {}),
+            )
             .await
             .unwrap();
         c.import(doc("dry"), Mode::DryRun, &who()).await.unwrap();
@@ -55,7 +58,7 @@ fn dropping_the_subscription_frees_the_watcher() {
     let s = person(&d.path().join("l.sock"));
     run(async {
         let c = client(&s.socket);
-        let w = c.watch(Rc::new(|_| {})).await.unwrap();
+        let w = c.watch(Rc::new(|_| {}), Rc::new(|| {})).await.unwrap();
         assert!(until(|| s.watchers.count() == 1).await);
         drop(w);
         assert!(
@@ -79,8 +82,12 @@ fn the_watcher_limit_is_a_setting_with_its_source() {
     });
     run(async {
         let c = client(&s.socket);
-        let _first = c.watch(Rc::new(|_| {})).await.unwrap();
-        let e = c.watch(Rc::new(|_| {})).await.map(drop).unwrap_err();
+        let _first = c.watch(Rc::new(|_| {}), Rc::new(|| {})).await.unwrap();
+        let e = c
+            .watch(Rc::new(|_| {}), Rc::new(|| {}))
+            .await
+            .map(drop)
+            .unwrap_err();
         assert_eq!(
             (
                 code(&e),

@@ -44,6 +44,8 @@ fn cause(e: &SingleError) -> &'static str {
 
 /// Makes sure the person's layouts service listens on `socket`: reaches the one that runs, or starts `fs-forms serve --socket S`.
 ///
+/// Call it before the program's own runtime exists: it builds a runtime of its own and panics inside an async context.
+///
 /// # Errors
 /// `unreachable{socket, cause}`; `cause` is `no-server` when there is no program file to start, else the fs-rpc code.
 pub fn ensure_service(

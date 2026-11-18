@@ -88,7 +88,7 @@ pub fn rich(frontend: &str) -> LayoutDoc {
     d.sources = vec![item(
         "source:1",
         SourceDoc {
-            range: "tasks >=0.2".into(),
+            range: "tasks >=0.2 <0.3".into(),
             data_type: "task".into(),
             scope: Some(SourceScope::SelectedList),
         },
@@ -154,6 +154,8 @@ pub fn rich(frontend: &str) -> LayoutDoc {
             schemes: None,
         },
     ));
+    // the store keeps bindings in the order of their element ids
+    block.bindings.sort_by(|a, b| a.elem.cmp(&b.elem));
     d.actions = vec![item(
         "action:go",
         ActionDoc {
@@ -172,6 +174,17 @@ pub fn rich(frontend: &str) -> LayoutDoc {
                     path: "state".into(),
                     value: Some("open".into()),
                     low: None,
+                    high: None,
+                    values: vec![],
+                },
+            ),
+            item(
+                "filter:c",
+                FilterDoc::Is {
+                    cond: FilterCond::Equals,
+                    path: "note".into(),
+                    value: Some(String::new()),
+                    low: Some(String::new()),
                     high: None,
                     values: vec![],
                 },

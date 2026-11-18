@@ -1,12 +1,12 @@
-//! `Resolved` (layer 3) on the wire. The wire carries more than the model (a full `Summary`, `warnings`); the model has no place
-//! for those, so the service writes what it knows (id, key, rev) and a reader takes only what the model has. The layers travel as
+//! `Resolved` (layer 3) on the wire. The wire carries more than the model (a full `Summary`); the model has no place for it, so
+//! the service writes what it knows (id, key, rev; `origin` stays empty) and a reader takes only what the model has. The layers travel as
 //! overlays without ops; provenance as (kind, elem, layer, overlay).
 //!
 //! Pattern: Adapter (model <-> wire).
 
 use fs_forms_layout::{
-    ElemKind, ElemRef, FrontendKey, Layer, LayerInfo, Layout, Origin, OverlayScope, Reference,
-    Resolved, Rev, Stamp,
+    ElemKind, ElemRef, FrontendKey, Layer, LayerInfo, Layout, OverlayScope, Reference, Resolved,
+    Rev, Stamp,
 };
 
 use super::conflict::{read_conflict, read_lock, write_conflict, write_lock};
@@ -36,7 +36,11 @@ pub(crate) fn write_resolved(mut out: w::resolved::Builder<'_>, resolved: &Resol
     )?;
     out.reborrow()
         .set_effective_digest(&resolved.effective_digest[..]);
-    write_problems(out.init_problems(n(&resolved.problems)), &resolved.problems);
+    write_problems(
+        out.reborrow().init_problems(n(&resolved.problems)),
+        &resolved.problems,
+    );
+    write_problems(out.init_warnings(n(&resolved.warnings)), &resolved.warnings);
     Ok(())
 }
 
@@ -45,7 +49,7 @@ fn write_summary_part(mut sum: w::summary::Builder<'_>, resolved: &Resolved) -> 
     write_id(sum.reborrow().init_id(), &resolved.id.0)?;
     sum.set_extends(&resolved.key.extends);
     sum.set_frontend(&resolved.key.frontend);
-    sum.set_origin(Origin::Person.word());
+    // `origin` stays empty (= not given): the model's `Resolved` does not know it, and a made-up value would be a lie.
     sum.set_rev(resolved.rev.0);
     Ok(())
 }
@@ -177,5 +181,6 @@ pub(crate) fn read_resolved(r: w::resolved::Reader<'_>, check: Check<'_>) -> R<R
         provenance,
         effective_digest: digest,
         problems: read_problems(r.get_problems().map_err(|_| bad("problems"))?)?,
+        warnings: read_problems(r.get_warnings().map_err(|_| bad("warnings"))?)?,
     })
 }

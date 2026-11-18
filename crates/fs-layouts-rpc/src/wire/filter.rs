@@ -1,5 +1,5 @@
 //! Views, orders and filter trees, both directions. A filter that is absent is `hasFilter = false` (never an empty node);
-//! `value`, `low`, `high`, `searchKind` and `grouping` are `""` = not given.
+//! `value`, `low` and `high` carry a flag each (an empty text is a value); `searchKind` and `grouping` are `""` = not given.
 //!
 //! Pattern: Adapter (model <-> wire), recursive for the filter tree.
 
@@ -51,8 +51,11 @@ fn write_filter(mut e: w::filter_node::Builder<'_>, f: &Item<FilterDoc>) {
             e.set_op(FilterOp::Is.word());
             e.set_cond(cond.word());
             e.set_path(path);
+            e.set_has_value(value.is_some());
             e.set_value(value.as_deref().unwrap_or(""));
+            e.set_has_low(low.is_some());
             e.set_low(low.as_deref().unwrap_or(""));
+            e.set_has_high(high.is_some());
             e.set_high(high.as_deref().unwrap_or(""));
             let mut l = e.init_values(n(values));
             for (i, s) in (0..).zip(values) {
@@ -62,6 +65,11 @@ fn write_filter(mut e: w::filter_node::Builder<'_>, f: &Item<FilterDoc>) {
             }
         }
     }
+}
+
+/// A text that is given only when its flag says so: an empty text with the flag is a real empty text.
+fn given(flag: bool, t: capnp::Result<capnp::text::Reader<'_>>) -> R<Option<String>> {
+    flag.then(|| txt(t)).transpose()
 }
 
 pub(crate) fn read_view(e: w::view::Reader<'_>) -> R<ViewDoc> {
@@ -115,9 +123,9 @@ fn read_filter(f: w::filter_node::Reader<'_>) -> R<Item<FilterDoc>> {
         FilterDoc::Is {
             cond: word(f.get_cond())?,
             path: txt(f.get_path())?,
-            value: opt(f.get_value())?,
-            low: opt(f.get_low())?,
-            high: opt(f.get_high())?,
+            value: given(f.get_has_value(), f.get_value())?,
+            low: given(f.get_has_low(), f.get_low())?,
+            high: given(f.get_has_high(), f.get_high())?,
             values,
         }
     } else {

@@ -19,6 +19,13 @@ the folder with `common.capnp` of fs-interfaces v0.0.27; a throwaway helper did 
 owner of the contract are listed at the head of the schema (appended fields).
 Written with Claude (Anthropic).
 
+## Edge: where this crate lives (D4, c0 18.11.: yes)
+
+The crate is here only as a probe. Before any release it moves to the program repo fs-forms (decision D4); **fs-rpc is never tagged
+with this crate** (fs-rpc -> fs-forms git -> fs-rpc would be a repo loop). The actor of every call is the identity of the
+connection, never a field of the client: `admin(by)` takes `by` as a claim, hands it to `LayoutService::claimed_by` (the host's
+log) and ignores it otherwise.
+
 ## Auf Deutsch
 
 Die Beschreibungen der Frontends liegen in EINER Datenbank eines Prozesses (`fs-forms serve`). Dieses Crate enthaelt beide Seiten

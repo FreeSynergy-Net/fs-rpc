@@ -25,15 +25,18 @@ pub(crate) async fn admin<S: LayoutStore + ?Sized + 'static>(
             .with("what", "admin")
             .into());
     };
+    // `by` is what the client CLAIMS. It is never the actor (the actor is the connection's identity, K78): it only goes to the
+    // service's record of ignored claims, where the program that hosts the service writes it to its log.
     let by = txt(p.get()?.get_by())?;
-    if by.trim().is_empty() {
-        return Err(Coded::new(LayoutCode::Unknown).with("what", "by").into());
+    if let Some(note) = &sh.svc.claimed_by {
+        note(&by);
     }
     let imp = AdminImpl {
         port,
         listeners: sh.listeners.clone(),
         store: sh.clone().into_stamp(),
-        by: Reference(by),
+        actor: (sh.svc.actor_of_connection)(),
+        person: sh.svc.person.clone(),
     };
     r.get().set_admin(capnp_rpc::new_client(imp));
     Ok(())
@@ -60,21 +63,20 @@ struct AdminImpl {
     port: Rc<dyn LayoutAdmin>,
     listeners: Rc<Listeners>,
     store: Rc<dyn StampSource>,
-    by: Reference,
+    actor: Reference,
+    person: Reference,
 }
 
 impl AdminImpl {
     fn who(&self) -> Who {
         Who {
-            actor: self.by.clone(),
-            author: self.by.clone(),
+            actor: self.actor.clone(),
+            author: self.person.clone(),
         }
     }
 
     async fn changed(&self) {
-        if let Ok(s) = self.store.stamp().await {
-            self.listeners.tell(s.0);
-        }
+        self.listeners.heard(self.store.stamp().await);
     }
 }
 
