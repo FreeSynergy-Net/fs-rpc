@@ -19,6 +19,9 @@ use crate::wire::{write_lock, write_snapshot};
 /// What the service is told about a `by` a client claims in `admin(by)`.
 pub type ClaimNote = Arc<dyn Fn(&str) + Send + Sync>;
 
+/// How the service names the OS user of a caller for the log.
+pub type OsUserOf = Arc<dyn Fn(&Caller) -> Option<String> + Send + Sync>;
+
 /// The service: which port it serves, and the clock, the OS user and the actor it knows.
 pub struct SettingsService<S: ?Sized, I: ?Sized> {
     /// The person's settings.
@@ -27,13 +30,13 @@ pub struct SettingsService<S: ?Sized, I: ?Sized> {
     pub instance: Option<Arc<I>>,
     /// The OS user of the caller for the log: the NAME the system has for `Caller` (display), the number (`Caller::id`) when it has none. One
     /// form. The caller comes from the system per connection ([`fs_rpc::Caller`]), never from a field of the client.
-    pub os_user: Arc<dyn Fn(&Caller) -> Option<String> + Send + Sync>,
+    pub os_user: OsUserOf,
     /// The actor of every admin call: derived from `Caller::id` ONLY (default `urn:fs:os-user:<id>`); never the `by` of the client, not the
     /// name (display), not the environment. An AI seat would be its own caller later.
     pub actor_of: Arc<dyn Fn(&Caller) -> fs_types::Reference + Send + Sync>,
     /// Called with the code (`caller-credentials`) of a connection the system could not name: nothing is served to it. Default: standard
     /// error.
-    pub refused_note: Option<Arc<dyn Fn(&str) + Send + Sync>>,
+    pub refused_note: Option<ClaimNote>,
     /// Called with the `by` a client claims in `admin(by)` (also an empty one). It is never the actor. The default writes the claim
     /// to standard error ([`crate::log_claim`]), so a forged claim is visible and never effective ([AKTEUR-AUS-VERBINDUNG]; `by`
     /// leaves the contract in 0.3); a host replaces it with its own log, `None` is silent (tests only).
