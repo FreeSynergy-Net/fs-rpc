@@ -10,6 +10,11 @@ impl blob::Server for NoBlob {}
 
 #[test]
 fn a_request_to_stop_ends_the_serving_cleanly_even_when_it_came_before() {
+    std::thread::spawn(|| {
+        std::thread::sleep(std::time::Duration::from_secs(30));
+        eprintln!("watchdog: the test hangs");
+        std::process::exit(101);
+    });
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("x.sock");
     // Before the server runs: remembered.

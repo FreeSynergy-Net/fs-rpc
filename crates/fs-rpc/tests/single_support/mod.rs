@@ -16,6 +16,10 @@ use fs_rpc::{
 
 use crate::handshake_support::*;
 
+mod started;
+#[allow(unused_imports)] // not every test file that shares this module checks the start time
+pub use started::assert_started_just_now;
+
 /// A child that is gone at the end of the test whatever happens.
 pub struct Guard(pub Child);
 impl Drop for Guard {

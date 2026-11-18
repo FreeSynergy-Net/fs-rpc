@@ -1,4 +1,5 @@
 //! A write under way survives SIGTERM. Alone in its file: the signal goes to this whole process.
+//! A hang is red, not endless: a watchdog thread ends the process with 101 after 30 s ([TEST-TIMEOUT]).
 #![cfg(unix)] // signals sent with `kill`
 
 use std::cell::Cell;
@@ -16,6 +17,11 @@ impl blob::Server for NoBlob {}
 
 #[test]
 fn sigterm_waits_for_the_write_under_way_and_holds_the_socket_meanwhile() {
+    std::thread::spawn(|| {
+        std::thread::sleep(std::time::Duration::from_secs(30));
+        eprintln!("watchdog: the test hangs");
+        std::process::exit(101);
+    });
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("x.sock");
     let (steps, second_start, late) = (

@@ -13,6 +13,11 @@ impl blob::Server for NoBlob {}
 /// TERM and INT in turn inside one test: the signal goes to the whole process, so two tests would hear each other's.
 #[test]
 fn a_stop_signal_while_the_program_opens_its_store_stops_it_cleanly() {
+    std::thread::spawn(|| {
+        std::thread::sleep(std::time::Duration::from_secs(30));
+        eprintln!("watchdog: the test hangs");
+        std::process::exit(101);
+    });
     for (name, signal) in [("x.sock", Signal::TERM), ("y.sock", Signal::INT)] {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join(name);
