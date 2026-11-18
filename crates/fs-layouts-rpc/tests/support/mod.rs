@@ -14,9 +14,12 @@ use fs_forms_layout::*;
 use fs_layouts_rpc::{ClientTimes, Hub, LayoutService, RpcLayouts, Watchers};
 use fs_rpc::{bind_socket, serve};
 use tempfile::TempDir;
+
+use lax::Lax;
 use tokio::sync::oneshot;
 
 mod build;
+mod lax;
 mod uuid_ids;
 mod uuid_store;
 #[allow(unused_imports)]
@@ -264,40 +267,5 @@ pub fn serve_actors_with(
         watchers,
         stop: Some(stop),
         thread: Some(thread),
-    }
-}
-
-/// An administrator port that checks nothing (a store without the on-behalf rule): what refuses a bot is then the service alone.
-struct Lax;
-
-impl LayoutAdmin for Lax {
-    fn lock<'a>(
-        &'a self,
-        _: &'a LayoutId,
-        _: Option<&'a ElemRef>,
-        _: &'a str,
-        _: &'a Who,
-    ) -> Pending<'a, bool> {
-        Box::pin(std::future::ready(Ok(true)))
-    }
-    fn unlock<'a>(
-        &'a self,
-        _: &'a LayoutId,
-        _: Option<&'a ElemRef>,
-        _: &'a str,
-        _: &'a Who,
-    ) -> Pending<'a, bool> {
-        Box::pin(std::future::ready(Ok(true)))
-    }
-    fn create_instance_overlay<'a>(
-        &'a self,
-        _: &'a LayoutId,
-        _: Option<&'a str>,
-        _: Option<&'a str>,
-        _: &'a Who,
-    ) -> Pending<'a, OverlayId> {
-        Box::pin(std::future::ready(Err(
-            Coded::new(LayoutCode::Unsupported).with("what", "test")
-        )))
     }
 }
