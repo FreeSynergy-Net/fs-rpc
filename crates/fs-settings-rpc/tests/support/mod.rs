@@ -150,5 +150,7 @@ pub fn instance_port(store: &MemoryStore) -> &dyn InstanceStore {
 
 mod more_ports;
 mod ports;
+#[allow(unused_imports)]
 pub use more_ports::*;
+#[allow(unused_imports)]
 pub use ports::*;
