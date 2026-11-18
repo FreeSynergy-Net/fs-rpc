@@ -43,6 +43,8 @@ pub mod param_keys {
     pub const START: &str = "start";
     /// `yes` when the person may say yes to ending the silent server (their own process, nothing unclear); left out otherwise.
     pub const CAN_ASK: &str = "can-ask";
+    /// What the person may answer when asked (`wait`, `replace`, `abort`, comma between), see `Stuck::choices`.
+    pub const CHOICES: &str = "choices";
     /// What a busy server does: a text key the program words (`importing`); from the heartbeat.
     pub const WHAT: &str = "what";
     /// How far a busy server is (a number that grows).

@@ -30,6 +30,33 @@ pub const WHY_TOKENS: [&str; 10] = [
     "unsupported",
 ];
 
+/// What the person may answer when `ensure_single` asks (the values of `choices`): keep waiting, end the old one and start a new
+/// one, give up. The words are the program's.
+pub const CHOICE_TOKENS: [&str; 3] = ["wait", "replace", "abort"];
+
+/// What the person may answer when asked: nothing (not asked, or the program words its own question), or all of
+/// [`CHOICE_TOKENS`]. One byte, so `Stuck` stays small enough to be an `Err`.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum Choices {
+    /// Not asked here.
+    #[default]
+    None,
+    /// `wait`, `replace`, `abort`.
+    WaitReplaceAbort,
+}
+
+impl Choices {
+    /// The tokens (the values of the parameter `choices`).
+    #[must_use]
+    pub fn tokens(self) -> &'static [&'static str] {
+        match self {
+            Self::None => &[],
+            Self::WaitReplaceAbort => &CHOICE_TOKENS,
+        }
+    }
+}
+
 /// A server that holds the socket, does not answer and was not ended (`server-unresponsive`).
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
@@ -44,6 +71,9 @@ pub struct Stuck {
     pub exe: Option<String>,
     /// Whether the person may say yes to ending it (their own process: the same user, nothing unclear).
     pub can_ask: bool,
+    /// What the person may answer when asked (`can_ask`): [`Choices::None`], or all of [`CHOICE_TOKENS`] (`ensure_single` sets all three for
+    /// `no-control` and `not-ending` when it may ask, see `SingleOptions`; fs-tasks leaves it empty and words its own question).
+    pub choices: Choices,
     /// Why it was not ended: one of [`WHY_TOKENS`] (`RpcError::from(&Stuck)` checks this in a debug build). Another
     /// program is only reported.
     pub why: &'static str,
@@ -61,6 +91,7 @@ impl Stuck {
             since: None,
             exe: None,
             can_ask: false,
+            choices: Choices::None,
             why,
             limit,
         }
@@ -88,6 +119,11 @@ impl Stuck {
             None => None,
         };
         let given = e.param(k::WHY)?.as_text()?;
+        let choices = match text(k::CHOICES)? {
+            None => Choices::None,
+            Some(list) if list == CHOICE_TOKENS.join(",") => Choices::WaitReplaceAbort,
+            Some(_) => return None,
+        };
         let why = *WHY_TOKENS.iter().find(|w| **w == given)?;
         Some(Self {
             pid,
@@ -95,6 +131,7 @@ impl Stuck {
             since: text(k::SINCE)?,
             exe: text(k::EXE)?,
             can_ask: text(k::CAN_ASK)?.as_deref() == Some("yes"),
+            choices,
             why,
             limit: Duration::from_millis(number(k::LIMIT_MS)??),
         })
@@ -103,7 +140,7 @@ impl Stuck {
 
 impl From<&Stuck> for RpcError {
     /// `server-unresponsive` with `pid`, `start`, `since`, `exe` (each left out if unknown), `can-ask` (`yes`, left out if not),
-    /// `why` and `limit-ms`.
+    /// `choices` (left out if none), `why` and `limit-ms`.
     fn from(s: &Stuck) -> Self {
         debug_assert!(
             WHY_TOKENS.contains(&s.why),
@@ -125,6 +162,9 @@ impl From<&Stuck> for RpcError {
         }
         if s.can_ask {
             e = e.with_text(k::CAN_ASK, "yes");
+        }
+        if s.choices != Choices::None {
+            e = e.with_text(k::CHOICES, s.choices.tokens().join(","));
         }
         let millis = u64::try_from(s.limit.as_millis()).unwrap_or(u64::MAX);
         e.with_text(k::WHY, s.why).with_number(k::LIMIT_MS, millis)

@@ -4,6 +4,11 @@
 //! Pattern: Null object — the same names as the Unix `single` module, so a program compiles everywhere. The types of the error are the
 //! Unix ones (`error.rs`, shared by path); only the limits are fewer.
 
+#[path = "single/ask.rs"]
+mod ask;
+#[cfg(test)]
+#[path = "single/ask_tests.rs"]
+mod ask_tests;
 #[path = "single/error.rs"]
 mod error;
 #[path = "single/stuck.rs"]
@@ -17,7 +22,8 @@ use std::time::Duration;
 
 use capnp::capability::FromClientHook;
 
-pub use error::{SingleError, Stuck, TakenOver, WHY_TOKENS};
+pub use ask::{AskPolicy, SingleOptions, has_surface, surface_from};
+pub use error::{CHOICE_TOKENS, Choices, SingleError, Stuck, TakenOver, WHY_TOKENS};
 
 use crate::{Connection, Expected, RestartTimes, ServerStarter, connect_matching_with};
 
@@ -61,7 +67,30 @@ pub async fn ensure_single<C: FromClientHook>(
     expected: &Expected,
     starter: &dyn ServerStarter,
     times: &SingleTimes,
+    exe: Option<&Path>,
+) -> Result<Single<C>, SingleError> {
+    ensure_single_with(
+        socket,
+        expected,
+        starter,
+        times,
+        exe,
+        &SingleOptions::default(),
+    )
+    .await
+}
+
+/// [`ensure_single`] with options; nothing is ended here, so `unsupported` is never a question and `options` change nothing.
+///
+/// # Errors
+/// [`SingleError`].
+pub async fn ensure_single_with<C: FromClientHook>(
+    socket: &Path,
+    expected: &Expected,
+    starter: &dyn ServerStarter,
+    times: &SingleTimes,
     _exe: Option<&Path>,
+    _options: &SingleOptions,
 ) -> Result<Single<C>, SingleError> {
     let work = connect_matching_with::<C>(socket, expected, starter, times.handshake);
     match tokio::time::timeout(times.overall, work).await {

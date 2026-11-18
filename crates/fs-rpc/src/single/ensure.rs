@@ -8,6 +8,7 @@ use std::time::Duration;
 
 use capnp::capability::FromClientHook;
 
+use super::ask::SingleOptions;
 #[cfg(not(target_os = "linux"))]
 use super::error::Stuck;
 use super::error::{SingleError, TakenOver};
@@ -69,6 +70,7 @@ mod other {
         times: &super::SingleTimes,
         _: Option<&std::path::Path>,
         _: &BusySeen,
+        _: &super::SingleOptions,
     ) -> Result<Freed, super::SingleError> {
         Err(super::SingleError::Unresponsive(super::Stuck::new(
             "unsupported",
@@ -85,6 +87,8 @@ use other::{BusySeen, Freed, free_socket};
 /// hangs (see the module text) and replaces it. `exe` is the program file that counts as "this program" (`None`: the file of the
 /// running process). Must run on a `LocalSet`.
 ///
+/// A server that was not ended comes back as a question to the person where there is a surface ([`SingleOptions::default`]).
+///
 /// # Errors
 /// [`SingleError`]; `RpcError::from(&error)` gives the code (`server-unresponsive`, `server-busy`, or the handshake's).
 pub async fn ensure_single<C: FromClientHook>(
@@ -94,8 +98,32 @@ pub async fn ensure_single<C: FromClientHook>(
     times: &SingleTimes,
     exe: Option<&Path>,
 ) -> Result<Single<C>, SingleError> {
+    ensure_single_with(
+        socket,
+        expected,
+        starter,
+        times,
+        exe,
+        &SingleOptions::default(),
+    )
+    .await
+}
+
+/// [`ensure_single`] with the options the program hands in: the setting `rpc.single.ask` and whether a person is there. With both
+/// yes, `no-control` and `not-ending` come back with `can_ask` true and the `choices` `wait`, `replace`, `abort`; else `can_ask` stays false.
+///
+/// # Errors
+/// As [`ensure_single`].
+pub async fn ensure_single_with<C: FromClientHook>(
+    socket: &Path,
+    expected: &Expected,
+    starter: &dyn ServerStarter,
+    times: &SingleTimes,
+    exe: Option<&Path>,
+    options: &SingleOptions,
+) -> Result<Single<C>, SingleError> {
     let busy: BusySeen = RefCell::new(None);
-    let run = run::<C>(socket, expected, starter, times, exe, &busy);
+    let run = run::<C>(socket, expected, starter, times, exe, &busy, options);
     match tokio::time::timeout(times.overall, run).await {
         Ok(done) => done,
         Err(_) => Err(match busy.take() {
@@ -116,6 +144,7 @@ async fn run<C: FromClientHook>(
     times: &SingleTimes,
     exe: Option<&Path>,
     busy: &BusySeen,
+    options: &SingleOptions,
 ) -> Result<Single<C>, SingleError> {
     let mut taken_over = None;
     let mut looked = false;
@@ -129,7 +158,7 @@ async fn run<C: FromClientHook>(
             }
             Err(e) if super::error::is_silent(&e) && !looked => {
                 looked = true;
-                if let Freed::Free(t) = free_socket(socket, times, exe, busy).await? {
+                if let Freed::Free(t) = free_socket(socket, times, exe, busy, options).await? {
                     taken_over = t;
                 }
             }

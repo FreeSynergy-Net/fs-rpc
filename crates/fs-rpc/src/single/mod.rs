@@ -12,7 +12,14 @@
 //! gets SIGTERM, and SIGKILL only if it still stands and no heartbeat answers. Another program is only reported (code
 //! `server-unresponsive`, parameters `pid`, `why`, `exe`): no yes-button, never ended. Linux only; elsewhere the failure says
 //! `unsupported`. The limits can be set ([`SingleTimes`]); nothing waits without one.
+//!
+//! Who decides when it was not ended (`no-control`, `not-ending`): by default the person, first ([`SingleOptions`]): the failure then has
+//! `can_ask` true and the `choices` `wait`, `replace`, `abort`. Without a surface (headless, CI, a service) or with the setting
+//! `rpc.single.ask` off, `can_ask` is false and the program decides. `ensure_single_with` takes the options; `ensure_single` the default.
 
+mod ask;
+#[cfg(test)]
+mod ask_tests;
 #[cfg(target_os = "linux")]
 mod ending;
 #[cfg(all(test, target_os = "linux"))]
@@ -36,7 +43,8 @@ mod watching;
 
 mod ensure;
 
-pub use ensure::{Single, SingleTimes, ensure_single};
-pub use error::{SingleError, Stuck, TakenOver, WHY_TOKENS};
+pub use ask::{AskPolicy, SingleOptions, has_surface, surface_from};
+pub use ensure::{Single, SingleTimes, ensure_single, ensure_single_with};
+pub use error::{CHOICE_TOKENS, Choices, SingleError, Stuck, TakenOver, WHY_TOKENS};
 #[cfg(target_os = "linux")]
 pub use rule::{Decision, Image, Own, Peer, Why, decide as decide_takeover};

@@ -8,11 +8,11 @@ use std::cell::RefCell;
 use std::path::Path;
 use std::time::Instant;
 
-use super::SingleTimes;
 use super::ending::{Real, Target, Waits, end_process};
 use super::error::{SingleError, Stuck, TakenOver};
 use super::procfs;
 use super::rule::{Decision, decide};
+use super::{SingleOptions, SingleTimes};
 use crate::handshake::{ask, is_absent};
 use crate::heartbeat::ask_beat_from;
 use crate::heartbeat::{Verdict, Watch};
@@ -61,6 +61,7 @@ pub(super) async fn free_socket(
     times: &SingleTimes,
     exe: Option<&Path>,
     busy: &BusySeen,
+    options: &SingleOptions,
 ) -> Result<Freed, SingleError> {
     let call = times.handshake.call;
     let (pid, uid) = match listener(socket, call).await {
@@ -128,7 +129,11 @@ pub(super) async fn free_socket(
         times.overall,
         channel,
     )
-    .await?;
+    .await
+    .map_err(|e| match e {
+        SingleError::Unresponsive(stuck) => SingleError::Unresponsive(options.mark(stuck)),
+        other => other,
+    })?;
     super::ending::remove_if_same(socket, socket_ino);
     Ok(Freed::Free(Some(taken)))
 }
