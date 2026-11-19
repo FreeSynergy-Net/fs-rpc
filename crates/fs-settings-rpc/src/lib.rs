@@ -17,8 +17,8 @@
 //! admits only the service's own user (fs-rpc H1), so every caller is that user. The program is the word of `open` (an API promise, no
 //! security boundary until fs-access); time of the log is the service's.
 //!
-//! PROVISIONAL (probe): the contract `settings` (draft 0.2) is a byte-equal copy of the files of the fs-interfaces branch
-//! `unreviewed/interfaces-settings` (08f0a93: `schema/settings.capnp`, `settings_capnp.rs`) until fs-interfaces 0.0.28 carries it.
+//! The contract `settings` (0.2) and its generated code are the owner's: `fs-interfaces` v0.0.28 (`fs_interfaces::settings_capnp`),
+//! re-exported here; this crate keeps no copy of the schema.
 //!
 //! Pattern: Adapter (both directions) + Proxy (client cache) + Facade (service).
 //! Written with Claude (Anthropic) as the coding assistant.
@@ -32,11 +32,7 @@ mod ensure;
 mod identity;
 mod problem;
 mod service;
-// The copy of B0's generated file names `crate::common_capnp`, as it does inside fs-interfaces.
-pub(crate) use fs_interfaces::common_capnp;
-#[rustfmt::skip]
-#[allow(clippy::all, clippy::pedantic, unused_parens, dead_code, missing_docs)]
-pub mod settings_capnp;
+pub use fs_interfaces::settings_capnp;
 
 mod wire;
 mod wire_log;
