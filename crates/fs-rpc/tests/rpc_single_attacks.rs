@@ -80,6 +80,19 @@ fn a_copy_named_deleted_is_another_program() {
     let _limit = watchdog(60);
     let exe = std::env::current_exe().unwrap();
     let copy = PathBuf::from(format!("{} (deleted)", exe.display()));
+    // The copy has the one path `<exe> (deleted)` (that is the point of the test), so two RUNS of this test binary (parallel gates, two
+    // cargo calls on one target) would copy over, run and delete each other's file. A lock file next to it lets one run at a time
+    // (the lock is released when `_exclusive` is dropped; the lock file itself stays, so no run can lock a file another run just deleted).
+    let _exclusive = {
+        let lock = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(false)
+            .open(format!("{}.copy-lock", exe.display()))
+            .unwrap();
+        lock.lock().unwrap();
+        lock
+    };
     std::fs::copy(&exe, &copy).unwrap();
     let dir = tempfile::tempdir().unwrap();
     let socket = dir.path().join("s.sock");
