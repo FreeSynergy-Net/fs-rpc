@@ -8,6 +8,7 @@ contract `settings`. This crate holds both ends of that wire:
 - `RpcInstanceAdmin` - the port `InstanceStore` for the administrator (`SettingsHub.admin(by)`).
 - `SettingsService<S, I>` - the contract over any port (the program fs-settings plugs in its database).
 - `ensure_service` - one service per person.
+- `ActorOfConnection` (`FailClosed` by default, `OsUserIsPerson`) - who is a person; the service leads every way a bot can reach through `fs_settings::Surface` (`human_only` keys do not exist for a bot). `RpcInstanceAdmin::instance_log_page` guards the log read against a livelock (`history-cut`, `history-stuck`).
 
 Caller identity: the connection (fs-rpc lets in the same OS user only); time and OS user of the instance log are the service's.
 Status: probe; the contract `settings` (0.2) comes from `fs-interfaces` v0.0.28 (`fs_interfaces::settings_capnp`, re-exported), no copy here. Written with Claude (Anthropic).
