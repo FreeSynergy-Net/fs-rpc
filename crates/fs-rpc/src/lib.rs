@@ -94,13 +94,13 @@ pub use serve::{
     Connection, ReadLimits, connect, connect_with, run_until_signal, run_until_signal_as,
     run_until_signal_callers, serve, serve_callers, serve_with,
 };
+pub use setting_keys::{MCP_ENABLED_KEY, SINGLE_ASK_KEY};
 pub use single::{
     AskPolicy, CHOICE_TOKENS, Choices, Single, SingleError, SingleOptions, SingleTimes, Stuck,
     TakenOver, WHY_TOKENS, ensure_single, ensure_single_with, has_surface, surface_from,
 };
 #[cfg(all(unix, target_os = "linux"))]
 pub use single::{Decision, Image, Own, Peer, Why, decide_takeover};
-pub use setting_keys::{MCP_ENABLED_KEY, SINGLE_ASK_KEY};
 pub use starter::{CommandStarter, ServerStarter};
 pub use stop::stop_self;
 pub use transport::{
