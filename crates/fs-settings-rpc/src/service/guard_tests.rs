@@ -1,4 +1,6 @@
 //! The guard on its own: the filter of problems and snapshots, the clear of a profile, the read limit of the log.
+//!
+//! Pattern: none, tests only (every server way run as a bot and as a person against the guard of `guard.rs`).
 
 use std::sync::Arc;
 
