@@ -45,6 +45,7 @@ mod pump;
 mod reconnect;
 mod saved;
 mod serve;
+mod setting_keys;
 #[cfg(unix)]
 mod single;
 #[cfg(not(unix))]
@@ -99,6 +100,7 @@ pub use single::{
 };
 #[cfg(all(unix, target_os = "linux"))]
 pub use single::{Decision, Image, Own, Peer, Why, decide_takeover};
+pub use setting_keys::{MCP_ENABLED_KEY, SINGLE_ASK_KEY};
 pub use starter::{CommandStarter, ServerStarter};
 pub use stop::stop_self;
 pub use transport::{

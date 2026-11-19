@@ -10,7 +10,7 @@ contract `settings`. This crate holds both ends of that wire:
 - `ensure_service` - one service per person.
 
 Caller identity: the connection (fs-rpc lets in the same OS user only); time and OS user of the instance log are the service's.
-Status: probe, contract draft 0.2 compiled in the crate until fs-interfaces 0.0.28 carries it. Written with Claude (Anthropic).
+Status: probe; the contract `settings` (0.2) comes from `fs-interfaces` v0.0.28 (`fs_interfaces::settings_capnp`, re-exported), no copy here. Written with Claude (Anthropic).
 
 ## Refused callers (stable code)
 
