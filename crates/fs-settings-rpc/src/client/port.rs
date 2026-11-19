@@ -260,7 +260,7 @@ impl SettingsStore for RpcSettingsStore {
 
 /// A profile code of the closure as the setting code `profile{cause, name}` (the same shape the stores answer).
 pub(crate) fn profile_problem(p: &Coded<ProfileCode>) -> Coded<SettingCode> {
-    use fs_settings::coded_stub::{ErrorCode, Param};
+    use fs_types::coded::{ErrorCode, Param};
     let mut c = Coded::new(SettingCode::Profile).with_text(keys::CAUSE, p.code().as_str());
     for (k, v) in p.params() {
         if let Param::Text(t) = v {

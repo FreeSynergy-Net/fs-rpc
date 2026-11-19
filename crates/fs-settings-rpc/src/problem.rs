@@ -7,7 +7,7 @@
 use crate::Coded;
 use fs_rpc::Problem;
 use fs_settings::SettingCode;
-use fs_settings::coded_stub::{ErrorCode, Param, message_key};
+use fs_types::coded::{ErrorCode, Param, message_key};
 
 /// The code of a connection whose caller the system could not name with a usable id: every call of such a connection answers it
 /// (a client sees `store-broken{cause=caller-unknown}`).

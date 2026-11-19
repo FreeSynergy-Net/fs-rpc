@@ -2,7 +2,7 @@
 
 use fs_rpc::Problem;
 use fs_settings::SettingCode;
-use fs_settings::coded_stub::{Coded, ErrorCode, Param};
+use fs_types::coded::{Coded, ErrorCode, Param};
 use fs_settings_rpc::{from_problem, to_problem};
 
 /// KB9: every code, with every kind of parameter (text, a text that looks like a number, numbers), survives the trip; a problem of

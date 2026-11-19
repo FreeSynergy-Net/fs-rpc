@@ -614,7 +614,7 @@ dependencies = [
 
 [[package]]
 name = "fs-rpc"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -633,8 +633,8 @@ dependencies = [
 
 [[package]]
 name = "fs-settings"
-version = "0.0.30"
-source = "git+https://github.com/FreeSynergy/fs-components?tag=v0.0.30#66b8945ad1a4404ad7e84dd9cca40fda1d47d199"
+version = "0.0.32"
+source = "git+https://github.com/FreeSynergy/fs-components?tag=v0.0.32#62976de8c28c93721a007b82a5f730abff669e86"
 dependencies = [
  "async-trait",
  "fs-conformance",
@@ -643,7 +643,7 @@ dependencies = [
 
 [[package]]
 name = "fs-settings-rpc"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -654,21 +654,6 @@ dependencies = [
  "fs-types",
  "futures",
  "rustix 1.1.6",
- "tempfile",
- "tokio",
-]
-
-[[package]]
-name = "fs-starter"
-version = "0.0.3"
-dependencies = [
- "async-trait",
- "capnp",
- "fs-conformance",
- "fs-rpc",
- "fs-settings",
- "fs-types",
- "roxmltree",
  "tempfile",
  "tokio",
 ]
@@ -1755,12 +1740,6 @@ dependencies = [
  "bytemuck",
  "byteorder",
 ]
-
-[[package]]
-name = "roxmltree"
-version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c20b6793b5c2fa6553b250154b78d6d0db37e72700ae35fad9387a46f487c97"
 
 [[package]]
 name = "rustc-hash"

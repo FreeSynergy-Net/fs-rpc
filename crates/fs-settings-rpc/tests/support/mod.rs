@@ -42,13 +42,13 @@ pub fn program(name: &str) -> fs_settings::ProgramName {
 }
 
 pub fn code(e: &Coded<SettingCode>) -> &'static str {
-    use fs_settings::coded_stub::ErrorCode;
+    use fs_types::coded::ErrorCode;
     e.code().as_str()
 }
 
 pub fn text<'a>(e: &'a Coded<SettingCode>, k: &str) -> Option<&'a str> {
     e.params().find_map(|(key, v)| match v {
-        fs_settings::coded_stub::Param::Text(t) if key == k => Some(t.as_str()),
+        fs_types::coded::Param::Text(t) if key == k => Some(t.as_str()),
         _ => None,
     })
 }
