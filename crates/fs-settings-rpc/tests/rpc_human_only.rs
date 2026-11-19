@@ -13,8 +13,8 @@ use fs_settings::{
     Scope, SettingKey, SettingsStore, Value,
 };
 use fs_settings_rpc::{
-    ActorOfConnection, FailClosed, LIVELOCK_MAX, RpcInstanceAdmin, RpcSettingsStore,
-    SettingsService,
+    ActorOfConnection, FailClosed, LIVELOCK_MAX, OsUserIsPerson, RpcInstanceAdmin,
+    RpcSettingsStore, SettingsService,
 };
 use support::{Faked, Server, code, dir, key, nobody, serve_on, serve_per, text, times};
 use tempfile::TempDir;
@@ -235,6 +235,15 @@ fn the_default_is_fail_closed_and_a_missing_catalog_shows_a_bot_nothing() {
             .is_empty()
     );
     assert_eq!(FailClosed.actor(&Caller::new("1000", None)), Actor::Bot);
+    let own = OsUserIsPerson;
+    assert_eq!(own.actor(&Caller::new("1000", None)), Actor::Person);
+    for unusable in ["", "a/b", "x y"] {
+        assert_eq!(
+            own.actor(&Caller::new(unusable, None)),
+            Actor::Bot,
+            "{unusable:?}"
+        );
+    }
 }
 
 /// [AKTEUR-AUS-VERBINDUNG]: the actor comes from the caller of the connection; a `by` that claims to be the person changes nothing.
