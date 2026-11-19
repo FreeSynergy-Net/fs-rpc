@@ -2,7 +2,7 @@
 
 Version = tag.
 
-## 0.0.3 (2026-11-19, tag follows later)
+## 0.0.3 (2026-11-19)
 
 - Lift (pins, no code of `fs-rpc` changes): `fs-types` v0.0.4 (was v0.0.1), `fs-interfaces` v0.0.28 (was v0.0.27), `fs-objects` v0.0.8 (was v0.0.6), `fs-conformance` (the optional dependency of `fs-starter`, lives in the repo fs-types) v0.0.4 (was a `rev` pin on fs-types main 339aa24). One source per library in `Cargo.lock`. CI callers (`check.yml`, `windows.yml`) pin fs-release v0.0.11 (were v0.0.10).
 - REMOVED: the crate `fs-layouts-rpc` (it never had a tag; K5, review K5/K6 change b1). It moves to the program repo fs-forms, which pins fs-rpc by its tag; the sources stay in the git history of this repo (last commit touching it: 831aa67377f9; the handover list is `UEBERGABE-fs-layouts-rpc-2026-11-19.md` of the strategy scratch). The loop fs-rpc -> fs-forms (git `rev` pin of `fs-forms-layout`, ef6c818) -> fs-rpc is gone: `Cargo.lock` has no `rev` source any more, so fs-rpc can carry a tag. Before the removal the crate had re-exported `layouts_capnp` and `bind_capnp` from `fs-interfaces` v0.0.28 (final schema ids `0x92216eab3844e15f` and `0xf8c4a79309b02c91`; the provisional copies and their provisional ids were already gone: a client and a service of the old copy did not talk to the new).
