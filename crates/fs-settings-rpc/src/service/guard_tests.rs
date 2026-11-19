@@ -113,7 +113,7 @@ fn a_clear_for_a_bot_removes_what_it_sees_and_keeps_the_hidden_key() {
             .values
             .into_keys()
             .collect();
-        assert_eq!(left, [hidden.clone()], "{place:?}");
+        assert_eq!(left, std::slice::from_ref(&hidden), "{place:?}");
     }
 }
 
