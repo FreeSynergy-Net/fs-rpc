@@ -7,7 +7,7 @@ use std::rc::Rc;
 
 use fs_interfaces::common_capnp::subscription;
 use fs_settings::{
-    InstanceStore, ProfileCode, ProfileSet, Scope, SettingCode, SettingKey, SettingsStore,
+    Actor, InstanceStore, ProfileCode, ProfileSet, Scope, SettingCode, SettingKey, SettingsStore,
     Snapshot, keys,
 };
 
@@ -50,11 +50,17 @@ fn not_own() -> Coded<SettingCode> {
 pub(crate) struct StoreImpl<S: ?Sized, I: ?Sized> {
     shared: Rc<Shared<S, I>>,
     access: Access,
+    /// Who is on the connection: every answer and every change is filtered for it by the guard.
+    actor: Actor,
 }
 
 impl<S: ?Sized, I: ?Sized> StoreImpl<S, I> {
-    pub(crate) fn new(shared: Rc<Shared<S, I>>, access: Access) -> Self {
-        Self { shared, access }
+    pub(crate) fn new(shared: Rc<Shared<S, I>>, access: Access, actor: Actor) -> Self {
+        Self {
+            shared,
+            access,
+            actor,
+        }
     }
 }
 
@@ -87,6 +93,7 @@ where
         let mut out = results.get().init_health();
         match health {
             fs_settings::Health::Defaults(list) => {
+                let list = self.shared.guard.problems(self.actor, list);
                 write_problems(
                     out.init_defaults(u32::try_from(list.len()).unwrap_or(0)),
                     &list,
@@ -114,6 +121,7 @@ where
             let port = self.shared.svc.person.clone();
             blocking(move || port.profile(&scope, place, profile)).await?
         };
+        let snapshot = self.shared.guard.snapshot(self.actor, snapshot);
         crate::wire::write_snapshot(results.get().init_snapshot(), &snapshot);
         Ok(())
     }
@@ -128,6 +136,10 @@ where
         self.access.refuse(&scope).map_err(|c| err(&c))?;
         let (place, profile) = (place_of_wire(p.get_place()?), p.get_profile());
         let key = SettingKey::parse(p.get_key()?.to_str()?).map_err(|c| err(&c))?;
+        self.shared
+            .guard
+            .refuse(self.actor, &key)
+            .map_err(|c| err(&c))?;
         let raw = if p.get_remove() {
             None
         } else {
@@ -155,8 +167,9 @@ where
         self.access.refuse(&scope).map_err(|c| err(&c))?;
         let profile = p.get_profile();
         let port = self.shared.svc.person.clone();
+        let (guard, actor) = (self.shared.guard.clone(), self.actor);
         let stamp = blocking(move || {
-            port.clear(&scope, profile)?;
+            guard.clear(actor, port.as_ref(), &scope, profile)?;
             Ok::<u64, Coded<SettingCode>>(port.stamp().0)
         })
         .await?
@@ -173,6 +186,7 @@ where
     ) -> Result<(), capnp::Error> {
         let port = self.shared.svc.person.clone();
         let (set, problems) = blocking(move || port.index()).await?;
+        let problems = self.shared.guard.problems(self.actor, problems);
         let mut out = results.get();
         write_index(out.reborrow().init_index(), &set);
         write_problems(

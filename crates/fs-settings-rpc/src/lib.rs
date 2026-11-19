@@ -26,6 +26,7 @@
 #![deny(missing_docs)]
 #![warn(clippy::pedantic)]
 
+mod actor;
 mod caller;
 mod client;
 mod ensure;
@@ -39,11 +40,14 @@ mod wire_log;
 
 pub(crate) use fs_settings::{Coded, IndexFn};
 
+pub use actor::{Actor, ActorOfConnection, FailClosed, OsUserIsPerson};
 pub use caller::current_os_user;
-pub use client::{ClientTimes, RpcInstanceAdmin, RpcSettingsStore, Watching, unreachable_at};
+pub use client::{
+    ClientTimes, LIVELOCK_MAX, RpcInstanceAdmin, RpcSettingsStore, Watching, unreachable_at,
+};
 pub use ensure::{SERVICE_PROGRAM, ensure_service, ensure_service_with, find_service_program};
 pub use identity::{
     actor_of, claim_line, id_usable, log_claim, log_refused, os_user_of, refused_line,
 };
-pub use problem::{CALLER_UNKNOWN, from_problem, to_problem};
+pub use problem::{CALLER_UNKNOWN, HISTORY_CUT, HISTORY_STUCK, from_problem, to_problem};
 pub use service::{ClaimNote, OsUserOf, SettingsCallers, SettingsService};

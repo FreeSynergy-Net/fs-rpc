@@ -7,11 +7,13 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use fs_rpc::{Caller, CallerError, PerConnection};
-use fs_settings::{InstanceStore, ProgramName, SettingsStore};
+use fs_settings::{Actor, Catalog, InstanceStore, ProgramName, SettingsStore};
 use fs_types::Utc;
 
+use super::guard::Guard;
 use super::listeners::Listeners;
 use super::{admin, store};
+use crate::actor::{ActorOfConnection, FailClosed, OsUserIsPerson};
 use crate::problem::to_problem;
 use crate::settings_capnp::settings_hub;
 use crate::wire::{write_lock, write_snapshot};
@@ -43,13 +45,31 @@ pub struct SettingsService<S: ?Sized, I: ?Sized> {
     pub claimed_by: Option<ClaimNote>,
     /// The clock of the service (UTC ms); tests inject one.
     pub now: Arc<dyn Fn() -> Utc + Send + Sync>,
+    /// Who acts on a connection, from the connection alone ([`ActorOfConnection`]). Default: [`FailClosed`], every connection is a bot, so a key
+    /// declared `human_only` is invisible and untouchable on it (every way goes through `fs_settings::Surface`, in `service/guard.rs`).
+    pub actors: Arc<dyn ActorOfConnection>,
+    /// What the keys are (their `human_only`): the module's `Surface` decides with it. Without it a bot sees no key at all.
+    pub catalog: Catalog,
 }
 
 impl<S: ?Sized, I: ?Sized> SettingsService<S, I> {
-    /// A service over `person` (and `instance` when it is the instance service), with the system clock and the own OS user.
+    /// [`Self::new`] for a host that says on purpose: every connection of the service's own OS user is a person ([`OsUserIsPerson`]; the
+    /// transport admits that user only, ADR 0054 open point 1).
+    #[must_use]
+    pub fn new_os_user_is_person(person: Arc<S>, instance: Option<Arc<I>>) -> Self {
+        Self {
+            actors: Arc::new(OsUserIsPerson),
+            ..Self::new(person, instance)
+        }
+    }
+
+    /// A service over `person` (and `instance` when it is the instance service), with the system clock and the own OS user. No connection is a
+    /// person ([`FailClosed`]): set `actors` (e.g. [`OsUserIsPerson`]) and `catalog`.
     #[must_use]
     pub fn new(person: Arc<S>, instance: Option<Arc<I>>) -> Self {
         Self {
+            actors: Arc::new(FailClosed),
+            catalog: Catalog::new(),
             person,
             instance,
             os_user: Arc::new(crate::identity::os_user_of),
@@ -71,6 +91,7 @@ fn system_now() -> Utc {
 /// What every capability of one service shares.
 pub(crate) struct Shared<S: ?Sized, I: ?Sized> {
     pub(crate) svc: SettingsService<S, I>,
+    pub(crate) guard: Arc<Guard>,
     pub(crate) listeners: Listeners,
     next: Cell<u64>,
 }
@@ -86,6 +107,7 @@ where
     pub fn callers(self) -> SettingsCallers<S, I> {
         SettingsCallers {
             shared: Rc::new(Shared {
+                guard: Arc::new(Guard::new(self.catalog.clone())),
                 svc: self,
                 listeners: Listeners::default(),
                 next: Cell::new(1),
@@ -115,6 +137,7 @@ where
                 .client;
         }
         capnp_rpc::new_client::<settings_hub::Client, _>(Hub {
+            actor: self.shared.svc.actors.actor(caller),
             shared: self.shared.clone(),
             caller: caller.clone(),
         })
@@ -132,6 +155,8 @@ struct Hub<S: ?Sized, I: ?Sized> {
     shared: Rc<Shared<S, I>>,
     /// The caller of THIS connection (the hub was built for it).
     caller: Caller,
+    /// Who is on THIS connection, as the port `actors` said when the hub was built (never changes).
+    actor: Actor,
 }
 
 /// A `Coded` as the RPC error a client reads back.
@@ -160,7 +185,8 @@ where
         mut results: settings_hub::OpenResults,
     ) -> Result<(), capnp::Error> {
         let name = ProgramName::new(params.get()?.get_program()?.to_str()?).map_err(|c| err(&c))?;
-        let store = store::StoreImpl::new(self.shared.clone(), store::Access::Own(name));
+        let access = store::Access::Own(name);
+        let store = store::StoreImpl::new(self.shared.clone(), access, self.actor);
         results.get().set_store(capnp_rpc::new_client(store));
         Ok(())
     }
@@ -170,7 +196,7 @@ where
         _: settings_hub::ManageParams,
         mut results: settings_hub::ManageResults,
     ) -> Result<(), capnp::Error> {
-        let store = store::StoreImpl::new(self.shared.clone(), store::Access::All);
+        let store = store::StoreImpl::new(self.shared.clone(), store::Access::All, self.actor);
         results.get().set_store(capnp_rpc::new_client(store));
         Ok(())
     }
@@ -199,6 +225,7 @@ where
                 self.shared.clone(),
                 instance,
                 (actor, os_user),
+                self.actor,
             )));
         Ok(())
     }
@@ -215,6 +242,7 @@ where
             return Ok(());
         };
         let held = blocking(move || instance.instance()).await?;
+        let held = self.shared.guard.instance(self.actor, held);
         let mut out = results.get();
         write_snapshot(out.reborrow().init_values(), &held.values);
         let mut locks = out.init_locks(u32::try_from(held.locks.len()).unwrap_or(0));

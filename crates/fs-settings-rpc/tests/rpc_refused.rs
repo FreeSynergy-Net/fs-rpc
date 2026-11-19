@@ -44,7 +44,7 @@ fn an_unusable_id_is_refused_with_a_code_and_a_log_line() {
     let heard = Arc::new(Mutex::new(Vec::<String>::new()));
     let noted = heard.clone();
     let server = serve_per(&tmp.path().join("i.sock"), move || {
-        let mut svc = SettingsService::new(shared.clone(), Some(shared));
+        let mut svc = SettingsService::new_os_user_is_person(shared.clone(), Some(shared));
         svc.refused_note = Some(Arc::new(move |code: &str| {
             noted.lock().unwrap().push(code.to_owned());
         }));
@@ -86,7 +86,7 @@ fn an_unusable_id_is_refused_with_a_code_and_a_log_line() {
     let line = fs_settings_rpc::refused_line("caller-unknown");
     assert!(line.contains("caller-unknown"), "{line}");
     assert!(
-        SettingsService::new(spy.clone(), Some(spy))
+        SettingsService::new_os_user_is_person(spy.clone(), Some(spy))
             .refused_note
             .is_some(),
         "a service as it comes from `new` logs a refusal by default"
@@ -102,7 +102,7 @@ fn every_method_of_a_refused_hub_answers_the_code() {
     let spy = Spy::new();
     let shared = spy.clone();
     let server = serve_per(&tmp.path().join("i.sock"), move || Faked {
-        inner: SettingsService::new(shared.clone(), Some(shared)).callers(),
+        inner: SettingsService::new_os_user_is_person(shared.clone(), Some(shared)).callers(),
         callers: vec![Caller::new("", Some("alice".to_owned()))],
         seen: 0,
     });

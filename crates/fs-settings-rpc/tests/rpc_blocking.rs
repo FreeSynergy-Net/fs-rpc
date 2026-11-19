@@ -20,7 +20,7 @@ fn kb21_a_blocking_port_does_not_stop_other_callers() {
             inner: MemoryStore::new(),
             delay: DELAY,
         });
-        SettingsService::new(port, None::<Arc<MemoryStore>>)
+        SettingsService::new_os_user_is_person(port, None::<Arc<MemoryStore>>)
     });
     let slow = RpcSettingsStore::open(&server.socket, &program("tasks"), times());
     let quick = RpcSettingsStore::open(&server.socket, &program("tasks"), times());

@@ -5,8 +5,12 @@
 //! log come from the service (`now`, `os_user`), never from the caller. Must run on a `LocalSet` (capnp-rpc), as fs-rpc `serve`.
 
 mod admin;
+mod guard;
+#[cfg(test)]
+mod guard_tests;
 mod hub;
 mod listeners;
+mod port;
 mod refused;
 mod store;
 

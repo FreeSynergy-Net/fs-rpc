@@ -26,7 +26,7 @@ impl StoreFixture for RpcFixture {
         let store = MemoryStore::new();
         self.servers.push(serve_on(&socket, move || {
             let person: Arc<dyn SettingsStore> = Arc::new(store.clone());
-            let mut svc = SettingsService::new(person, Some(Arc::new(store)));
+            let mut svc = SettingsService::new_os_user_is_person(person, Some(Arc::new(store)));
             // The suite expects the actor it passes in `Stampd` (`https://example.org/people/suite`); over RPC the actor is the
             // connection's, so the fixture's connection IS that actor.
             svc.actor_of = Arc::new(|_| support::reference("https://example.org/people/suite"));

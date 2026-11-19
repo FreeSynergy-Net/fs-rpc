@@ -9,11 +9,13 @@ mod cache;
 mod ctx;
 mod port;
 mod store;
+mod stuck;
 mod watch;
 mod worker;
 
 pub use admin::RpcInstanceAdmin;
 pub use ctx::unreachable_at;
 pub use store::RpcSettingsStore;
+pub use stuck::LIVELOCK_MAX;
 pub use watch::Watching;
 pub use worker::ClientTimes;

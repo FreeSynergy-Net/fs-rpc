@@ -38,7 +38,7 @@ fn kb16_admin_only_on_instance_service_time_and_user_are_the_services() {
     let spy = Spy::new();
     let shared = spy.clone();
     let server = serve_on(&tmp.path().join("i.sock"), move || {
-        let mut svc = SettingsService::new(shared.clone(), Some(shared));
+        let mut svc = SettingsService::new_os_user_is_person(shared.clone(), Some(shared));
         svc.now = Arc::new(|| Utc::from_millis(THEN));
         svc.os_user = Arc::new(|_| Some("service-says".to_owned()));
         svc.actor_of = Arc::new(|_| support::reference(ACTOR));

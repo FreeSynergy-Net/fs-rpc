@@ -27,7 +27,7 @@ fn forged_and_empty_by_do_not_change_the_actor() {
     let claims = Arc::new(Mutex::new(Vec::<String>::new()));
     let noted = claims.clone();
     let server = serve_per(&tmp.path().join("i.sock"), move || {
-        let mut svc = SettingsService::new(shared.clone(), Some(shared));
+        let mut svc = SettingsService::new_os_user_is_person(shared.clone(), Some(shared));
         svc.claimed_by = Some(Arc::new(move |by: &str| {
             noted.lock().unwrap().push(by.to_owned());
         }));
@@ -70,7 +70,7 @@ fn each_connection_gets_its_own_caller() {
     let spy = Spy::new();
     let shared = spy.clone();
     let server = serve_per(&tmp.path().join("i.sock"), move || Faked {
-        inner: SettingsService::new(shared.clone(), Some(shared)).callers(),
+        inner: SettingsService::new_os_user_is_person(shared.clone(), Some(shared)).callers(),
         callers: vec![
             Caller::new("1001", Some("alice".to_owned())),
             Caller::new("1002", None),
@@ -127,7 +127,7 @@ fn a_connection_without_a_caller_is_reported() {
     let spy = Spy::new();
     let heard = Arc::new(Mutex::new(Vec::<String>::new()));
     let noted = heard.clone();
-    let mut svc = SettingsService::new(spy.clone(), Some(spy));
+    let mut svc = SettingsService::new_os_user_is_person(spy.clone(), Some(spy));
     svc.refused_note = Some(Arc::new(move |code: &str| {
         noted.lock().unwrap().push(code.to_owned());
     }));
@@ -158,7 +158,7 @@ fn the_real_transport_names_the_user_and_the_default_hooks_are_there() {
     let spy = Spy::new();
     let shared = spy.clone();
     let server = serve_on(&tmp.path().join("i.sock"), move || {
-        SettingsService::new(shared.clone(), Some(shared))
+        SettingsService::new_os_user_is_person(shared.clone(), Some(shared))
     });
     write(&RpcInstanceAdmin::open(&server.socket, FORGED, times()), 1);
     let seen = spy.seen.lock().unwrap().clone();
@@ -168,7 +168,7 @@ fn the_real_transport_names_the_user_and_the_default_hooks_are_there() {
         Some(name.unwrap_or(uid).as_str()),
         "one form: the name, the number when there is none"
     );
-    let svc = SettingsService::new(spy.clone(), Some(spy));
+    let svc = SettingsService::new_os_user_is_person(spy.clone(), Some(spy));
     assert!(
         svc.claimed_by.is_some() && svc.refused_note.is_some(),
         "a service as it comes from `new` is not silent"
@@ -191,7 +191,7 @@ fn a_claim_at_the_persons_service_is_reported_and_obeyed_by_nobody() {
     let claims = Arc::new(Mutex::new(Vec::<String>::new()));
     let noted = claims.clone();
     let server = serve_per(&tmp.path().join("p.sock"), move || {
-        let mut svc = SettingsService::new(shared, None::<Arc<Spy>>);
+        let mut svc = SettingsService::new_os_user_is_person(shared, None::<Arc<Spy>>);
         svc.claimed_by = Some(Arc::new(move |by: &str| {
             noted.lock().unwrap().push(by.to_owned());
         }));

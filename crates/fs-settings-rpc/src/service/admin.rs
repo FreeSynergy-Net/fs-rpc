@@ -8,7 +8,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use fs_settings::{
-    InstanceStore, LockChange, SettingCode, SettingKey, SettingsStore, Stampd, keys,
+    Actor, InstanceStore, LockChange, SettingCode, SettingKey, SettingsStore, Stampd, keys,
 };
 use fs_types::Reference;
 
@@ -24,6 +24,8 @@ pub(crate) struct AdminImpl<S: ?Sized, I: ?Sized> {
     instance: Arc<I>,
     actor: Reference,
     os_user: Option<String>,
+    /// Person or bot of the connection: every key it names goes through the guard.
+    kind: Actor,
 }
 
 impl<S: ?Sized, I: ?Sized> AdminImpl<S, I> {
@@ -31,13 +33,25 @@ impl<S: ?Sized, I: ?Sized> AdminImpl<S, I> {
         shared: Rc<Shared<S, I>>,
         instance: Arc<I>,
         who: (Reference, Option<String>),
+        kind: Actor,
     ) -> Self {
         Self {
             shared,
             instance,
             actor: who.0,
             os_user: who.1,
+            kind,
         }
+    }
+
+    /// The key a call names, refused like an undeclared one when the connection cannot see it.
+    fn key(&self, text: &str) -> Result<SettingKey, capnp::Error> {
+        let key = SettingKey::parse(text).map_err(|c| err(&c))?;
+        self.shared
+            .guard
+            .refuse(self.kind, &key)
+            .map_err(|c| err(&c))?;
+        Ok(key)
     }
 
     /// Who and when: the actor of the connection, the service's clock and the OS user the service saw.
@@ -89,7 +103,7 @@ where
         mut results: admin::SetResults,
     ) -> Result<(), capnp::Error> {
         let p = params.get()?;
-        let key = SettingKey::parse(p.get_key()?.to_str()?).map_err(|c| err(&c))?;
+        let key = self.key(p.get_key()?.to_str()?)?;
         let raw = read_raw(p.get_value()?).map_err(|c| err(&c))?;
         let changed = self
             .write(move |port, who| port.write_instance(&key, Some(&raw), who))
@@ -103,7 +117,7 @@ where
         params: admin::ClearParams,
         mut results: admin::ClearResults,
     ) -> Result<(), capnp::Error> {
-        let key = SettingKey::parse(params.get()?.get_key()?.to_str()?).map_err(|c| err(&c))?;
+        let key = self.key(params.get()?.get_key()?.to_str()?)?;
         let changed = self
             .write(move |port, who| port.write_instance(&key, None, who))
             .await?;
@@ -117,7 +131,7 @@ where
         mut results: admin::LockResults,
     ) -> Result<(), capnp::Error> {
         let p = params.get()?;
-        let key = SettingKey::parse(p.get_key()?.to_str()?).map_err(|c| err(&c))?;
+        let key = self.key(p.get_key()?.to_str()?)?;
         let value = read_raw(p.get_value()?).map_err(|c| err(&c))?;
         let reason = p.get_reason()?.to_str()?.to_owned();
         if reason.trim().is_empty() {
@@ -137,7 +151,7 @@ where
         mut results: admin::UnlockResults,
     ) -> Result<(), capnp::Error> {
         let p = params.get()?;
-        let key = SettingKey::parse(p.get_key()?.to_str()?).map_err(|c| err(&c))?;
+        let key = self.key(p.get_key()?.to_str()?)?;
         let reason = p.get_reason()?.to_str()?.to_owned();
         if reason.trim().is_empty() {
             return Err(reason_missing(&key));
@@ -158,8 +172,14 @@ where
         let p = params.get()?;
         let after = read_id(p.get_after()?);
         let size = p.get_size().clamp(1, MAX_LOG);
-        let port = self.instance.clone();
-        let entries = blocking(move || port.instance_log(after, size)).await?;
+        let (port, guard, kind) = (self.instance.clone(), self.shared.guard.clone(), self.kind);
+        let page = blocking(move || guard.log(kind, &port, after, size)).await?;
+        // The wire has no `cut`: a page that stopped at the read limit with nothing to show is an error, never an empty page that
+        // looks like the end of the log (the client turns repeats of it into `history-stuck`).
+        if page.lines.is_empty() && page.cut {
+            return Err(crate::problem::history_cut());
+        }
+        let entries = page.lines;
         let mut list = results
             .get()
             .init_entries(u32::try_from(entries.len()).unwrap_or(0));

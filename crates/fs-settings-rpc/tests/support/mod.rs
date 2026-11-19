@@ -135,7 +135,7 @@ pub fn person(socket: &Path, store: &MemoryStore, with_instance: bool) -> Server
     let s = store.clone();
     serve_on(socket, move || {
         let port: Arc<dyn SettingsStore> = Arc::new(s.clone());
-        SettingsService::new(port, with_instance.then(|| Arc::new(s)))
+        SettingsService::new_os_user_is_person(port, with_instance.then(|| Arc::new(s)))
     })
 }
 

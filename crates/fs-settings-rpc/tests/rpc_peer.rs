@@ -32,7 +32,7 @@ fn kb20_os_user_is_the_peer_not_the_environment() {
     let spy = Spy::new();
     let shared = spy.clone();
     let server = serve_on(&d.path().join("i.sock"), move || {
-        let mut svc = SettingsService::new(shared.clone(), Some(shared));
+        let mut svc = SettingsService::new_os_user_is_person(shared.clone(), Some(shared));
         svc.now = Arc::new(|| Utc::from_millis(1));
         svc
     });

@@ -100,7 +100,7 @@ fn flaky(fail_first: usize, socket: &std::path::Path) -> (support::Server, Arc<F
     let shared = port.clone();
     let server = serve_on(socket, move || {
         let p: Arc<dyn SettingsStore> = shared;
-        SettingsService::new(p, None::<Arc<MemoryStore>>)
+        SettingsService::new_os_user_is_person(p, None::<Arc<MemoryStore>>)
     });
     (server, port)
 }

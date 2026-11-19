@@ -8,18 +8,22 @@ use crate::IndexFn;
 use std::path::Path;
 
 use fs_settings::{
-    Health, Instance, InstanceLogEntry, InstanceStore, LockChange, Place, ProfileSet, Raw, Scope,
-    SettingCode, SettingKey, SettingsStore, Snapshot, Stamp, Stampd, keys,
+    Health, HistoryPage, Instance, InstanceLogEntry, InstanceStore, LockChange, Place, ProfileSet,
+    Raw, Scope, SettingCode, SettingKey, SettingsStore, Snapshot, Stamp, Stampd, keys,
 };
 use fs_types::ObjectId;
+use fs_types::coded::Param;
 
 use super::RpcSettingsStore;
+use super::stuck::Stuck;
 use super::worker::{CallError, ClientTimes, Role};
+use crate::problem::HISTORY_CUT;
 use crate::wire::{read_log_entry, write_id, write_raw};
 
 /// The admin client. `by` is only a CLAIM (the contract 0.2 still carries it); the service takes the actor from the connection.
 pub struct RpcInstanceAdmin {
     inner: RpcSettingsStore,
+    stuck: Stuck,
 }
 
 impl RpcInstanceAdmin {
@@ -28,6 +32,7 @@ impl RpcInstanceAdmin {
     pub fn open(socket: &Path, by: &str, times: ClientTimes) -> Self {
         Self {
             inner: RpcSettingsStore::with_role(socket, Role::Admin(by.to_owned()), times),
+            stuck: Stuck::default(),
         }
     }
 
@@ -130,24 +135,65 @@ impl InstanceStore for RpcInstanceAdmin {
     }
 
     fn instance_log(&self, after: Option<ObjectId>, size: u32) -> Vec<InstanceLogEntry> {
-        self.inner
-            .worker
-            .call(move |l| {
-                Box::pin(async move {
-                    let admin = l
-                        .admin
-                        .ok_or_else(|| capnp::Error::failed("no admin".into()))?;
-                    let mut req = admin.log_request();
-                    write_id(req.get().init_after(), after);
-                    req.get().set_size(size);
-                    let resp = req.send().promise.await?;
-                    let mut out = Vec::new();
-                    for e in resp.get()?.get_entries()? {
-                        out.push(read_log_entry(e)?);
-                    }
-                    Ok::<Vec<InstanceLogEntry>, CallError>(out)
-                })
-            })
-            .unwrap_or_default()
+        self.fetch_log(after, size).unwrap_or_default()
     }
+}
+
+impl RpcInstanceAdmin {
+    /// One page of the log with what the port cannot say: whether the read was cut (`HistoryPage::cut`: the service stopped at its read limit
+    /// with nothing visible, the log MAY go on) and an error. A reader that pages with the same pointer after a cut gets `history-cut`
+    /// pages ([`crate::LIVELOCK_MAX`] - 1 times) and then `store-broken{cause=history-stuck}`: the read is stuck, ask no more.
+    ///
+    /// # Errors
+    /// The code of a failed call; `store-broken{cause=history-stuck}` as above.
+    pub fn instance_log_page(
+        &self,
+        after: Option<ObjectId>,
+        size: u32,
+    ) -> Result<HistoryPage, Coded<SettingCode>> {
+        match self.fetch_log(after, size) {
+            Ok(lines) => {
+                self.stuck.moved();
+                Ok(HistoryPage { lines, cut: false })
+            }
+            Err(c) if is_cut(&c) => {
+                self.stuck.cut(after)?;
+                Ok(HistoryPage {
+                    lines: Vec::new(),
+                    cut: true,
+                })
+            }
+            Err(c) => Err(c),
+        }
+    }
+
+    fn fetch_log(
+        &self,
+        after: Option<ObjectId>,
+        size: u32,
+    ) -> Result<Vec<InstanceLogEntry>, Coded<SettingCode>> {
+        self.inner.worker.call(move |l| {
+            Box::pin(async move {
+                let admin = l
+                    .admin
+                    .ok_or_else(|| capnp::Error::failed("no admin".into()))?;
+                let mut req = admin.log_request();
+                write_id(req.get().init_after(), after);
+                req.get().set_size(size);
+                let resp = req.send().promise.await?;
+                let mut out = Vec::new();
+                for e in resp.get()?.get_entries()? {
+                    out.push(read_log_entry(e)?);
+                }
+                Ok::<Vec<InstanceLogEntry>, CallError>(out)
+            })
+        })
+    }
+}
+
+/// The answer of a service whose log read was cut with nothing to show.
+fn is_cut(c: &Coded<SettingCode>) -> bool {
+    c.code() == SettingCode::StoreBroken
+        && c.params()
+            .any(|(k, v)| k == keys::CAUSE && matches!(v, Param::Text(t) if t == HISTORY_CUT))
 }

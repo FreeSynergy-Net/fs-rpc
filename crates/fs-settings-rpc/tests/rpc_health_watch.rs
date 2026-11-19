@@ -18,7 +18,7 @@ fn a_port_in_emergency_mode_is_seen_as_defaults() {
         let port = Arc::new(Degraded {
             inner: MemoryStore::new(),
         });
-        SettingsService::new(port, None::<Arc<MemoryStore>>)
+        SettingsService::new_os_user_is_person(port, None::<Arc<MemoryStore>>)
     });
     let client = RpcSettingsStore::open(&server.socket, &program("tasks"), times());
     assert_eq!(client.health(), Health::Defaults(degraded_codes()));
@@ -31,7 +31,7 @@ fn admin_writes_reach_the_watchers() {
     let spy = Spy::new();
     let shared = spy.clone();
     let server = serve_on(&tmp.path().join("i.sock"), move || {
-        SettingsService::new(shared.clone(), Some(shared))
+        SettingsService::new_os_user_is_person(shared.clone(), Some(shared))
     });
     let watcher = RpcSettingsStore::open(&server.socket, &program("tasks"), times());
     let (tx, rx) = mpsc::channel();
