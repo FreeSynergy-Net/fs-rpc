@@ -17,7 +17,7 @@
 //! admits only the service's own user (fs-rpc H1), so every caller is that user. The program is the word of `open` (an API promise, no
 //! security boundary until fs-access); time of the log is the service's.
 //!
-//! The contract `settings` (0.2) and its generated code are the owner's: `fs-interfaces` v0.0.28 (`fs_interfaces::settings_capnp`),
+//! The contract `settings` (0.2) and its generated code are the owner's: `fs-interfaces` v0.0.29 (`fs_interfaces::settings_capnp`),
 //! re-exported here; this crate keeps no copy of the schema.
 //!
 //! Pattern: Adapter (both directions) + Proxy (client cache) + Facade (service).

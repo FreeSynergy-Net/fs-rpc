@@ -2,6 +2,11 @@
 
 Version = tag.
 
+## 0.0.5 (2026-11-20)
+
+- Lift (pins, no code changes): `fs-interfaces` v0.0.29 (was v0.0.28; Boards appended, otherwise compatible) in `fs-rpc` and `fs-settings-rpc`, so that the module repo has ONE `fs-interfaces` source. All other pins unchanged. One source per library in `Cargo.lock`.
+- Auf Deutsch: Pin-Hebung (kein Code geaendert): `fs-interfaces` v0.0.29 (war v0.0.28; Boards angehaengt, sonst kompatibel) in `fs-rpc` und `fs-settings-rpc`, damit das Modul-Repo EINE `fs-interfaces`-Quelle hat. Alle anderen Pins unveraendert.
+
 ## 0.0.4 (2026-11-20)
 
 - MOVED: the crate `fs-starter` is no longer in this repo; it lives in the repo `fs-starter` (main d1bb4e34). Workspace member, lock entries and the optional `fs-conformance` dependency of it are gone from here; its history stays in this repo's git history (last version here: v0.0.3).
