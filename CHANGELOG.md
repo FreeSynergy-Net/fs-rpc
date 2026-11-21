@@ -2,6 +2,11 @@
 
 Version = tag.
 
+## 0.0.6 (2026-11-21)
+
+- Lift (pins, no code changes): `fs-interfaces` v0.0.30 (was v0.0.29; new schema `instance.capnp` and version only, otherwise compatible) in `fs-rpc` and `fs-settings-rpc`, so that the module repo has ONE `fs-interfaces` source. All other pins unchanged (`fs-components` stays v0.0.32). One source per library in `Cargo.lock`. The code of `fs-rpc` (security module: sockets, actor) is byte-identical to v0.0.5.
+- Auf Deutsch: Pin-Hebung (kein Code geaendert): `fs-interfaces` v0.0.30 (war v0.0.29; nur neues Schema `instance.capnp` und Version, sonst kompatibel) in `fs-rpc` und `fs-settings-rpc`, damit das Modul-Repo EINE `fs-interfaces`-Quelle hat. Alle anderen Pins unveraendert. Der Code von `fs-rpc` (Sicherheitsmodul) ist byte-gleich zu v0.0.5.
+
 ## 0.0.5 (2026-11-20)
 
 - Lift (pins, no code changes): `fs-interfaces` v0.0.29 (was v0.0.28; Boards appended, otherwise compatible) in `fs-rpc` and `fs-settings-rpc`, so that the module repo has ONE `fs-interfaces` source. All other pins unchanged. One source per library in `Cargo.lock`.
