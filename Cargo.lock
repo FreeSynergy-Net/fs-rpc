@@ -586,8 +586,8 @@ dependencies = [
 
 [[package]]
 name = "fs-interfaces"
-version = "0.0.30"
-source = "git+https://github.com/FreeSynergy/fs-interfaces?tag=v0.0.30#5e049ad0be2bc1a1b03ca5783da791b93a66edd7"
+version = "0.0.31"
+source = "git+https://github.com/FreeSynergy/fs-interfaces?tag=v0.0.31#e92ef7b027cbb4f8145c5e8fa92c81603ce6d4d7"
 dependencies = [
  "capnp",
  "fs-types",
@@ -614,7 +614,7 @@ dependencies = [
 
 [[package]]
 name = "fs-rpc"
-version = "0.0.6"
+version = "0.0.7"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -643,7 +643,7 @@ dependencies = [
 
 [[package]]
 name = "fs-settings-rpc"
-version = "0.0.6"
+version = "0.0.7"
 dependencies = [
  "capnp",
  "capnp-rpc",
