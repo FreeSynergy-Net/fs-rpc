@@ -51,7 +51,7 @@ fn every_right_that_writes_is_in_the_list_and_only_those_that_swap_are_in_the_sh
     };
     use windows_sys::Win32::System::SystemServices::MAXIMUM_ALLOWED;
 
-    for (name, right, swaps) in [
+    for (name, right, short) in [
         ("FILE_WRITE_DATA", FILE_WRITE_DATA, false),
         ("FILE_APPEND_DATA", FILE_APPEND_DATA, false),
         ("FILE_WRITE_EA", FILE_WRITE_EA, false),
@@ -65,6 +65,6 @@ fn every_right_that_writes_is_in_the_list_and_only_those_that_swap_are_in_the_sh
         ("MAXIMUM_ALLOWED", MAXIMUM_ALLOWED, true),
     ] {
         assert_eq!(writes() & right, right, "{name} in WRITES");
-        assert_eq!(swaps() & right == right, swaps, "{name} in SWAPS");
+        assert_eq!(swaps() & right == right, short, "{name} in SWAPS");
     }
 }
