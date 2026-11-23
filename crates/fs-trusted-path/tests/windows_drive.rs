@@ -58,8 +58,8 @@ fn a_subst_drive_is_refused_as_not_a_local_disk_although_the_file_is_the_systems
     );
 }
 
-/// A network drive for the length of a test: `net use` on the administrative share of this machine. `None` when the runner does
-/// not allow it (the reason goes to the log, the test then says so and proves nothing).
+/// A network drive for the length of a test: `net use` on the administrative share of this machine. `None` when `net use` fails (the
+/// test then fails).
 struct NetDrive(String);
 
 impl NetDrive {
@@ -96,12 +96,10 @@ fn a_network_drive_is_refused_as_not_a_local_disk_although_the_file_is_the_syste
     let file = file_with(dir.path(), &[("S-1-5-18", "F"), ("S-1-5-32-544", "F")]);
     assert_eq!(system_owned(&file, Level::Anchor), Ok(()));
     let share = file.to_str().unwrap().chars().next().unwrap();
-    let Some(net) = NetDrive::new(share) else {
-        eprintln!(
-            "NETUSE-NOT-TESTABLE: net use did not work on this machine, the network drive is NOT proven here"
-        );
-        return;
-    };
+    // Not silent: if `net use` fails the test FAILS (the runner can do it, proven in the mutant run). A changed runner image must
+    // not turn this test into an empty green one.
+    let net = NetDrive::new(share)
+        .expect("net use did not work on this machine: the network drive is NOT proven");
     // the same file by the network drive: D:\a\b -> Z:\a\b (the share D$ is the whole drive D:)
     let tail = file.to_str().unwrap().get(3..).unwrap();
     let by_net = format!(r"{}\{tail}", net.0);
