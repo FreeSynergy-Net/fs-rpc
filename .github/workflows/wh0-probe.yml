@@ -67,7 +67,7 @@ jobs:
       - name: Tools for the MSI (cargo-wix as in fs-release, WiX 3 as in package.sh)
         uses: FreeSynergy-Net/fs-release/actions/install-tools@15935ed0d847d522fcb43d93e340ad1b14809639
         with:
-          tools: cargo-wix
+          tools: cargo-wix@0.3.9
         continue-on-error: true
       - name: P1 build and install a minimal MSI, ACL of what it created
         continue-on-error: true
