@@ -74,7 +74,6 @@ pub async fn ask_beat(socket: &Path, limit: Duration) -> Result<Pulse, BeatError
 
 /// [`ask_beat`], believing only the process `pid` (the one that listens on the server's socket): a heartbeat answered by another
 /// process is an error. `ensure_single` uses it, so a leftover file or a neighbour's heartbeat is never taken for a channel.
-#[cfg_attr(not(unix), allow(dead_code))] // the caller (`ensure_single`) exists on Unix only
 pub(crate) async fn ask_beat_from(
     socket: &Path,
     limit: Duration,
@@ -118,7 +117,6 @@ pub async fn ask_save(socket: &Path, limit: Duration) -> io::Result<Saved> {
 }
 
 /// [`ask_save`] with the process check of [`ask_beat_from`].
-#[cfg_attr(not(unix), allow(dead_code))] // the caller (`ensure_single`) exists on Unix only
 pub(crate) async fn ask_save_from(
     socket: &Path,
     limit: Duration,

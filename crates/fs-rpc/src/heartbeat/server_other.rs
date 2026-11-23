@@ -1,4 +1,6 @@
 //! The heartbeat's channel on a system with neither a Unix socket nor a named pipe: there is none; starting says so.
+//!
+//! Pattern: Null object (the channel of a system that has none).
 
 use std::io;
 use std::path::{Path, PathBuf};

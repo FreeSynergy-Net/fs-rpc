@@ -1,4 +1,6 @@
 //! The heartbeat's channel on Unix: the socket `<socket>.beat` (0600, in the socket's folder, which is private), one thread that
+//!
+//! Pattern: Active object + RAII (the thread and the socket file of the heartbeat on Unix).
 //! accepts, one short thread per connection. Only this user is answered (`SO_PEERCRED`).
 
 use std::io::{self, BufRead, BufReader, Read, Write};

@@ -1,4 +1,6 @@
 //! The wire of the heartbeat client on a system with neither a Unix socket nor a named pipe: there is none, and it says so.
+//!
+//! Pattern: Null object (the wire of a system that has none).
 //! (`heartbeat-unsupported`: the only case left for `Unsupported`.)
 
 use std::io;

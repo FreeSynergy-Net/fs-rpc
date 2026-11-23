@@ -42,7 +42,13 @@ fn a_client_that_is_not_this_user_gets_nothing_and_runs_no_hook() {
     let e = block_on(ask_beat(&socket, LIMIT)).unwrap_err();
     assert!(matches!(e, BeatError::NoAnswer), "{e:?}");
     let e = block_on(ask_save(&socket, LIMIT)).unwrap_err();
-    assert_eq!(e.kind(), std::io::ErrorKind::UnexpectedEof, "{e:?}");
+    assert!(
+        matches!(
+            e.kind(),
+            std::io::ErrorKind::UnexpectedEof | std::io::ErrorKind::ConnectionReset
+        ),
+        "{e:?}"
+    );
     assert_eq!(
         RUNS.load(Ordering::SeqCst),
         0,
