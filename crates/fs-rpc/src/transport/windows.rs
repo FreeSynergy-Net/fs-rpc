@@ -8,6 +8,7 @@
 //! this user, the client refuses a server that is not.
 
 mod acl;
+pub(crate) mod beat;
 mod name;
 mod sid;
 #[cfg(test)]

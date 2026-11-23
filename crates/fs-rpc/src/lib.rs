@@ -35,7 +35,6 @@ mod expected;
 mod feed;
 mod finish;
 mod handshake;
-#[cfg(unix)]
 mod heartbeat;
 mod ids;
 mod options;
@@ -68,9 +67,9 @@ pub use feed::{
 };
 pub use finish::{FINISH_TIMEOUT, finish_underway, run_to_end};
 pub use handshake::{connect_matching, connect_matching_with};
-#[cfg(unix)]
 pub use heartbeat::{
-    Beat, HangTimes, Heartbeat, Hung, Pulse, SaveOnTerm, Verdict, Watch, ask_beat, ask_save,
+    Beat, BeatError, HangTimes, Heartbeat, Hung, Pulse, SaveOnTerm, Verdict, Watch, ask_beat,
+    ask_save,
 };
 pub use ids::{from_millis, read_object_id, read_uuid, to_millis, write_object_id, write_uuid};
 pub use options::{

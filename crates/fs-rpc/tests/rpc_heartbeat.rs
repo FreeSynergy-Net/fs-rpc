@@ -6,14 +6,15 @@
 //! tick age is not reported (a blocked work thread looks alive): the same test; M3 `busy` keys are not cleaned (a sentence goes on
 //! the wire): `a_busy_state_is_told_as_a_text_key_and_goes_away_with_idle`; M4 the hook runs on the thread that asks (not the
 //! heartbeat thread): `the_save_runs_on_the_heartbeat_thread`; M5 the file stays after drop or is world-readable:
-//! `the_socket_is_private_and_goes_with_the_heartbeat`.
-#![cfg(unix)]
+//! `the_socket_is_private_and_goes_with_the_heartbeat` (Unix); the pipe of Windows has its own tests in `heartbeat/server_windows_tests.rs`.
+//! The same tests run on Unix and Windows; only the file mode is Unix.
 
-use std::os::unix::fs::PermissionsExt;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use fs_rpc::{Beat, HangTimes, Heartbeat, Hung, Saved, Verdict, Watch, ask_beat, ask_save};
+use fs_rpc::{
+    Beat, BeatError, HangTimes, Heartbeat, Hung, Saved, Verdict, Watch, ask_beat, ask_save,
+};
 
 fn block_on<T>(f: impl std::future::Future<Output = T>) -> T {
     tokio::runtime::Builder::new_current_thread()
@@ -115,10 +116,7 @@ fn nothing_there_is_an_error_not_a_hang() {
     let dir = tempfile::tempdir().unwrap();
     let began = Instant::now();
     let e = block_on(ask_beat(&dir.path().join("none.sock"), LIMIT)).unwrap_err();
-    assert!(matches!(
-        e.kind(),
-        std::io::ErrorKind::NotFound | std::io::ErrorKind::ConnectionRefused
-    ));
+    assert!(matches!(e, BeatError::NoAnswer), "{e:?}");
     assert!(began.elapsed() < Duration::from_secs(1));
 }
 
@@ -150,8 +148,10 @@ fn the_save_runs_on_the_heartbeat_thread() {
     );
 }
 
+#[cfg(unix)]
 #[test]
 fn the_socket_is_private_and_goes_with_the_heartbeat() {
+    use std::os::unix::fs::PermissionsExt;
     let dir = tempfile::tempdir().unwrap();
     let socket = dir.path().join("p.sock");
     let hb = Heartbeat::start(&socket).unwrap();
@@ -167,4 +167,17 @@ fn the_socket_is_private_and_goes_with_the_heartbeat() {
     drop(hb);
     assert!(!path.exists());
     drop(Heartbeat::start(&socket).unwrap()); // a new one can start
+}
+
+#[test]
+fn the_heartbeat_is_never_a_silent_ok_and_the_error_says_what_it_is() {
+    // A heartbeat that is not there is `NoAnswer`, never `Ok` and never `Unsupported` (both ways exist on Unix and Windows).
+    let dir = tempfile::tempdir().unwrap();
+    let socket = dir.path().join("gone.sock");
+    let hb = Heartbeat::start(&socket).unwrap();
+    assert!(block_on(ask_beat(&socket, LIMIT)).is_ok());
+    drop(hb);
+    let e = block_on(ask_beat(&socket, LIMIT)).unwrap_err();
+    assert!(matches!(e, BeatError::NoAnswer), "{e:?}");
+    assert!(!e.to_string().is_empty());
 }

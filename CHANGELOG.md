@@ -2,6 +2,11 @@
 
 Version = tag.
 
+## Unreleased (WH4)
+
+- Heartbeat on Windows (security module: sockets): its own pipe `<pipe>.beat`, answered by a thread with a `current_thread` runtime of its own; instances through the same `create_pipe` as the work pipe (open to this user alone, `first_pipe_instance`), a client is checked with `client_is_me`, a server with `server_is_me`. The lines are the Unix ones (`ping`, `alive`, `busy`, `save`). `Heartbeat`, `ask_beat`, `ask_save`, `Beat`, `Pulse`, `Watch` and the rest exist on every system (no `cfg(unix)` any more). BREAKING: `ask_beat` returns `Result<Pulse, BeatError>` with `BeatError::{Unsupported, NoAnswer, Refused, Io}` (was `io::Result`); `Unsupported` is only for a system with neither Unix sockets nor named pipes, never a silent `Ok`. `ensure_single` stays Unix only.
+- Auf Deutsch: Herzschlag unter Windows ueber eine eigene Pipe `<pipe>.beat` (eigener Thread, eigene `current_thread`-Laufzeit, Instanzen wie die Arbeits-Pipe nur fuer diesen Nutzer, Pruefung beider Enden). Gleiche Zeilen wie unter Unix. `ask_beat` gibt `Result<Pulse, BeatError>` (`Unsupported`, `NoAnswer`, `Refused`, `Io`); nie ein stilles `Ok`.
+
 ## 0.0.7 (2026-11-23)
 
 - Lift (pins, no code changes): `fs-interfaces` v0.0.31 (was v0.0.30; additive: new module `forms` and schema `formsource.capnp`, no existing schema id or Rust API of the crate `fs-interfaces` changed) in `fs-rpc` and `fs-settings-rpc`, so that the module repo has ONE `fs-interfaces` source (also in the graph of fs-forms and fs-starter). All other pins unchanged. One source per library in `Cargo.lock`. The code of `fs-rpc` (security module: sockets, actor) is byte-identical to v0.0.6. Version 0.0.7 because 0.0.6 is the last tag (version = tag).

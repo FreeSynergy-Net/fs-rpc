@@ -12,6 +12,8 @@ mod unix;
 mod unix_dir;
 #[cfg(windows)]
 mod windows;
+#[cfg(windows)]
+pub(crate) use windows::beat;
 
 pub(super) use endpoint::{Accepted, Endpoint};
 pub use peer::{Caller, CallerError, CallerSource, PerConnection};
