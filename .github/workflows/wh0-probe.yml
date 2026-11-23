@@ -69,29 +69,35 @@ jobs:
         with:
           tools: cargo-wix@0.3.9
         continue-on-error: true
-      - name: P1 build and install a minimal MSI, ACL of what it created
+      - name: P1a build the MSI (cargo-wix as in package.sh)
         continue-on-error: true
+        timeout-minutes: 8
         shell: bash
         run: |
           set -uo pipefail
-          command -v candle.exe >/dev/null || [[ -n "${WIX:-}" ]] || choco install wixtoolset -y --no-progress
-          echo "WIX=${WIX:-unset}"
           cd wh0/probe
           cargo wix init
-          cat wix/main.wxs | grep -n "Directory\|Manufacturer\|ProgramFiles\|Package " | head -20
+          grep -n "Directory\|Manufacturer\|ProgramFiles\|Package " wix/main.wxs | head -20
           cargo wix --no-build --nocapture --install-version 0.0.1 --output "$RUNNER_TEMP/wh0.msi"
           ls -l "$RUNNER_TEMP/wh0.msi"
-          powershell -NoProfile -Command "Get-ChildItem 'C:\Program Files','C:\Program Files (x86)' -Directory | Select-Object -ExpandProperty FullName | Sort-Object" > "$RUNNER_TEMP/before.txt"
-          msiexec //i "$(cygpath -w "$RUNNER_TEMP/wh0.msi")" //qn //l*v "$(cygpath -w "$RUNNER_TEMP/install.log")"
-          echo "msiexec rc=$?"
-          powershell -NoProfile -Command "Get-ChildItem 'C:\Program Files','C:\Program Files (x86)' -Directory | Select-Object -ExpandProperty FullName | Sort-Object" > "$RUNNER_TEMP/after.txt"
-          echo "--- new folders"; diff "$RUNNER_TEMP/before.txt" "$RUNNER_TEMP/after.txt" | tee "$RUNNER_TEMP/new.txt"
-          grep '^>' "$RUNNER_TEMP/new.txt" | sed 's/^> //' | tr -d '\r' > "$RUNNER_TEMP/dirs.txt"
-          while IFS= read -r d; do
-            echo "=== $d"
-            powershell -NoProfile -Command "icacls '$d' /T; Get-ChildItem -Recurse -Force '$d' | ForEach-Object { '{0} owner={1}' -f \$_.FullName, (Get-Acl \$_.FullName).Owner }; (Get-Acl '$d').Sddl"
-          done < "$RUNNER_TEMP/dirs.txt"
-          tail -5 "$RUNNER_TEMP/install.log"
+      - name: P1b install it silently (timeout 3 min) and read the ACL of what it created
+        continue-on-error: true
+        timeout-minutes: 8
+        run: |
+          $msi = "$env:RUNNER_TEMP\wh0.msi"
+          $list = { Get-ChildItem 'C:\Program Files','C:\Program Files (x86)' -Directory | Select-Object -ExpandProperty FullName | Sort-Object }
+          $before = & $list
+          $p = Start-Process msiexec.exe -ArgumentList "/i `"$msi`" /qn /l*v `"$env:RUNNER_TEMP\install.log`"" -PassThru
+          if (-not $p.WaitForExit(180000)) { Write-Output "msiexec hangs after 180 s"; Get-Content "$env:RUNNER_TEMP\install.log" -Tail 25; $p.Kill(); exit 1 }
+          Write-Output "msiexec rc=$($p.ExitCode)"
+          $new = & $list | Where-Object { $before -notcontains $_ }
+          Write-Output "new folders: $new"
+          foreach ($d in $new) {
+            Write-Output "=== $d"
+            icacls $d /T
+            Get-ChildItem -Recurse -Force $d | ForEach-Object { '{0} owner={1}' -f $_.FullName, (Get-Acl $_.FullName).Owner }
+            (Get-Acl $d).Sddl
+          }
 
   gpu:
     name: gpu (${{ matrix.os }})
