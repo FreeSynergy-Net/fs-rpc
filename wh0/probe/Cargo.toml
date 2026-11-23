@@ -5,6 +5,7 @@ edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "WH0 probe: facts about the Windows runner (not shipped)"
 publish = false
+authors = ["FreeSynergy <support@freesynergy.net>"]
 
 [workspace]
 
