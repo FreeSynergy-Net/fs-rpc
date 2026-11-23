@@ -11,6 +11,7 @@ fn main() {
             let i = a.get_info();
             println!("adapter backends={label} name={:?} backend={:?} type={:?} driver={:?}", i.name, i.backend, i.device_type, i.driver);
             println!("draw backends={label} name={:?} -> {}", i.name, draw(a));
+            println!("atlas backends={label} name={:?} -> {}", i.name, atlas(a));
         }
         for fallback in [false, true] {
             let r = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
@@ -75,4 +76,32 @@ fn draw(a: &wgpu::Adapter) -> String {
     let px = [data[0], data[1], data[2], data[3]];
     let errors = err.lock().unwrap().join(" | ");
     format!("pixel={px:?} errors=[{errors}] {}", if px == [255, 128, 0, 255] || px == [255, 127, 0, 255] { "DRAWS" } else { "NO-DRAW" })
+}
+
+/// P3c: the texture Blinc's SVG atlas asks for (Rgba8Unorm, TEXTURE_BINDING | COPY_DST), made with an error scope so the
+/// reason of an invalid texture is printed; plus the limits of the device.
+#[allow(dead_code)]
+fn atlas(a: &wgpu::Adapter) -> String {
+    let Ok((device, _q)) = pollster::block_on(a.request_device(&wgpu::DeviceDescriptor::default())) else { return "no device".into() };
+    let mut out = format!("limits max2d={} max_buffer={} ", device.limits().max_texture_dimension_2d, device.limits().max_buffer_size);
+    for side in [1024u32, 2048, 4096] {
+        device.push_error_scope(wgpu::ErrorFilter::Validation);
+        device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
+        let t = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("SVG Atlas"),
+            size: wgpu::Extent3d { width: side, height: side, depth_or_array_layers: 1 },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8Unorm,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+        let oom = pollster::block_on(device.pop_error_scope());
+        let val = pollster::block_on(device.pop_error_scope());
+        let view = t.create_view(&Default::default());
+        drop(view);
+        out += &format!("| {side}: oom={oom:?} validation={val:?} ");
+    }
+    out
 }
