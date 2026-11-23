@@ -57,7 +57,31 @@ pub(super) const SWAPS: u32 = FILE_DELETE_CHILD
     | GENERIC_ALL
     | MAXIMUM_ALLOWED;
 
+pub(super) fn mutant() -> String {
+    std::env::var("FS_MUT").unwrap_or_default()
+}
+fn drop_mask() -> u32 {
+    std::env::var("FS_MUT_DROP")
+        .ok()
+        .and_then(|v| u32::from_str_radix(&v, 16).ok())
+        .unwrap_or(0)
+}
+pub(super) fn writes() -> u32 {
+    WRITES & !drop_mask()
+}
+pub(super) fn swaps() -> u32 {
+    SWAPS & !drop_mask()
+}
+
 pub(crate) fn system_owners() -> Vec<Sid> {
+    if mutant() == "ownerme" {
+        let mut v: Vec<Sid> = SYSTEM_SIDS
+            .iter()
+            .filter_map(|t| Sid::from_text(t).ok())
+            .collect();
+        v.extend(super::sid::my_owners().unwrap());
+        return v;
+    }
     static OWNERS: OnceLock<Vec<Sid>> = OnceLock::new();
     // A SID that cannot be made is left out: fewer owners are trusted, never more.
     OWNERS
@@ -102,8 +126,8 @@ pub(crate) fn check(owners: &[Sid], part: &Path, level: Level) -> Result<(), Pla
     }
     // Rule 2.4 and 2.5.
     let limit = match level {
-        Level::Anchor => WRITES,
-        Level::AboveAnchor => SWAPS,
+        Level::Anchor => writes(),
+        Level::AboveAnchor => swaps(),
     };
     dacl_is_closed(owners, dacl, limit)
 }
@@ -126,6 +150,7 @@ pub(super) fn kind_of(ace_type: u32) -> AceKind {
         | ACCESS_DENIED_OBJECT_ACE_TYPE
         | ACCESS_DENIED_CALLBACK_ACE_TYPE
         | ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE => AceKind::GivesNothing,
+        _ if mutant() == "skipunknown" => AceKind::GivesNothing,
         _ => AceKind::Gives,
     }
 }
@@ -134,6 +159,9 @@ pub(super) fn kind_of(ace_type: u32) -> AceKind {
 /// Deny entries are not counted: that can judge too strict, never too lax (the counterpart of `mode & 0o022`).
 fn dacl_is_closed(owners: &[Sid], dacl: *mut ACL, limit: u32) -> Result<(), PlaceRefusal> {
     // A null DACL gives everybody everything.
+    if dacl.is_null() && mutant() == "nulldacl" {
+        return Ok(());
+    }
     if dacl.is_null() {
         return Err(PlaceRefusal::Writable);
     }

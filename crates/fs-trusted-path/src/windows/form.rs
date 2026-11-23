@@ -42,18 +42,22 @@ pub(super) fn shape(part: &Path) -> Result<u8, PlaceRefusal> {
 /// another machine; a `subst` drive is an alias of any folder (also a foreign one); removable media can be swapped. So the volume
 /// of the part must be `DRIVE_FIXED`, and the drive letter must not be a `subst` alias (its target begins with `\??\`).
 pub(super) fn local_disk(part: &Path, letter: u8) -> Result<(), PlaceRefusal> {
+    let m = super::check::mutant();
+    if m == "nodisk" {
+        return Ok(());
+    }
     const SIZE: u32 = 1024;
     let mut root = vec![0_u16; SIZE as usize];
     let found =
         unsafe { GetVolumePathNameW(wide(part.as_os_str()).as_ptr(), root.as_mut_ptr(), SIZE) };
-    if found == 0 || unsafe { GetDriveTypeW(root.as_ptr()) } != DRIVE_FIXED {
+    if found == 0 || (m != "notfixed" && unsafe { GetDriveTypeW(root.as_ptr()) } != DRIVE_FIXED) {
         return Err(PlaceRefusal::NotLocalDisk);
     }
     let device = [u16::from(letter), u16::from(b':'), 0];
     let mut target = vec![0_u16; SIZE as usize];
     let len = unsafe { QueryDosDeviceW(device.as_ptr(), target.as_mut_ptr(), SIZE) };
     let subst = target.starts_with(&SUBST_TARGET.map(u16::from));
-    if len == 0 || subst {
+    if len == 0 || (subst && m != "nosubst") {
         return Err(PlaceRefusal::NotLocalDisk);
     }
     Ok(())

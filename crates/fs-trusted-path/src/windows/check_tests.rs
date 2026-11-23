@@ -43,7 +43,7 @@ fn every_other_kind_is_refused_known_or_not() {
 /// the lists are checked as lists, one right each.
 #[test]
 fn every_right_that_writes_is_in_the_list_and_only_those_that_swap_are_in_the_short_one() {
-    use super::check::{SWAPS, WRITES};
+    use super::check::{swaps, writes};
     use windows_sys::Win32::Foundation::{GENERIC_ALL, GENERIC_WRITE};
     use windows_sys::Win32::Storage::FileSystem::{
         DELETE, FILE_APPEND_DATA, FILE_DELETE_CHILD, FILE_WRITE_ATTRIBUTES, FILE_WRITE_DATA,
@@ -64,7 +64,7 @@ fn every_right_that_writes_is_in_the_list_and_only_those_that_swap_are_in_the_sh
         ("GENERIC_ALL", GENERIC_ALL, true),
         ("MAXIMUM_ALLOWED", MAXIMUM_ALLOWED, true),
     ] {
-        assert_eq!(WRITES & right, right, "{name} in WRITES");
-        assert_eq!(SWAPS & right == right, swaps, "{name} in SWAPS");
+        assert_eq!(writes() & right, right, "{name} in WRITES");
+        assert_eq!(swaps() & right == right, swaps, "{name} in SWAPS");
     }
 }
