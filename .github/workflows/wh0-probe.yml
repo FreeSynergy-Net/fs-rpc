@@ -1,0 +1,178 @@
+# WH0 probe (win-host): facts about the GitHub Windows runners, read only. Branch unreviewed/wh0-probe, never merged, deleted afterwards.
+# Nothing here ships and nothing is signed; no secrets, contents: read.
+name: wh0-probe
+on:
+  push:
+    branches: [unreviewed/wh0-probe]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: never
+  CARGO_INCREMENTAL: "0"
+
+jobs:
+  facts:
+    name: facts (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, windows-latest]
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: FreeSynergy-Net/fs-release/actions/setup-rust@15935ed0d847d522fcb43d93e340ad1b14809639
+        with:
+          cache-key: wh0-facts
+      - name: P6 token and owner of new files
+        continue-on-error: true
+        run: |
+          Write-Output "image=$env:ImageOS $env:ImageVersion"
+          whoami /user
+          whoami /groups
+          whoami /priv
+          New-Item -ItemType File -Path "$env:RUNNER_TEMP\p6-new.txt" -Force | Out-Null
+          (Get-Acl "$env:RUNNER_TEMP\p6-new.txt").Owner
+      - name: Build the probe
+        run: cargo build --release --locked --manifest-path wh0/probe/Cargo.toml
+      - name: P6 IsUserAnAdmin
+        continue-on-error: true
+        run: wh0/probe/target/release/wh0-probe.exe p6
+      - name: P1 ACL of C:\ and Program Files (before any install)
+        continue-on-error: true
+        run: |
+          foreach ($p in 'C:\', 'C:\Program Files', 'C:\Program Files (x86)', 'C:\ProgramData') {
+            Write-Output "=== $p"
+            icacls $p
+            $a = Get-Acl $p
+            Write-Output "owner=$($a.Owner)"
+            Write-Output $a.Sddl
+          }
+      - name: P2 which file starts (service vs service.exe)
+        continue-on-error: true
+        run: wh0/probe/target/release/wh0-probe.exe p2 "$env:RUNNER_TEMP\p2"
+      - name: P4 known-folders and same-file
+        continue-on-error: true
+        run: wh0/probe/target/release/wh0-probe.exe p4
+      - name: P5 junction and symlink
+        continue-on-error: true
+        run: wh0/probe/target/release/wh0-probe.exe p5 "$env:RUNNER_TEMP\p5"
+      - name: Tools for the MSI (cargo-wix as in fs-release, WiX 3 as in package.sh)
+        uses: FreeSynergy-Net/fs-release/actions/install-tools@15935ed0d847d522fcb43d93e340ad1b14809639
+        with:
+          tools: cargo-wix
+        continue-on-error: true
+      - name: P1 build and install a minimal MSI, ACL of what it created
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -uo pipefail
+          command -v candle.exe >/dev/null || [[ -n "${WIX:-}" ]] || choco install wixtoolset -y --no-progress
+          echo "WIX=${WIX:-unset}"
+          cd wh0/probe
+          cargo wix init
+          cat wix/main.wxs | grep -n "Directory\|Manufacturer\|ProgramFiles\|Package " | head -20
+          cargo wix --no-build --nocapture --install-version 0.0.1 --output "$RUNNER_TEMP/wh0.msi"
+          ls -l "$RUNNER_TEMP/wh0.msi"
+          powershell -NoProfile -Command "Get-ChildItem 'C:\Program Files','C:\Program Files (x86)' -Directory | Select-Object -ExpandProperty FullName | Sort-Object" > "$RUNNER_TEMP/before.txt"
+          msiexec //i "$(cygpath -w "$RUNNER_TEMP/wh0.msi")" //qn //l*v "$(cygpath -w "$RUNNER_TEMP/install.log")"
+          echo "msiexec rc=$?"
+          powershell -NoProfile -Command "Get-ChildItem 'C:\Program Files','C:\Program Files (x86)' -Directory | Select-Object -ExpandProperty FullName | Sort-Object" > "$RUNNER_TEMP/after.txt"
+          echo "--- new folders"; diff "$RUNNER_TEMP/before.txt" "$RUNNER_TEMP/after.txt" | tee "$RUNNER_TEMP/new.txt"
+          grep '^>' "$RUNNER_TEMP/new.txt" | sed 's/^> //' | tr -d '\r' > "$RUNNER_TEMP/dirs.txt"
+          while IFS= read -r d; do
+            echo "=== $d"
+            powershell -NoProfile -Command "icacls '$d' /T; Get-ChildItem -Recurse -Force '$d' | ForEach-Object { '{0} owner={1}' -f \$_.FullName, (Get-Acl \$_.FullName).Owner }; (Get-Acl '$d').Sddl"
+          done < "$RUNNER_TEMP/dirs.txt"
+          tail -5 "$RUNNER_TEMP/install.log"
+
+  gpu:
+    name: gpu (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, windows-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: FreeSynergy-Net/fs-release/actions/setup-rust@15935ed0d847d522fcb43d93e340ad1b14809639
+        with:
+          cache-key: wh0-gpu
+      - name: P3a wgpu adapters and a 64x64 clear read back
+        run: cargo run --locked --manifest-path wh0/gpu/Cargo.toml
+        continue-on-error: true
+      - name: P3a again with the software adapter asked for by the environment
+        run: cargo run --locked --manifest-path wh0/gpu/Cargo.toml
+        env:
+          WGPU_BACKEND: dx12
+          WGPU_FORCE_FALLBACK_ADAPTER: "1"
+        continue-on-error: true
+
+  picture:
+    name: picture (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, windows-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: FreeSynergy-Net/fs-release/actions/setup-rust@15935ed0d847d522fcb43d93e340ad1b14809639
+        with:
+          cache-key: wh0-picture
+      # fs-starter at the head the schema names (sq4-sources-r4), plus the three sibling heads its Cargo.toml [patch] names, as its own windows.yml does.
+      - name: Clone fs-starter 4aea117 and its siblings
+        shell: bash
+        run: |
+          set -euo pipefail
+          clone() { git clone --quiet "https://github.com/$1" "$2" && git -C "$2" checkout --quiet "$3"; }
+          clone FreeSynergy-Net/fs-starter ../fs-starter 4aea1179bd7e6b5b87647e7ad001bf9e64a88664
+          clone FreeSynergy/fs-forms ../fs-forms-lift cc5ce9a33da3d5207f531e2bdf9ed7ff7571491c
+          clone FreeSynergy/fs-interfaces ../fs-interfaces-r2 680084458221e9ef35923967b158de8ecaa2f5e7
+          clone FreeSynergy/fs-components ../fs-components 0f031bd978ec11818349bdfc411897a90536cc27
+      - name: Build the host binary
+        working-directory: ../fs-starter
+        run: cargo build -p fs-starter-host --locked
+      - name: P3b host --picture, as it is, and with WGPU_BACKEND=dx12 and the fallback flag
+        shell: bash
+        working-directory: ../fs-starter
+        continue-on-error: true
+        run: |
+          mkdir -p "$RUNNER_TEMP/pics"
+          t="$PWD/tests/data/fs-tasks"
+          run() { # name, env...
+            n=$1; shift
+            echo "=== $n"
+            env "$@" HOME="$RUNNER_TEMP/h" FS_COLOR_SCHEME=light RUST_BACKTRACE=1 ./target/debug/fs-starter.exe --description "$t" --sample-data --picture "$RUNNER_TEMP/pics/$n.png"
+            echo "rc=$?"; ls -l "$RUNNER_TEMP/pics/$n.png" 2>&1 | tail -1
+          }
+          mkdir -p "$RUNNER_TEMP/h"
+          run plain A=1
+          run dx12 WGPU_BACKEND=dx12
+          run dx12-fallback WGPU_BACKEND=dx12 WGPU_FORCE_FALLBACK_ADAPTER=1
+          run vulkan WGPU_BACKEND=vulkan
+          run gl WGPU_BACKEND=gl
+      - name: P3b the real picture tests of fs-starter-host, ignored ones included
+        working-directory: ../fs-starter
+        continue-on-error: true
+        env:
+          FS_PICTURE_OUT: ${{ runner.temp }}\pics
+        run: cargo test -p fs-starter-host --test picture --locked --no-fail-fast -- --include-ignored --nocapture
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: pics-${{ matrix.os }}
+          path: ${{ runner.temp }}/pics/*.png
+          if-no-files-found: ignore
+          retention-days: 3

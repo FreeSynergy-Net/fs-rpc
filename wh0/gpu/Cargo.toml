@@ -1,0 +1,13 @@
+[package]
+name = "wh0-gpu"
+version = "0.0.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "WH0 probe: which wgpu adapters the runner offers and whether they draw (not shipped)"
+publish = false
+
+[workspace]
+
+[dependencies]
+wgpu = "=26.0.1"
+pollster = "0.4"

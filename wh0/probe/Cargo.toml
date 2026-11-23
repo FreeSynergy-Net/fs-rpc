@@ -1,0 +1,16 @@
+[package]
+name = "wh0-probe"
+version = "0.0.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "WH0 probe: facts about the Windows runner (not shipped)"
+publish = false
+
+[workspace]
+
+[dependencies]
+known-folders = "=1.4.2"
+same-file = "=1.0.6"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_UI_Shell"] }
