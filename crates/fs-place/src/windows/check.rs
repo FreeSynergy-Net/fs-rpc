@@ -118,7 +118,7 @@ pub(crate) fn check(owners: &[Sid], part: &Path, level: Level) -> Result<(), Pla
     // `owner` and `dacl` point into this descriptor.
     let _descriptor = Descriptor::from_raw(raw);
     // Rule 2.3.
-    if owner.is_null() || !owners.iter().any(|o| o.equals(owner)) {
+    if owner.is_null() || !owners.iter().any(|o| o.equals_raw(owner)) {
         return Err(PlaceRefusal::WrongOwner);
     }
     // Rule 2.4 and 2.5.
@@ -172,7 +172,7 @@ fn dacl_is_closed(owners: &[Sid], dacl: *mut ACL, limit: u32) -> Result<(), Plac
         if unsafe { IsValidSid(sid) } == 0 {
             return Err(PlaceRefusal::Unreadable);
         }
-        if mask & limit != 0 && !owners.iter().any(|o| o.equals(sid)) {
+        if mask & limit != 0 && !owners.iter().any(|o| o.equals_raw(sid)) {
             return Err(PlaceRefusal::Writable);
         }
     }

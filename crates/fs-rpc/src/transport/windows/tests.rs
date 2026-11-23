@@ -1,12 +1,12 @@
 //! The Windows transport against real pipes: the rights, the check of both ends, a caller that hangs up, many callers at once.
 //! Pattern: Test (a user that is somebody else cannot be made here, so the check is tried on processes that are not ours).
 
-use std::os::windows::io::AsRawHandle;
+use std::os::windows::io::{AsRawHandle, RawHandle};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
+use windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE;
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE;
 use windows_sys::Win32::Security::Authorization::{GetSecurityInfo, SE_KERNEL_OBJECT};
 use windows_sys::Win32::Security::{
     ACL, ACL_SIZE_INFORMATION, AclSizeInformation, DACL_SECURITY_INFORMATION, GetAclInformation,
@@ -17,6 +17,15 @@ use super::super::peer::{CallerError, CallerSource};
 use super::name::{companion_stem, encode, pipe_name};
 use super::{Windows, bind_socket};
 use fs_place::windows::sid;
+
+/// A handle that is no pipe.
+struct NoPipe;
+
+impl AsRawHandle for NoPipe {
+    fn as_raw_handle(&self) -> RawHandle {
+        INVALID_HANDLE_VALUE
+    }
+}
 
 fn unique(tag: &str) -> PathBuf {
     static COUNT: AtomicU32 = AtomicU32::new(0);
@@ -88,11 +97,11 @@ async fn the_pipe_is_open_to_this_user_alone_and_both_ends_check_the_other() {
 
     let (client, accepted) = tokio::join!(Windows::connect(&path), Windows::accept(&bound));
     let client = client.unwrap(); // the client found the server to be this user
-    assert!(sid::server_is_me(client.as_raw_handle()));
+    assert!(sid::server_is_me(&client));
     let Accepted::Peer(served) = accepted.unwrap() else {
         panic!("the caller is this user and must be served");
     };
-    assert!(sid::client_is_me(served.as_raw_handle()));
+    assert!(sid::client_is_me(&served));
 }
 
 #[tokio::test]
@@ -196,7 +205,7 @@ async fn the_caller_of_a_pipe_is_this_user_by_sid_with_the_account_name_of_the_s
 /// The system cannot tell who is on a handle that is no pipe: the answer is the error with its code, never a made-up user.
 #[test]
 fn a_handle_the_system_cannot_ask_gives_the_credentials_error_not_a_default_user() {
-    let err = sid::client_caller(INVALID_HANDLE_VALUE).unwrap_err();
+    let err = sid::client_caller(&NoPipe).unwrap_err();
     let err = CallerError::Credentials(err);
     assert_eq!(err.code(), "caller-credentials");
 }

@@ -2,7 +2,7 @@
 //! Pattern: Value object ([`Sid`]) + RAII ([`Handle`]). The Windows side of what `SO_PEERCRED` does on Unix.
 
 use std::io;
-use std::os::windows::io::RawHandle;
+use std::os::windows::io::AsRawHandle;
 use std::ptr::null_mut;
 use std::sync::OnceLock;
 
@@ -49,7 +49,12 @@ impl Sid {
 
     /// Are the two the same SID?
     #[must_use]
-    pub fn equals(&self, other: PSID) -> bool {
+    pub fn equals(&self, other: &Sid) -> bool {
+        self.equals_raw(other.ptr())
+    }
+
+    /// Is `other` (a SID inside a buffer of the system, valid) the same SID?
+    pub(crate) fn equals_raw(&self, other: PSID) -> bool {
         unsafe { EqualSid(self.ptr(), other) != 0 }
     }
 
@@ -166,21 +171,25 @@ pub fn process_is_me(pid: u32) -> bool {
     let process = Handle(process);
     token_of(process.0)
         .and_then(|t| who_of(&t))
-        .is_ok_and(|w| me.user.equals(w.user.ptr()))
+        .is_ok_and(|w| me.user.equals(&w.user))
 }
 
 /// Does the client of this pipe instance run as this user?
 #[must_use]
-pub fn client_is_me(pipe: RawHandle) -> bool {
+pub fn client_is_me(pipe: &impl AsRawHandle) -> bool {
     let mut pid = 0_u32;
-    unsafe { GetNamedPipeClientProcessId(pipe, &raw mut pid) != 0 && process_is_me(pid) }
+    unsafe {
+        GetNamedPipeClientProcessId(pipe.as_raw_handle(), &raw mut pid) != 0 && process_is_me(pid)
+    }
 }
 
 /// Does the server of this pipe run as this user?
 #[must_use]
-pub fn server_is_me(pipe: RawHandle) -> bool {
+pub fn server_is_me(pipe: &impl AsRawHandle) -> bool {
     let mut pid = 0_u32;
-    unsafe { GetNamedPipeServerProcessId(pipe, &raw mut pid) != 0 && process_is_me(pid) }
+    unsafe {
+        GetNamedPipeServerProcessId(pipe.as_raw_handle(), &raw mut pid) != 0 && process_is_me(pid)
+    }
 }
 
 /// The account name of a SID (`name` of `DOMAIN\\name`); `None` if the system has none.
@@ -229,9 +238,9 @@ pub fn my_account_name() -> Option<String> {
 ///
 /// # Errors
 /// The pipe or the process cannot be looked at.
-pub fn client_caller(pipe: RawHandle) -> io::Result<(String, Option<String>)> {
+pub fn client_caller(pipe: &impl AsRawHandle) -> io::Result<(String, Option<String>)> {
     let mut pid = 0_u32;
-    if unsafe { GetNamedPipeClientProcessId(pipe, &raw mut pid) } == 0 {
+    if unsafe { GetNamedPipeClientProcessId(pipe.as_raw_handle(), &raw mut pid) } == 0 {
         return Err(io::Error::last_os_error());
     }
     let process = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid) };

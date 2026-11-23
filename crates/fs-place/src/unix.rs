@@ -1,4 +1,5 @@
-//! The Unix version of the check (moved from fs-starter `system.rs`): no symlink, owned by a trusted uid, not writable by group or others.
+//! The Unix version of the check (moved from fs-starter `system.rs`): no symlink, owned by a trusted uid, not writable by group or
+//! others. Pattern: Specification (a pure check over the file system metadata).
 
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;

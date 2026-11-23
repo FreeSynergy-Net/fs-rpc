@@ -96,7 +96,7 @@ fn owned_by_me(dir: &Path) -> io::Result<bool> {
         )
     })?;
     let descriptor = Descriptor(descriptor);
-    let mine = me.user.equals(owner) || me.owner.equals(owner);
+    let mine = me.user.equals_raw(owner) || me.owner.equals_raw(owner);
     drop(descriptor);
     Ok(mine)
 }

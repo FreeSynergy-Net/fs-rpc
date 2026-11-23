@@ -14,7 +14,6 @@ mod tests;
 
 use std::future::Future;
 use std::io;
-use std::os::windows::io::AsRawHandle;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -129,8 +128,7 @@ pub struct Windows;
 
 impl CallerSource for NamedPipeServer {
     fn caller(&self) -> Result<Caller, CallerError> {
-        let (id, name) =
-            sid::client_caller(self.as_raw_handle()).map_err(CallerError::Credentials)?;
+        let (id, name) = sid::client_caller(self).map_err(CallerError::Credentials)?;
         Ok(Caller::new(id, name))
     }
 }
@@ -192,7 +190,7 @@ impl Endpoint for Windows {
         let Some(served) = std::mem::replace(&mut *slot, next) else {
             return Ok(Accepted::Pause);
         };
-        if sid::client_is_me(served.as_raw_handle()) {
+        if sid::client_is_me(&served) {
             Ok(Accepted::Peer(served))
         } else {
             Ok(Accepted::Skip)
@@ -233,7 +231,7 @@ impl Endpoint for Windows {
                 other => break other?,
             }
         };
-        if !sid::server_is_me(client.as_raw_handle()) {
+        if !sid::server_is_me(&client) {
             return Err(io::Error::new(
                 io::ErrorKind::PermissionDenied,
                 format!("{} is served by another user", path.display()),
