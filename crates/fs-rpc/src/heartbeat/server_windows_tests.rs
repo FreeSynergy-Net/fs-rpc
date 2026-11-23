@@ -67,13 +67,8 @@ async fn a_client_that_is_not_this_user_gets_nothing_and_runs_no_hook() {
     let e = ask_beat(&socket, LIMIT).await.unwrap_err();
     assert!(matches!(e, BeatError::NoAnswer), "{e:?}");
     let e = ask_save(&socket, LIMIT).await.unwrap_err();
-    assert!(
-        matches!(
-            e.kind(),
-            std::io::ErrorKind::UnexpectedEof | std::io::ErrorKind::ConnectionReset
-        ),
-        "{e:?}"
-    );
+    // The server hung up without a word: how the system tells it differs (end of file, reset, broken pipe), what it is does not.
+    assert!(matches!(BeatError::from(e), BeatError::NoAnswer));
     assert_eq!(
         RUNS.load(Ordering::SeqCst),
         0,
