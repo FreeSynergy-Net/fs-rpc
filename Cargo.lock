@@ -577,8 +577,8 @@ checksum = "1c66915cc5391097de7a2b0b972e8505aa33c0df401fd3a6811dbdb32881ba48"
 
 [[package]]
 name = "fs-conformance"
-version = "0.0.4"
-source = "git+https://github.com/FreeSynergy/fs-types?tag=v0.0.4#0dbc9b685746ea55ceb789fe1043a162e34ac387"
+version = "0.0.5"
+source = "git+https://github.com/FreeSynergy-Net/fs-types?tag=v0.0.6#2f45110417cf42311d5dee72287b7644312d4bc4"
 dependencies = [
  "async-trait",
  "fs-types",
@@ -586,17 +586,18 @@ dependencies = [
 
 [[package]]
 name = "fs-interfaces"
-version = "0.0.31"
-source = "git+https://github.com/FreeSynergy/fs-interfaces?tag=v0.0.31#e92ef7b027cbb4f8145c5e8fa92c81603ce6d4d7"
+version = "0.0.34"
+source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?tag=v0.0.34#22abe015d75578e55e9e86880925490da15c1b35"
 dependencies = [
  "capnp",
  "fs-types",
+ "semver",
 ]
 
 [[package]]
 name = "fs-objects"
-version = "0.0.8"
-source = "git+https://github.com/FreeSynergy/fs-objects?tag=v0.0.8#b638ef3ade2d07f8f03b6ad30c1e57c78f0bf87f"
+version = "0.0.10"
+source = "git+https://github.com/FreeSynergy-Net/fs-objects?tag=v0.0.10#18f68042df4a90ef5f04e0744d6f010c0af214c5"
 dependencies = [
  "async-trait",
  "base64",
@@ -614,7 +615,7 @@ dependencies = [
 
 [[package]]
 name = "fs-rpc"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -634,8 +635,8 @@ dependencies = [
 
 [[package]]
 name = "fs-settings"
-version = "0.0.32"
-source = "git+https://github.com/FreeSynergy/fs-components?tag=v0.0.32#62976de8c28c93721a007b82a5f730abff669e86"
+version = "0.0.35"
+source = "git+https://github.com/FreeSynergy-Net/fs-components?tag=v0.0.35#0becc479920d1bd512b30800cb0772db1130c27d"
 dependencies = [
  "async-trait",
  "fs-conformance",
@@ -644,7 +645,7 @@ dependencies = [
 
 [[package]]
 name = "fs-settings-rpc"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -661,7 +662,7 @@ dependencies = [
 
 [[package]]
 name = "fs-trusted-path"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "fs-trusted-path",
  "tempfile",
@@ -670,8 +671,8 @@ dependencies = [
 
 [[package]]
 name = "fs-types"
-version = "0.0.4"
-source = "git+https://github.com/FreeSynergy/fs-types?tag=v0.0.4#0dbc9b685746ea55ceb789fe1043a162e34ac387"
+version = "0.0.5"
+source = "git+https://github.com/FreeSynergy-Net/fs-types?tag=v0.0.6#2f45110417cf42311d5dee72287b7644312d4bc4"
 dependencies = [
  "capnp",
  "chrono",
@@ -679,7 +680,9 @@ dependencies = [
  "idna",
  "iri-string",
  "oxilangtag",
+ "semver",
  "unicode-normalization",
+ "zeroize",
 ]
 
 [[package]]
@@ -2941,6 +2944,12 @@ dependencies = [
  "syn 3.0.10",
  "synstructure",
 ]
+
+[[package]]
+name = "zeroize"
+version = "1.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85ccff8a4805aba1eaa4cd4afcd49f7557dd2cf5fd79ffc37f8959466effc5aa"
 
 [[package]]
 name = "zerotrie"
