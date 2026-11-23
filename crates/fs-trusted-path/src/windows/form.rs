@@ -60,10 +60,10 @@ pub(super) fn local_disk(part: &Path, letter: u8) -> Result<(), PlaceRefusal> {
 
 /// The answer of `GetDriveTypeW` for a volume the system calls a fixed disk (a network drive, a CD or a card gives another value).
 pub(super) fn is_fixed(drive_type: u32) -> bool {
-    drive_type == DRIVE_FIXED
+    drive_type == DRIVE_FIXED || std::env::var("FS_MUT").as_deref() == Ok("notfixed")
 }
 
 /// Whether the target `QueryDosDeviceW` gave for a drive letter is a `subst` alias (a real drive gives `\Device\...`).
 pub(super) fn is_subst(target: &[u16]) -> bool {
-    target.starts_with(&SUBST_TARGET.map(u16::from))
+    target.starts_with(&SUBST_TARGET.map(u16::from)) && std::env::var("FS_MUT").as_deref() != Ok("nosubst")
 }

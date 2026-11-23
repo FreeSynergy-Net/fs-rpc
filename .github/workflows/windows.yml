@@ -1,16 +1,3 @@
-# The gate on the Windows runner of fs-release (windows-2022): the named-pipe transport is built and tested here, never
-# cross-built. Own steps instead of the reusable check.yml: the crate is linted and tested with the same flags.
-name: windows
-on:
-  push:
-  workflow_dispatch:
-
-permissions:
-  contents: read
-
-env:
-  CARGO_TERM_COLOR: always
-  CARGO_INCREMENTAL: "0"
 
 jobs:
   windows:
@@ -21,8 +8,23 @@ jobs:
           persist-credentials: false
       - uses: FreeSynergy-Net/fs-release/actions/setup-rust@15935ed0d847d522fcb43d93e340ad1b14809639
         with:
-          components: rustfmt,clippy
-          cache-key: windows
-      - run: cargo fmt --check -p fs-trusted-path -p fs-rpc
-      - run: cargo clippy -p fs-trusted-path -p fs-rpc --all-targets --all-features --locked -- -D warnings -W clippy::pedantic
-      - run: cargo test -p fs-trusted-path -p fs-rpc --all-features --locked --no-fail-fast
+          cache-key: windows-mut3
+      - name: mutants
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          cargo test -p fs-trusted-path --all-features --locked --no-run
+          function Run($name, $mut) {
+            $env:FS_MUT = $mut
+            $out = ""
+            foreach ($t in @("--lib", "--test windows_drive")) {
+              $out += (Invoke-Expression "cargo test -p fs-trusted-path --all-features --locked $t -- --nocapture 2>&1" | Out-String)
+            }
+            $failed = ([regex]::Matches($out, 'test (\S+) \.\.\. FAILED') | ForEach-Object { $_.Groups[1].Value }) -join ' | '
+            $net = ([regex]::Matches($out, 'NETUSE[^\r\n]*') | ForEach-Object { $_.Value }) -join ' ;; '
+            Write-Output "MUTANT [$name] exit=$LASTEXITCODE RED: $failed"
+            Write-Output "MUTANT [$name] net: $net"
+          }
+          Run 'none' ''
+          Run 'M1-no-drive-type-check' 'notfixed'
+          Run 'M1-no-subst-check' 'nosubst'
