@@ -616,6 +616,7 @@ dependencies = [
 name = "fs-place"
 version = "0.0.7"
 dependencies = [
+ "fs-place",
  "tempfile",
  "windows-sys 0.61.2",
 ]

@@ -5,6 +5,14 @@
 //!
 //! Security module. No relaxation: a doubt is a refusal.
 //!
+//! Limits, said openly (Windows):
+//! - "Elevated = Administrators = trusted", like root or sudo on Unix: whatever an elevated process of any administrator makes is owned
+//!   by Administrators and counts as the system's. UAC is not a security boundary (Microsoft says so). Holders of `SeRestorePrivilege`
+//!   or `SeBackupPrivilege` (Backup Operators) pass any ACL, like `CAP_DAC_OVERRIDE`.
+//! - The check looks at the path, not at a handle. It holds only while every part above is closed too: the caller walks the way
+//!   from the top and checks each part. A race remains only against accounts that are trusted anyway.
+//! - Only a local fixed disk counts: network drives, `subst` aliases and removable media are refused (`NotLocalDisk`).
+//!
 //! Pattern: Specification ([`Trust`]) + Value ([`PlaceRefusal`] names the border hit).
 
 mod refusal;

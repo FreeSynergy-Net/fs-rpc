@@ -44,8 +44,9 @@ impl Trust {
         }
     }
 
-    /// Other owners. Only for tests that need a folder of their own (a test folder is never the system's).
-    #[doc(hidden)]
+    /// Other owners. Only for tests that need a folder of their own (a test folder is never the system's); behind the feature
+    /// `test-support`, so no production code can build its own circle of trust by accident.
+    #[cfg(feature = "test-support")]
     #[must_use]
     pub fn for_test(owners: Vec<Owner>) -> Self {
         Self { owners }

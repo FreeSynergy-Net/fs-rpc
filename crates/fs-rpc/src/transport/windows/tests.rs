@@ -209,3 +209,10 @@ fn a_handle_the_system_cannot_ask_gives_the_credentials_error_not_a_default_user
     let err = CallerError::Credentials(err);
     assert_eq!(err.code(), "caller-credentials");
 }
+
+/// The two checks of the heartbeat (production values) are not "always yes": a handle that is no pipe is nobody's friend.
+#[test]
+fn the_checks_of_the_heartbeat_say_no_for_a_handle_that_is_no_pipe() {
+    assert!(!super::beat::CLIENT_IS_ME(INVALID_HANDLE_VALUE));
+    assert!(!super::beat::SERVER_IS_ME(INVALID_HANDLE_VALUE));
+}

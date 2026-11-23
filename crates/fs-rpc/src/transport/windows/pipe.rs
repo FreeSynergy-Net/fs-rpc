@@ -3,14 +3,14 @@
 
 use std::io;
 
-use fs_place::windows::acl::Descriptor;
+use fs_place::windows::acl::{Descriptor, Inherit};
 use tokio::net::windows::named_pipe::{NamedPipeServer, ServerOptions};
 use windows_sys::Win32::Security::SECURITY_ATTRIBUTES;
 
 /// One instance of the pipe `name`, open to this user alone (not to the system, not to administrators: the standard rights
 /// would let others in). `first` is the rule that decides who owns the name.
 pub(super) fn create_pipe(name: &str, first: bool) -> io::Result<NamedPipeServer> {
-    let descriptor = Descriptor::only_me("")?;
+    let descriptor = Descriptor::only_me(Inherit::None)?;
     let mut attributes = SECURITY_ATTRIBUTES {
         nLength: u32::try_from(size_of::<SECURITY_ATTRIBUTES>()).unwrap_or(0),
         lpSecurityDescriptor: descriptor.as_ptr(),

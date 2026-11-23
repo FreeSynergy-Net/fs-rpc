@@ -1,24 +1,22 @@
-//! Who a process is: the user of a token, and the check "is the other end of the pipe this user" (moved from fs-rpc).
-//! Pattern: Value object ([`Sid`]) + RAII ([`Handle`]). The Windows side of what `SO_PEERCRED` does on Unix.
+//! Who a process is: the user of a token, as a value (`Sid`, `Who`, `me`). The peer checks live in `peer` and are re-exported here.
+//! Pattern: Value object ([`Sid`]) + RAII ([`Handle`]).
 
 use std::io;
-use std::os::windows::io::AsRawHandle;
 use std::ptr::null_mut;
 use std::sync::OnceLock;
 
 use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, LocalFree};
 use windows_sys::Win32::Security::Authorization::{ConvertSidToStringSidW, ConvertStringSidToSidW};
 use windows_sys::Win32::Security::{
-    EqualSid, GetLengthSid, GetTokenInformation, LookupAccountSidW, PSID, SID_NAME_USE,
-    TOKEN_OWNER, TOKEN_QUERY, TOKEN_USER, TokenOwner, TokenUser,
+    EqualSid, GetLengthSid, GetTokenInformation, PSID, TOKEN_OWNER, TOKEN_QUERY, TOKEN_USER,
+    TokenOwner, TokenUser,
 };
-use windows_sys::Win32::System::Pipes::{GetNamedPipeClientProcessId, GetNamedPipeServerProcessId};
-use windows_sys::Win32::System::Threading::{
-    GetCurrentProcess, OpenProcess, OpenProcessToken, PROCESS_QUERY_LIMITED_INFORMATION,
-};
+use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
+
+pub use super::peer::{client_caller, client_is_me, my_account_name, process_is_me, server_is_me};
 
 /// A handle that is closed when dropped.
-struct Handle(HANDLE);
+pub(super) struct Handle(pub(super) HANDLE);
 
 impl Drop for Handle {
     fn drop(&mut self) {
@@ -120,7 +118,7 @@ fn token_buffer(token: HANDLE, class: i32) -> io::Result<Vec<u64>> {
     Ok(buffer)
 }
 
-fn who_of(token: &Handle) -> io::Result<Who> {
+pub(super) fn who_of(token: &Handle) -> io::Result<Who> {
     let user = token_buffer(token.0, TokenUser)?;
     let owner = token_buffer(token.0, TokenOwner)?;
     // The buffers hold a TOKEN_USER and a TOKEN_OWNER; the SIDs they point to lie inside the same buffers.
@@ -129,7 +127,7 @@ fn who_of(token: &Handle) -> io::Result<Who> {
     Ok(Who { user, owner })
 }
 
-fn token_of(process: HANDLE) -> io::Result<Handle> {
+pub(super) fn token_of(process: HANDLE) -> io::Result<Handle> {
     let mut token: HANDLE = null_mut();
     if unsafe { OpenProcessToken(process, TOKEN_QUERY, &raw mut token) } == 0 {
         return Err(io::Error::last_os_error());
@@ -158,98 +156,6 @@ pub fn me() -> io::Result<&'static Who> {
 /// The user of this process is not known.
 pub fn my_sid_text() -> io::Result<String> {
     me()?.user.text()
-}
-
-/// Does the process `pid` run as this user? A process that cannot be looked at (gone, or of somebody else) is not.
-#[must_use]
-pub fn process_is_me(pid: u32) -> bool {
-    let Ok(me) = me() else { return false };
-    let process = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid) };
-    if process.is_null() {
-        return false;
-    }
-    let process = Handle(process);
-    token_of(process.0)
-        .and_then(|t| who_of(&t))
-        .is_ok_and(|w| me.user.equals(&w.user))
-}
-
-/// Does the client of this pipe instance run as this user?
-#[must_use]
-pub fn client_is_me(pipe: &impl AsRawHandle) -> bool {
-    let mut pid = 0_u32;
-    unsafe {
-        GetNamedPipeClientProcessId(pipe.as_raw_handle(), &raw mut pid) != 0 && process_is_me(pid)
-    }
-}
-
-/// Does the server of this pipe run as this user?
-#[must_use]
-pub fn server_is_me(pipe: &impl AsRawHandle) -> bool {
-    let mut pid = 0_u32;
-    unsafe {
-        GetNamedPipeServerProcessId(pipe.as_raw_handle(), &raw mut pid) != 0 && process_is_me(pid)
-    }
-}
-
-/// The account name of a SID (`name` of `DOMAIN\\name`); `None` if the system has none.
-fn account_name(sid: &Sid) -> Option<String> {
-    let (mut name_len, mut domain_len) = (0_u32, 0_u32);
-    let mut kind: SID_NAME_USE = 0;
-    // The first call only asks how long the buffers must be.
-    unsafe {
-        LookupAccountSidW(
-            std::ptr::null(),
-            sid.ptr(),
-            null_mut(),
-            &raw mut name_len,
-            null_mut(),
-            &raw mut domain_len,
-            &raw mut kind,
-        )
-    };
-    if name_len == 0 {
-        return None;
-    }
-    let mut name = vec![0_u16; name_len as usize];
-    let mut domain = vec![0_u16; domain_len.max(1) as usize];
-    let ok = unsafe {
-        LookupAccountSidW(
-            std::ptr::null(),
-            sid.ptr(),
-            name.as_mut_ptr(),
-            &raw mut name_len,
-            domain.as_mut_ptr(),
-            &raw mut domain_len,
-            &raw mut kind,
-        )
-    };
-    (ok != 0).then(|| String::from_utf16_lossy(&name[..name_len as usize]))
-}
-
-/// The account name of the user of this process (`None` if the system has none); to compare with a caller.
-#[must_use]
-pub fn my_account_name() -> Option<String> {
-    me().ok().and_then(|m| account_name(&m.user))
-}
-
-/// Who runs the client process of this pipe instance, from the process token (the SID, and the account name if the system has
-/// one); asked again for every connection.
-///
-/// # Errors
-/// The pipe or the process cannot be looked at.
-pub fn client_caller(pipe: &impl AsRawHandle) -> io::Result<(String, Option<String>)> {
-    let mut pid = 0_u32;
-    if unsafe { GetNamedPipeClientProcessId(pipe.as_raw_handle(), &raw mut pid) } == 0 {
-        return Err(io::Error::last_os_error());
-    }
-    let process = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid) };
-    if process.is_null() {
-        return Err(io::Error::last_os_error());
-    }
-    let process = Handle(process);
-    let who = who_of(&token_of(process.0)?)?;
-    Ok((who.user.text()?, account_name(&who.user)))
 }
 
 /// The user of this process and the default owner of what its token makes: both are "me" as an owner (an elevated process owns

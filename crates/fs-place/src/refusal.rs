@@ -5,8 +5,10 @@ use std::fmt;
 /// Why a part of the way does not count as the system's (one border each).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PlaceRefusal {
-    /// Not an absolute path of a local disk (Windows: a UNC, network or device path; a `:` after the drive, `.` or `..`).
+    /// Not an absolute path of a drive letter (Windows: a UNC or device path; a `:` after the drive, `.` or `..`).
     NotAbsolute,
+    /// Windows: the drive is not a local fixed disk: a network drive, a `subst` alias, removable or optical media.
+    NotLocalDisk,
     /// A link (Unix: symlink; Windows: any reparse point: symlink, junction, mount point).
     Symlink,
     /// Not owned by a trusted owner.
@@ -23,6 +25,7 @@ impl fmt::Display for PlaceRefusal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::NotAbsolute => "not-absolute",
+            Self::NotLocalDisk => "not-local-disk",
             Self::Symlink => "symlink",
             Self::WrongOwner => "wrong-owner",
             Self::Writable => "writable",

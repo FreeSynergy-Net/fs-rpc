@@ -1,11 +1,10 @@
-//! The Windows version of the check (plan WIN-HOST, rules 2.1 to 2.6). One part of a way: a local disk path without tricks, no
+//! The Windows version of the check (plan WIN-HOST, rules 2.1 to 2.6). One part of a way: a path of a local fixed disk without tricks, no
 //! reparse point, owned by SYSTEM, Administrators or `TrustedInstaller`, and no allow entry of anybody else that writes.
 //! Pattern: Specification (a pure check over owner and ACL; no state).
 
 use std::ffi::c_void;
-use std::os::windows::ffi::OsStrExt;
 use std::os::windows::fs::MetadataExt;
-use std::path::{Component, Path, Prefix};
+use std::path::Path;
 use std::ptr::null_mut;
 use std::sync::OnceLock;
 
@@ -21,12 +20,12 @@ use windows_sys::Win32::Storage::FileSystem::{
     FILE_WRITE_ATTRIBUTES, FILE_WRITE_DATA, FILE_WRITE_EA, WRITE_DAC, WRITE_OWNER,
 };
 use windows_sys::Win32::System::SystemServices::{
-    ACCESS_ALLOWED_ACE_TYPE, ACCESS_ALLOWED_CALLBACK_ACE_TYPE,
-    ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE, ACCESS_ALLOWED_COMPOUND_ACE_TYPE,
-    ACCESS_ALLOWED_OBJECT_ACE_TYPE, MAXIMUM_ALLOWED,
+    ACCESS_ALLOWED_ACE_TYPE, ACCESS_DENIED_ACE_TYPE, ACCESS_DENIED_CALLBACK_ACE_TYPE,
+    ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE, ACCESS_DENIED_OBJECT_ACE_TYPE, MAXIMUM_ALLOWED,
 };
 
 use super::acl::{Descriptor, wide};
+use super::form::{local_disk, shape};
 use super::sid::Sid;
 use crate::{Level, PlaceRefusal};
 
@@ -71,29 +70,9 @@ pub(crate) fn system_owners() -> Vec<Sid> {
         .clone()
 }
 
-/// Rule 2.1: a path of a local disk, nothing else (no UNC, network or device path, no `:` after the drive, no `.` or `..`).
-fn shape(part: &Path) -> Result<(), PlaceRefusal> {
-    if !part.is_absolute() {
-        return Err(PlaceRefusal::NotAbsolute);
-    }
-    let mut parts = part.components();
-    match parts.next() {
-        Some(Component::Prefix(p))
-            if matches!(p.kind(), Prefix::Disk(_) | Prefix::VerbatimDisk(_)) => {}
-        _ => return Err(PlaceRefusal::NotAbsolute),
-    }
-    for c in parts {
-        match c {
-            Component::RootDir => {}
-            Component::Normal(n) if !n.encode_wide().any(|u| u == u16::from(b':')) => {}
-            _ => return Err(PlaceRefusal::NotAbsolute),
-        }
-    }
-    Ok(())
-}
-
 pub(crate) fn check(owners: &[Sid], part: &Path, level: Level) -> Result<(), PlaceRefusal> {
-    shape(part)?;
+    let letter = shape(part)?;
+    local_disk(part, letter)?;
     // Rule 2.2: the attribute, not `is_symlink()` (which knows less kinds of link).
     let meta = std::fs::symlink_metadata(part).map_err(|_| PlaceRefusal::Unreadable)?;
     if meta.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
@@ -129,6 +108,28 @@ pub(crate) fn check(owners: &[Sid], part: &Path, level: Level) -> Result<(), Pla
     dacl_is_closed(owners, dacl, limit)
 }
 
+/// What an entry of the DACL is for the check: an allowlist (a doubt is a refusal).
+#[derive(Debug, PartialEq, Eq)]
+pub(super) enum AceKind {
+    /// A plain allow entry: owner and mask are looked at.
+    Check,
+    /// An allow entry the check cannot judge (with a condition, an object, a compound, or a kind not known): refused.
+    Gives,
+    /// One of the four deny kinds: gives nothing.
+    GivesNothing,
+}
+
+pub(super) fn kind_of(ace_type: u32) -> AceKind {
+    match ace_type {
+        ACCESS_ALLOWED_ACE_TYPE => AceKind::Check,
+        ACCESS_DENIED_ACE_TYPE
+        | ACCESS_DENIED_OBJECT_ACE_TYPE
+        | ACCESS_DENIED_CALLBACK_ACE_TYPE
+        | ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE => AceKind::GivesNothing,
+        _ => AceKind::Gives,
+    }
+}
+
 /// Rule 2.4: a missing DACL, or an allow entry of somebody else (not only inherited) that gives a right of `limit`, is refused.
 /// Deny entries are not counted: that can judge too strict, never too lax (the counterpart of `mode & 0o022`).
 fn dacl_is_closed(owners: &[Sid], dacl: *mut ACL, limit: u32) -> Result<(), PlaceRefusal> {
@@ -154,15 +155,10 @@ fn dacl_is_closed(owners: &[Sid], dacl: *mut ACL, limit: u32) -> Result<(), Plac
             return Err(PlaceRefusal::Unreadable);
         }
         let header = unsafe { *ace.cast::<ACE_HEADER>() };
-        match u32::from(header.AceType) {
-            ACCESS_ALLOWED_ACE_TYPE => {}
-            // Kinds that allow with a condition or an object: not understood, so refused.
-            ACCESS_ALLOWED_COMPOUND_ACE_TYPE
-            | ACCESS_ALLOWED_OBJECT_ACE_TYPE
-            | ACCESS_ALLOWED_CALLBACK_ACE_TYPE
-            | ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE => return Err(PlaceRefusal::Writable),
-            // Deny, audit, label ...: they give nothing.
-            _ => continue,
+        match kind_of(u32::from(header.AceType)) {
+            AceKind::Check => {}
+            AceKind::Gives => return Err(PlaceRefusal::Writable),
+            AceKind::GivesNothing => continue,
         }
         if u32::from(header.AceFlags) & INHERIT_ONLY_ACE != 0 {
             continue;
