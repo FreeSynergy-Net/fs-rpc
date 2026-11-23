@@ -1,4 +1,4 @@
-//! Who a process is: the user of a token, and the check "is the other end of the pipe this user".
+//! Who a process is: the user of a token, and the check "is the other end of the pipe this user" (moved from fs-rpc).
 //! Pattern: Value object ([`Sid`]) + RAII ([`Handle`]). The Windows side of what `SO_PEERCRED` does on Unix.
 
 use std::io;
@@ -7,7 +7,7 @@ use std::ptr::null_mut;
 use std::sync::OnceLock;
 
 use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, LocalFree};
-use windows_sys::Win32::Security::Authorization::ConvertSidToStringSidW;
+use windows_sys::Win32::Security::Authorization::{ConvertSidToStringSidW, ConvertStringSidToSidW};
 use windows_sys::Win32::Security::{
     EqualSid, GetLengthSid, GetTokenInformation, LookupAccountSidW, PSID, SID_NAME_USE,
     TOKEN_OWNER, TOKEN_QUERY, TOKEN_USER, TokenOwner, TokenUser,
@@ -28,7 +28,8 @@ impl Drop for Handle {
 }
 
 /// A security identifier, copied out of the system's buffer.
-pub(super) struct Sid(Vec<u32>);
+#[derive(Clone, Debug)]
+pub struct Sid(Vec<u32>);
 
 impl Sid {
     fn copy(sid: PSID) -> Self {
@@ -40,16 +41,38 @@ impl Sid {
         Self(words)
     }
 
-    pub(super) fn ptr(&self) -> PSID {
+    /// The system's view of the SID; valid as long as `self` lives.
+    #[must_use]
+    pub fn ptr(&self) -> PSID {
         self.0.as_ptr().cast_mut().cast()
     }
 
-    pub(super) fn equals(&self, other: PSID) -> bool {
+    /// Are the two the same SID?
+    #[must_use]
+    pub fn equals(&self, other: PSID) -> bool {
         unsafe { EqualSid(self.ptr(), other) != 0 }
     }
 
+    /// The SID of a text such as `S-1-5-18`.
+    ///
+    /// # Errors
+    /// The text is not a SID.
+    pub fn from_text(text: &str) -> io::Result<Self> {
+        let wide: Vec<u16> = text.encode_utf16().chain(std::iter::once(0)).collect();
+        let mut out: PSID = null_mut();
+        if unsafe { ConvertStringSidToSidW(wide.as_ptr(), &raw mut out) } == 0 {
+            return Err(io::Error::last_os_error());
+        }
+        let sid = Self::copy(out);
+        unsafe { LocalFree(out.cast()) };
+        Ok(sid)
+    }
+
     /// `S-1-5-21-...`
-    pub(super) fn text(&self) -> io::Result<String> {
+    ///
+    /// # Errors
+    /// The system cannot make the text.
+    pub fn text(&self) -> io::Result<String> {
         let mut out: *mut u16 = null_mut();
         if unsafe { ConvertSidToStringSidW(self.ptr(), &raw mut out) } == 0 {
             return Err(io::Error::last_os_error());
@@ -65,9 +88,9 @@ impl Sid {
 }
 
 /// The user and the default owner of a token. Files made by an elevated process are owned by a group, the owner of the token.
-pub(super) struct Who {
-    pub(super) user: Sid,
-    pub(super) owner: Sid,
+pub struct Who {
+    pub user: Sid,
+    pub owner: Sid,
 }
 
 fn token_buffer(token: HANDLE, class: i32) -> io::Result<Vec<u64>> {
@@ -110,7 +133,10 @@ fn token_of(process: HANDLE) -> io::Result<Handle> {
 }
 
 /// The user this process runs as; read once.
-pub(super) fn me() -> io::Result<&'static Who> {
+///
+/// # Errors
+/// The user of this process is not known.
+pub fn me() -> io::Result<&'static Who> {
     static ME: OnceLock<Option<Who>> = OnceLock::new();
     ME.get_or_init(|| {
         token_of(unsafe { GetCurrentProcess() })
@@ -122,12 +148,16 @@ pub(super) fn me() -> io::Result<&'static Who> {
 }
 
 /// `S-1-5-21-...` of this process.
-pub(super) fn my_sid_text() -> io::Result<String> {
+///
+/// # Errors
+/// The user of this process is not known.
+pub fn my_sid_text() -> io::Result<String> {
     me()?.user.text()
 }
 
 /// Does the process `pid` run as this user? A process that cannot be looked at (gone, or of somebody else) is not.
-pub(super) fn process_is_me(pid: u32) -> bool {
+#[must_use]
+pub fn process_is_me(pid: u32) -> bool {
     let Ok(me) = me() else { return false };
     let process = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid) };
     if process.is_null() {
@@ -140,13 +170,15 @@ pub(super) fn process_is_me(pid: u32) -> bool {
 }
 
 /// Does the client of this pipe instance run as this user?
-pub(super) fn client_is_me(pipe: RawHandle) -> bool {
+#[must_use]
+pub fn client_is_me(pipe: RawHandle) -> bool {
     let mut pid = 0_u32;
     unsafe { GetNamedPipeClientProcessId(pipe, &raw mut pid) != 0 && process_is_me(pid) }
 }
 
 /// Does the server of this pipe run as this user?
-pub(super) fn server_is_me(pipe: RawHandle) -> bool {
+#[must_use]
+pub fn server_is_me(pipe: RawHandle) -> bool {
     let mut pid = 0_u32;
     unsafe { GetNamedPipeServerProcessId(pipe, &raw mut pid) != 0 && process_is_me(pid) }
 }
@@ -186,15 +218,18 @@ fn account_name(sid: &Sid) -> Option<String> {
     (ok != 0).then(|| String::from_utf16_lossy(&name[..name_len as usize]))
 }
 
-/// The account name of the user of this process (`None` if the system has none); for the tests, to compare with a caller.
-#[cfg(test)]
-pub(super) fn my_account_name() -> Option<String> {
+/// The account name of the user of this process (`None` if the system has none); to compare with a caller.
+#[must_use]
+pub fn my_account_name() -> Option<String> {
     me().ok().and_then(|m| account_name(&m.user))
 }
 
 /// Who runs the client process of this pipe instance, from the process token (the SID, and the account name if the system has
-/// one); asked again for every connection. Compiled on Windows only; not run by the authors (marked unchecked in the CHANGELOG).
-pub(super) fn client_caller(pipe: RawHandle) -> io::Result<(String, Option<String>)> {
+/// one); asked again for every connection.
+///
+/// # Errors
+/// The pipe or the process cannot be looked at.
+pub fn client_caller(pipe: RawHandle) -> io::Result<(String, Option<String>)> {
     let mut pid = 0_u32;
     if unsafe { GetNamedPipeClientProcessId(pipe, &raw mut pid) } == 0 {
         return Err(io::Error::last_os_error());
@@ -206,4 +241,14 @@ pub(super) fn client_caller(pipe: RawHandle) -> io::Result<(String, Option<Strin
     let process = Handle(process);
     let who = who_of(&token_of(process.0)?)?;
     Ok((who.user.text()?, account_name(&who.user)))
+}
+
+/// The user of this process and the default owner of what its token makes: both are "me" as an owner (an elevated process owns
+/// its files as a group).
+///
+/// # Errors
+/// The user of this process is not known.
+pub fn my_owners() -> io::Result<Vec<Sid>> {
+    let me = me()?;
+    Ok(vec![me.user.clone(), me.owner.clone()])
 }

@@ -23,6 +23,6 @@ jobs:
         with:
           components: rustfmt,clippy
           cache-key: windows
-      - run: cargo fmt --check -p fs-rpc
-      - run: cargo clippy -p fs-rpc --all-targets --all-features --locked -- -D warnings -W clippy::pedantic
-      - run: cargo test -p fs-rpc --all-features --locked --no-fail-fast
+      - run: cargo fmt --check -p fs-place -p fs-rpc
+      - run: cargo clippy -p fs-place -p fs-rpc --all-targets --all-features --locked -- -D warnings -W clippy::pedantic
+      - run: cargo test -p fs-place -p fs-rpc --all-features --locked --no-fail-fast

@@ -45,7 +45,7 @@ FreeSynergy is a family of programs that are free for everyone, forever, and tha
 
 ## For developers
 
-- Library crates: `fs-rpc` (`crates/fs-rpc`; it was the module `rpc` of fs-interfaces up to v0.0.25: `fs_interfaces::rpc::X` is now `fs_rpc::X`) and `fs-settings-rpc`. `fs-starter` (the program shell) moved to the repo `fs-starter` in 0.0.4.
+- Library crates: `fs-place` (`crates/fs-place`, working name; the system-place check and the Windows identity/rights basics that `fs-rpc` uses), `fs-rpc` (`crates/fs-rpc`; it was the module `rpc` of fs-interfaces up to v0.0.25: `fs_interfaces::rpc::X` is now `fs_rpc::X`) and `fs-settings-rpc`. `fs-starter` (the program shell) moved to the repo `fs-starter` in 0.0.4.
 - Dependencies by git tag: `fs-types` v0.0.4, `fs-interfaces` v0.0.29, `fs-objects` v0.0.8 (only `ObjectId` and `Envelope` of the v4 layer, no feature `v5`).
 - No code generation here: the generated Cap'n Proto modules (`common_capnp` and so on) come from fs-interfaces; there is no `build.rs` and no schema compiler.
 - Use it by git tag: `fs-rpc = { git = "https://github.com/FreeSynergy/fs-rpc", tag = "v0.0.2" }`, and pin the same fs-types and fs-interfaces tags as this library does, or your lock holds two copies of the generated types. `.fs-lock-sources.toml` makes the lock check of fs-release strict.

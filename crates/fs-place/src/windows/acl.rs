@@ -1,12 +1,11 @@
-//! The rights of the pipe and of the data folder: this user alone. Pattern: Factory (a pipe instance with its descriptor, a
-//! folder made private) + RAII ([`Descriptor`]).
+//! The rights of a pipe and of a data folder: this user alone (moved from fs-rpc; the pipe itself stays there). Pattern: Factory
+//! (a descriptor for this user, a folder made private) + RAII ([`Descriptor`]).
 
 use std::io;
 use std::os::windows::ffi::OsStrExt;
 use std::path::Path;
 use std::ptr::{null, null_mut};
 
-use tokio::net::windows::named_pipe::{NamedPipeServer, ServerOptions};
 use windows_sys::Win32::Foundation::LocalFree;
 use windows_sys::Win32::Security::Authorization::{
     ConvertStringSecurityDescriptorToSecurityDescriptorW, GetNamedSecurityInfoW, SDDL_REVISION_1,
@@ -14,13 +13,34 @@ use windows_sys::Win32::Security::Authorization::{
 };
 use windows_sys::Win32::Security::{
     ACL, DACL_SECURITY_INFORMATION, GetSecurityDescriptorDacl, OWNER_SECURITY_INFORMATION,
-    PROTECTED_DACL_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR, PSID, SECURITY_ATTRIBUTES,
+    PROTECTED_DACL_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR, PSID,
 };
 
 use super::sid::{me, my_sid_text};
 
 /// A security descriptor the system allocated.
-struct Descriptor(PSECURITY_DESCRIPTOR);
+pub struct Descriptor(PSECURITY_DESCRIPTOR);
+
+impl Descriptor {
+    /// A protected descriptor with one entry: full access for this user, `flags` as inheritance (`OICI` for a folder, empty for a pipe).
+    ///
+    /// # Errors
+    /// The user is not known, or the system refuses.
+    pub fn only_me(flags: &str) -> io::Result<Self> {
+        only_me(flags)
+    }
+
+    /// Take over a descriptor the system allocated (it is freed on drop).
+    pub(crate) fn from_raw(raw: PSECURITY_DESCRIPTOR) -> Self {
+        Self(raw)
+    }
+
+    /// The system's view of it; valid as long as `self` lives.
+    #[must_use]
+    pub fn as_ptr(&self) -> PSECURITY_DESCRIPTOR {
+        self.0
+    }
+}
 
 impl Drop for Descriptor {
     fn drop(&mut self) {
@@ -28,11 +48,10 @@ impl Drop for Descriptor {
     }
 }
 
-fn wide(text: &std::ffi::OsStr) -> Vec<u16> {
+pub(crate) fn wide(text: &std::ffi::OsStr) -> Vec<u16> {
     text.encode_wide().chain(std::iter::once(0)).collect()
 }
 
-/// A protected descriptor with one entry: full access for this user, `flags` as inheritance (`OICI` for a folder).
 fn only_me(flags: &str) -> io::Result<Descriptor> {
     let sddl = format!("D:P(A;{flags};FA;;;{})", my_sid_text()?);
     let mut out: PSECURITY_DESCRIPTOR = null_mut();
@@ -58,23 +77,6 @@ fn code(error: u32) -> io::Result<()> {
             i32::try_from(error).unwrap_or(i32::MAX),
         ))
     }
-}
-
-/// One instance of the pipe `name`, open to this user alone (not to the system, not to administrators: the standard rights
-/// would let others in). `first` is the rule that decides who owns the name.
-pub(super) fn create_pipe(name: &str, first: bool) -> io::Result<NamedPipeServer> {
-    let descriptor = only_me("")?;
-    let mut attributes = SECURITY_ATTRIBUTES {
-        nLength: u32::try_from(size_of::<SECURITY_ATTRIBUTES>()).unwrap_or(0),
-        lpSecurityDescriptor: descriptor.0,
-        bInheritHandle: 0,
-    };
-    let mut options = ServerOptions::new();
-    options
-        .first_pipe_instance(first)
-        .reject_remote_clients(true);
-    // The descriptor outlives the call; the system copies it.
-    unsafe { options.create_with_security_attributes_raw(name, (&raw mut attributes).cast()) }
 }
 
 /// Is the owner of `dir` this user (or the owner a token of this user gives to what it makes)?
@@ -103,7 +105,7 @@ fn owned_by_me(dir: &Path) -> io::Result<bool> {
 ///
 /// # Errors
 /// Another user owns it (`PermissionDenied`), or the system refuses.
-pub(super) fn make_private(dir: &Path) -> io::Result<()> {
+pub fn make_private(dir: &Path) -> io::Result<()> {
     std::fs::create_dir_all(dir)?;
     if !owned_by_me(dir)? {
         return Err(io::Error::new(

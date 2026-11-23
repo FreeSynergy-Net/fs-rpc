@@ -7,9 +7,8 @@
 //! both ends look at the process on the other end (what `SO_PEERCRED` does on Unix): the server drops a client that is not
 //! this user, the client refuses a server that is not.
 
-mod acl;
 mod name;
-mod sid;
+mod pipe;
 #[cfg(test)]
 mod tests;
 
@@ -25,7 +24,9 @@ use tokio::sync::Mutex;
 use super::endpoint::{Accepted, Endpoint};
 use super::peer::{Caller, CallerError, CallerSource};
 use crate::datadir::DataDirError;
+use fs_place::windows::sid;
 use name::{companion_stem, default_name, pipe_name};
+use pipe::create_pipe;
 
 /// `ERROR_PIPE_BUSY`: every instance is in use at this moment; try again shortly.
 const PIPE_BUSY: i32 = 231;
@@ -80,7 +81,7 @@ fn already_running(path: &Path) -> io::Error {
 #[allow(clippy::unused_async)] // the same shape as the Unix side, where binding waits
 pub(super) async fn bind_socket(path: &Path) -> io::Result<BoundSocket> {
     let name = my_pipe_name(path)?;
-    let first = acl::create_pipe(&name, true).map_err(|e| match e.raw_os_error() {
+    let first = create_pipe(&name, true).map_err(|e| match e.raw_os_error() {
         Some(ACCESS_DENIED | PIPE_BUSY) => already_running(path),
         _ => e,
     })?;
@@ -104,13 +105,13 @@ fn run_dir() -> PathBuf {
     let local = std::env::var_os("LOCALAPPDATA")
         .filter(|v| !v.is_empty())
         .map(|b| PathBuf::from(b).join("FreeSynergy").join("run"));
-    if let Some(dir) = local.filter(|d| acl::make_private(d).is_ok()) {
+    if let Some(dir) = local.filter(|d| fs_place::windows::acl::make_private(d).is_ok()) {
         return dir;
     }
     let who = sid::my_sid_text().unwrap_or_default();
     let dir = std::env::temp_dir().join(format!("FreeSynergy-run-{who}"));
     // If this fails too, the caller's attempt to make its file says why.
-    let _ = acl::make_private(&dir);
+    let _ = fs_place::windows::acl::make_private(&dir);
     dir
 }
 
@@ -157,7 +158,7 @@ impl Endpoint for Windows {
     }
 
     fn prepare_data_dir(dir: &Path) -> Result<PathBuf, DataDirError> {
-        acl::make_private(dir)?;
+        fs_place::windows::acl::make_private(dir)?;
         Ok(dir.canonicalize().map(plain)?)
     }
 
@@ -168,7 +169,7 @@ impl Endpoint for Windows {
     async fn accept(bound: &BoundSocket) -> io::Result<Accepted<NamedPipeServer>> {
         let mut slot = bound.next.lock().await;
         if slot.is_none() {
-            match acl::create_pipe(&bound.name, false) {
+            match create_pipe(&bound.name, false) {
                 Ok(instance) => *slot = Some(instance),
                 Err(_) => return Ok(Accepted::Pause),
             }
@@ -187,7 +188,7 @@ impl Endpoint for Windows {
         }
         // The next instance exists before this one is handed over, so the name is never without one for longer than this;
         // if the system cannot make it now, the next `accept` pauses and tries again.
-        let next = acl::create_pipe(&bound.name, false).ok();
+        let next = create_pipe(&bound.name, false).ok();
         let Some(served) = std::mem::replace(&mut *slot, next) else {
             return Ok(Accepted::Pause);
         };

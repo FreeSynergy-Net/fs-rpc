@@ -15,7 +15,8 @@ use windows_sys::Win32::Security::{
 use super::super::endpoint::{Accepted, Endpoint};
 use super::super::peer::{CallerError, CallerSource};
 use super::name::{companion_stem, encode, pipe_name};
-use super::{Windows, bind_socket, sid};
+use super::{Windows, bind_socket};
+use fs_place::windows::sid;
 
 fn unique(tag: &str) -> PathBuf {
     static COUNT: AtomicU32 = AtomicU32::new(0);

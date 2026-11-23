@@ -2,6 +2,11 @@
 
 Version = tag.
 
+## Unreleased (WIN-HOST, WH2)
+
+- NEW crate `fs-place` (working name; the final name waits for the user, naming rule): (1) `Trust::system_owned(part, Level)` / `system_owned`, the check "is this part of a way the system's" for Unix (moved from fs-starter `SystemPlaces::check_one`: no symlink, owner root, not writable by group or others) and for Windows (no reparse point, owner SYSTEM / Administrators / TrustedInstaller, no allow entry of anybody else that writes; above the anchor only entries that can swap the child count; refusal `PlaceRefusal`); `Trust::for_test(owners)` for tests with a folder of their own. (2) The Windows basics MOVED (not copied) from `fs-rpc` `transport/windows/sid.rs` and `acl.rs`: `windows::sid` (SID, token owner, `me()`, peer checks) and `windows::acl` (`Descriptor`, `make_private`); `create_pipe` stays in `fs-rpc` (`pipe.rs`). `fs-rpc` depends on `fs-place`; behaviour of the pipe transport unchanged. No new relaxation.
+- Auf Deutsch: NEUES Crate `fs-place` (Arbeitsname; der endgueltige Name wartet auf den Nutzer): (1) `Trust::system_owned(Teil, Level)` prueft einen Wegteil: Unix (aus fs-starter verschoben: kein Symlink, Eigentuemer root, nicht fuer Gruppe/andere beschreibbar) und Windows (kein Reparse Point, Eigentuemer SYSTEM/Administratoren/TrustedInstaller, kein Erlauben-Eintrag Fremder mit Schreibrecht; ueber dem Anker zaehlen nur Rechte, die das Kind austauschen koennen); `Trust::for_test` fuer Tests. (2) Die Windows-Grundteile aus `fs-rpc` (`sid.rs`, `acl.rs`) VERSCHOBEN, nicht kopiert; `create_pipe` bleibt in `fs-rpc`. Keine neue Lockerung.
+
 ## 0.0.7 (2026-11-23)
 
 - Lift (pins, no code changes): `fs-interfaces` v0.0.31 (was v0.0.30; additive: new module `forms` and schema `formsource.capnp`, no existing schema id or Rust API of the crate `fs-interfaces` changed) in `fs-rpc` and `fs-settings-rpc`, so that the module repo has ONE `fs-interfaces` source (also in the graph of fs-forms and fs-starter). All other pins unchanged. One source per library in `Cargo.lock`. The code of `fs-rpc` (security module: sockets, actor) is byte-identical to v0.0.6. Version 0.0.7 because 0.0.6 is the last tag (version = tag).
