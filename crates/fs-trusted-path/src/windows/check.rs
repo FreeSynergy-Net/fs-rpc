@@ -37,7 +37,7 @@ const SYSTEM_SIDS: [&str; 3] = [
 ];
 
 /// Every right that lets somebody change what is in the part or the part itself.
-const WRITES: u32 = FILE_WRITE_DATA
+pub(super) const WRITES: u32 = FILE_WRITE_DATA
     | FILE_APPEND_DATA
     | FILE_WRITE_EA
     | FILE_WRITE_ATTRIBUTES
@@ -49,7 +49,7 @@ const WRITES: u32 = FILE_WRITE_DATA
     | GENERIC_ALL
     | MAXIMUM_ALLOWED;
 /// Above the anchor only what can swap the child: "create a folder" in `C:\` does not replace a present `Program Files` (rule 2.5).
-const SWAPS: u32 = FILE_DELETE_CHILD
+pub(super) const SWAPS: u32 = FILE_DELETE_CHILD
     | DELETE
     | WRITE_DAC
     | WRITE_OWNER
