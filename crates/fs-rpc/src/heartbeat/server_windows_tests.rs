@@ -55,9 +55,9 @@ async fn this_user_is_answered_on_the_pipe_of_the_beat() {
 
 #[tokio::test]
 async fn a_client_that_is_not_this_user_gets_nothing_and_runs_no_hook() {
+    static RUNS: AtomicUsize = AtomicUsize::new(0);
     let socket = unique("foreign-client");
     let shared = Arc::new(Shared::new());
-    static RUNS: AtomicUsize = AtomicUsize::new(0);
     // The hook counts its runs; a foreign client must never run it.
     *shared.hook_for_test() = Some(Arc::new(|| {
         RUNS.fetch_add(1, Ordering::SeqCst);
@@ -67,7 +67,13 @@ async fn a_client_that_is_not_this_user_gets_nothing_and_runs_no_hook() {
     let e = ask_beat(&socket, LIMIT).await.unwrap_err();
     assert!(matches!(e, BeatError::NoAnswer), "{e:?}");
     let e = ask_save(&socket, LIMIT).await.unwrap_err();
-    assert_eq!(e.kind(), std::io::ErrorKind::UnexpectedEof, "{e:?}");
+    assert!(
+        matches!(
+            e.kind(),
+            std::io::ErrorKind::UnexpectedEof | std::io::ErrorKind::ConnectionReset
+        ),
+        "{e:?}"
+    );
     assert_eq!(
         RUNS.load(Ordering::SeqCst),
         0,

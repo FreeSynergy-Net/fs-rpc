@@ -179,5 +179,5 @@ fn the_heartbeat_is_never_a_silent_ok_and_the_error_says_what_it_is() {
     drop(hb);
     let e = block_on(ask_beat(&socket, LIMIT)).unwrap_err();
     assert!(matches!(e, BeatError::NoAnswer), "{e:?}");
-    assert!(!e.to_string().is_empty());
+    assert_ne!(e.to_string(), "");
 }

@@ -1,4 +1,6 @@
 //! The wire of the heartbeat client on Windows: the pipe `<pipe>.beat`; the process behind it must be this user's.
+//!
+//! Pattern: Strategy (the wire of the heartbeat client on Windows).
 
 use std::io;
 use std::path::Path;

@@ -48,6 +48,8 @@ mod wire {
 }
 
 pub use client::{BeatError, ask_beat, ask_save};
+#[cfg_attr(not(unix), allow(unused_imports))]
+// the callers (`ensure_single`) exist on Unix only
 pub(crate) use client::{ask_beat_from, ask_save_from};
 pub use server::Heartbeat;
 pub use watch::{HangTimes, Hung, Verdict, Watch};

@@ -1,10 +1,11 @@
 //! The heartbeat's channel on Windows: the pipe `<pipe>.beat`, answered by a thread of its own with a `current_thread` runtime of
+//!
+//! Pattern: Active object + RAII (the thread and the pipe of the heartbeat on Windows).
 //! its own (so a blocked work thread, or the work thread's runtime, never silences it). Instances are made by the same
 //! `create_pipe` as the work pipe (open to this user alone, the first-instance rule); a client that is not this user is dropped
 //! without a word. A `save` runs on the blocking pool of the heartbeat's runtime, so a slow hook does not block a ping.
 
 use std::io;
-use std::os::windows::io::AsRawHandle;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::mpsc;

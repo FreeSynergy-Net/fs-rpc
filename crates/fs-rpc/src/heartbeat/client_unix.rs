@@ -1,4 +1,6 @@
 //! The wire of the heartbeat client on Unix: the socket `<socket>.beat`, the process behind it looked at with `SO_PEERCRED`.
+//!
+//! Pattern: Strategy (the wire of the heartbeat client on Unix).
 
 use std::io;
 use std::path::Path;
@@ -42,6 +44,13 @@ pub(super) async fn exchange(
         w.write_all(format!("{line}\n").as_bytes()).await?;
         let mut answer = String::new();
         BufReader::new(r.take(256)).read_line(&mut answer).await?;
+        if answer.is_empty() {
+            // The server hung up without a line (a client that is not believed is dropped so): no answer.
+            return Err(io::Error::new(
+                io::ErrorKind::UnexpectedEof,
+                "the heartbeat hung up without an answer",
+            ));
+        }
         Ok(answer.trim().to_owned())
     };
     tokio::time::timeout(limit, work)
