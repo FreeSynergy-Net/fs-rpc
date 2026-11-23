@@ -1,5 +1,5 @@
 //! The Windows version of the check (plan WIN-HOST, rules 2.1 to 2.6). One part of a way: a local disk path without tricks, no
-//! reparse point, owned by SYSTEM, Administrators or TrustedInstaller, and no allow entry of anybody else that writes.
+//! reparse point, owned by SYSTEM, Administrators or `TrustedInstaller`, and no allow entry of anybody else that writes.
 //! Pattern: Specification (a pure check over owner and ACL; no state).
 
 use std::ffi::c_void;
@@ -30,7 +30,7 @@ use super::acl::{Descriptor, wide};
 use super::sid::Sid;
 use crate::{Level, PlaceRefusal};
 
-/// SYSTEM, Administrators, TrustedInstaller. Whoever is one of them can do everything anyway; the check does not protect against that.
+/// SYSTEM, Administrators, `TrustedInstaller`. Whoever is one of them can do everything anyway; the check does not protect against that.
 const SYSTEM_SIDS: [&str; 3] = [
     "S-1-5-18",
     "S-1-5-32-544",

@@ -67,7 +67,7 @@ pub struct Trust {
 }
 
 impl Trust {
-    /// The real system owners: Unix root (uid 0); Windows SYSTEM, Administrators and TrustedInstaller.
+    /// The real system owners: Unix root (uid 0); Windows SYSTEM, Administrators and `TrustedInstaller`.
     #[must_use]
     pub fn system() -> Self {
         Self {

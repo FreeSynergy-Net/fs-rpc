@@ -8,8 +8,6 @@ rust-version.workspace = true
 repository.workspace = true
 
 [dependencies]
-# The Windows identity and rights basics (moved out of this crate), and the check of a system place.
-fs-place = { path = "../fs-place" }
 # Pins by tag, each straight from the owner's repository (ADR 0092, ADR 0093): fs-types is no longer reached through fs-interfaces.
 fs-types = { git = "https://github.com/FreeSynergy/fs-types", tag = "v0.0.4" }
 fs-interfaces = { git = "https://github.com/FreeSynergy/fs-interfaces", tag = "v0.0.31" }
@@ -27,6 +25,8 @@ uuid = "1"
 rustix = { version = "1", features = ["process", "net", "param"] }
 
 [target.'cfg(windows)'.dependencies]
+# The Windows identity and rights basics (moved out of this crate into fs-place).
+fs-place = { path = "../fs-place" }
 # Who is on the other end of a named pipe, and who runs this; rights of the pipe and of the data folder.
 windows-sys = { version = "0.61", features = [
   "Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_System_Pipes", "Win32_System_Threading",
