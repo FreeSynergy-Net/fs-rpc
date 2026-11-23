@@ -31,11 +31,15 @@ jobs:
             foreach ($t in @("--lib", "--test windows", "--test windows_rights")) {
               $out += (Invoke-Expression "cargo test -p fs-trusted-path --all-features --locked $t 2>&1" | Out-String)
             }
-            if ($name -match "ownerme|FILE_WRITE_DATA") { Write-Output "---- full $name"; Write-Output $out }
-            $failed = ($out -split "`n" | Where-Object { $_ -match ' \.\.\. FAILED' }) -join ' | '
+            $failed = ([regex]::Matches($out, 'test (\S+) \.\.\. FAILED') | ForEach-Object { $_.Groups[1].Value }) -join ' | '
             Write-Output "MUTANT [$name] exit=$LASTEXITCODE RED: $failed"
           }
           Run 'none' '' ''
+          Run 'M1-no-local-disk-check' 'nodisk' ''
+          Run 'M1-no-drive-type-check' 'notfixed' ''
+          Run 'M1-no-subst-check' 'nosubst' ''
+          Run 'M3-unknown-ace-skipped' 'skipunknown' ''
+          Run 'M2c-null-dacl-ok' 'nulldacl' ''
           Run 'M2a-user-is-a-trusted-owner' 'ownerme' ''
           $bits = @{ 'FILE_WRITE_DATA'='2'; 'FILE_APPEND_DATA'='4'; 'FILE_WRITE_EA'='10'; 'FILE_DELETE_CHILD'='40'; 'FILE_WRITE_ATTRIBUTES'='100'; 'DELETE'='10000'; 'WRITE_DAC'='40000'; 'WRITE_OWNER'='80000'; 'GENERIC_WRITE'='40000000'; 'GENERIC_ALL'='10000000'; 'MAXIMUM_ALLOWED'='2000000' }
-          foreach ($k in @("FILE_WRITE_DATA","DELETE")) { Run "M2b-right-removed-$k" '' $bits[$k] }
+          foreach ($k in $bits.Keys) { Run "M2b-right-removed-$k" '' $bits[$k] }
