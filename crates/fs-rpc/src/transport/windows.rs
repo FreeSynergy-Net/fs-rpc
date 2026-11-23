@@ -7,6 +7,7 @@
 //! both ends look at the process on the other end (what `SO_PEERCRED` does on Unix): the server drops a client that is not
 //! this user, the client refuses a server that is not.
 
+pub(crate) mod beat;
 mod name;
 mod pipe;
 #[cfg(test)]
