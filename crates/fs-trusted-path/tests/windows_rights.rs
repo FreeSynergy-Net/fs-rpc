@@ -1,12 +1,11 @@
-//! The Windows check against files with ACLs the tests make themselves (SDDL, icacls, subst): the drive, the owner, every right, the
-//! null DACL, the entries the check cannot judge. Pattern: Test.
+//! The Windows check against files with ACLs the tests make themselves (SDDL, icacls): the owner, every right, the null DACL, the
+//! entries the check cannot judge. The drive is in `windows_drive.rs`. Pattern: Test.
 #![cfg(windows)]
 
 mod common;
 
 use std::fs;
 use std::path::Path;
-use std::process::Command;
 
 use common::{file_with, icacls};
 use fs_trusted_path::windows::sid::my_sid_text;
@@ -20,57 +19,6 @@ use windows_sys::Win32::Security::{
     ACL, DACL_SECURITY_INFORMATION, GetSecurityDescriptorDacl, PROTECTED_DACL_SECURITY_INFORMATION,
     PSECURITY_DESCRIPTOR,
 };
-
-// ---- M1: only a local fixed disk -----------------------------------------------------------------------------------------
-
-/// A `subst` drive for the length of a test (an alias of a folder, as a drive letter): removed when dropped.
-struct Subst(String);
-
-impl Subst {
-    fn new(dir: &Path) -> Self {
-        for letter in ('R'..='Z').rev() {
-            let drive = format!("{letter}:");
-            if Path::new(&format!("{drive}\\")).exists() {
-                continue;
-            }
-            let made = Command::new("subst").arg(&drive).arg(dir).output().unwrap();
-            if made.status.success() {
-                return Self(drive);
-            }
-        }
-        panic!("no free drive letter for subst");
-    }
-}
-
-impl Drop for Subst {
-    fn drop(&mut self) {
-        let _ = Command::new("subst").arg(&self.0).arg("/d").output();
-    }
-}
-
-#[test]
-fn a_subst_drive_is_refused_as_not_a_local_disk_although_the_file_is_the_systems() {
-    let dir = tempfile::tempdir_in(env!("CARGO_TARGET_TMPDIR")).unwrap();
-    let file = file_with(dir.path(), &[("S-1-5-18", "F"), ("S-1-5-32-544", "F")]);
-    // the same file, by its real path, is the systems: owner and ACL are fine
-    assert_eq!(system_owned(&file, Level::Anchor), Ok(()));
-    let alias = Subst::new(dir.path());
-    let by_alias = format!(r"{}\a.json", alias.0);
-    assert!(Path::new(&by_alias).exists(), "{by_alias}");
-    assert_eq!(
-        system_owned(Path::new(&by_alias), Level::Anchor),
-        Err(PlaceRefusal::NotLocalDisk),
-        "{by_alias}"
-    );
-    let verbatim = format!(r"\\?\{by_alias}");
-    assert_eq!(
-        system_owned(Path::new(&verbatim), Level::Anchor),
-        Err(PlaceRefusal::NotLocalDisk),
-        "{verbatim}"
-    );
-}
-
-// ---- M2: the owner, the rights, the null DACL, the entries the check cannot judge -----------------------------------------
 
 /// Set the DACL of `file` from SDDL, protected (nothing inherited). The error is the code of the system.
 fn try_set_dacl(file: &Path, sddl: &str) -> Result<(), u32> {

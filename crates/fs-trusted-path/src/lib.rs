@@ -11,7 +11,8 @@
 //!   or `SeBackupPrivilege` (Backup Operators) pass any ACL, like `CAP_DAC_OVERRIDE`.
 //! - The check looks at the path, not at a handle. It holds only while every part above is closed too: the caller walks the way
 //!   from the top and checks each part. A race remains only against accounts that are trusted anyway.
-//! - Only a local fixed disk counts: network drives, `subst` aliases and removable media are refused (`NotLocalDisk`).
+//! - Only a local disk counts: only what the system calls a fixed disk (`DRIVE_FIXED`) and no `subst` alias count; network drives and `subst` aliases are refused (`NotLocalDisk`). A USB hard disk often says "fixed" too, so the anchor must come from the system (`FOLDERID_ProgramFiles`), never from a path of the user.
+//! - A process of the same user at the same integrity level is no border (e.g. the drive letters of a session).
 //!
 //! Pattern: Specification ([`Trust`]) + Value ([`PlaceRefusal`] names the border hit).
 

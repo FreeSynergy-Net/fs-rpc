@@ -5,5 +5,7 @@ pub(crate) mod check;
 #[cfg(test)]
 mod check_tests;
 mod form;
+#[cfg(test)]
+mod form_tests;
 mod peer;
 pub mod sid;

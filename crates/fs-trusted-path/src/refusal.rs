@@ -7,7 +7,7 @@ use std::fmt;
 pub enum PlaceRefusal {
     /// Not an absolute path of a drive letter (Windows: a UNC or device path; a `:` after the drive, `.` or `..`).
     NotAbsolute,
-    /// Windows: the drive is not a local fixed disk: a network drive, a `subst` alias, removable or optical media.
+    /// Windows: the drive is not a local fixed disk: a network drive or a `subst` alias, or whatever the system does not call a fixed disk (USB hard disks often do call themselves fixed).
     NotLocalDisk,
     /// A link (Unix: symlink; Windows: any reparse point: symlink, junction, mount point).
     Symlink,
