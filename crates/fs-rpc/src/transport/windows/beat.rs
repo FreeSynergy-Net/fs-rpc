@@ -1,6 +1,6 @@
 //! The pipe of the heartbeat: `<pipe>.beat`, its instances and its client, for [`crate::Heartbeat`] and [`crate::ask_beat`].
 //! Pattern: Facade over the one place that makes pipe instances (`pipe::create_pipe`: open to this user alone, the first-instance
-//! rule decides the owner) and the one place that looks at the process on the other end (`fs_place::windows::sid`), so the heartbeat has no rights
+//! rule decides the owner) and the one place that looks at the process on the other end (`fs_trusted_path::windows::sid`), so the heartbeat has no rights
 //! code of its own.
 
 use std::io;
@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use tokio::net::windows::named_pipe::{ClientOptions, NamedPipeClient, NamedPipeServer};
 
-use fs_place::windows::sid;
+use fs_trusted_path::windows::sid;
 
 use super::{ACCESS_DENIED, NOT_FOUND_TRIES, NOT_FOUND_WAIT, PIPE_BUSY, my_pipe_name, pipe};
 
@@ -22,7 +22,7 @@ pub(crate) const CLIENT_IS_ME: Admit = |h| sid::client_is_me(&Borrowed(h));
 /// The client's check of its server.
 pub(crate) const SERVER_IS_ME: Admit = |h| sid::server_is_me(&Borrowed(h));
 
-/// A handle of a pipe instance that is still open, as the `AsRawHandle` the checks of `fs-place` ask for.
+/// A handle of a pipe instance that is still open, as the `AsRawHandle` the checks of `fs-trusted-path` ask for.
 struct Borrowed(RawHandle);
 
 impl AsRawHandle for Borrowed {

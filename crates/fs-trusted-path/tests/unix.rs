@@ -6,7 +6,7 @@ use std::fs;
 use std::os::unix::fs::{MetadataExt, PermissionsExt, symlink};
 use std::path::Path;
 
-use fs_place::{Level, Owner, PlaceRefusal, Trust, system_owned};
+use fs_trusted_path::{Level, Owner, PlaceRefusal, Trust, system_owned};
 
 fn mode(p: &Path, m: u32) {
     fs::set_permissions(p, fs::Permissions::from_mode(m)).unwrap();

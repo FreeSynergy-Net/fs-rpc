@@ -1,4 +1,4 @@
-# fs-place (working name)
+# fs-trusted-path
 
 Is this part of a path the system's? Owned by the system owner, not writable by anybody else, no link on the way.
 

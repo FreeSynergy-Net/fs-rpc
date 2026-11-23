@@ -613,15 +613,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fs-place"
-version = "0.0.7"
-dependencies = [
- "fs-place",
- "tempfile",
- "windows-sys 0.61.2",
-]
-
-[[package]]
 name = "fs-rpc"
 version = "0.0.7"
 dependencies = [
@@ -630,7 +621,7 @@ dependencies = [
  "chrono",
  "fs-interfaces",
  "fs-objects",
- "fs-place",
+ "fs-trusted-path",
  "fs-types",
  "futures",
  "rustix 1.1.6",
@@ -666,6 +657,15 @@ dependencies = [
  "rustix 1.1.6",
  "tempfile",
  "tokio",
+]
+
+[[package]]
+name = "fs-trusted-path"
+version = "0.0.7"
+dependencies = [
+ "fs-trusted-path",
+ "tempfile",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

@@ -16,7 +16,7 @@ use super::super::endpoint::{Accepted, Endpoint};
 use super::super::peer::{CallerError, CallerSource};
 use super::name::{companion_stem, encode, pipe_name};
 use super::{Windows, bind_socket};
-use fs_place::windows::sid;
+use fs_trusted_path::windows::sid;
 
 /// A handle that is no pipe.
 struct NoPipe;

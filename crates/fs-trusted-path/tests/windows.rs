@@ -6,8 +6,8 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
-use fs_place::windows::sid::{my_owners, my_sid_text};
-use fs_place::{Level, Owner, PlaceRefusal, Trust, system_owned};
+use fs_trusted_path::windows::sid::{my_owners, my_sid_text};
+use fs_trusted_path::{Level, Owner, PlaceRefusal, Trust, system_owned};
 use windows_sys::Win32::Foundation::LocalFree;
 use windows_sys::Win32::Security::Authorization::{
     ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1, SE_FILE_OBJECT,

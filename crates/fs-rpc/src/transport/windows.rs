@@ -24,7 +24,7 @@ use tokio::sync::Mutex;
 use super::endpoint::{Accepted, Endpoint};
 use super::peer::{Caller, CallerError, CallerSource};
 use crate::datadir::DataDirError;
-use fs_place::windows::sid;
+use fs_trusted_path::windows::sid;
 use name::{companion_stem, default_name, pipe_name};
 use pipe::create_pipe;
 
@@ -105,13 +105,13 @@ fn run_dir() -> PathBuf {
     let local = std::env::var_os("LOCALAPPDATA")
         .filter(|v| !v.is_empty())
         .map(|b| PathBuf::from(b).join("FreeSynergy").join("run"));
-    if let Some(dir) = local.filter(|d| fs_place::windows::acl::make_private(d).is_ok()) {
+    if let Some(dir) = local.filter(|d| fs_trusted_path::windows::acl::make_private(d).is_ok()) {
         return dir;
     }
     let who = sid::my_sid_text().unwrap_or_default();
     let dir = std::env::temp_dir().join(format!("FreeSynergy-run-{who}"));
     // If this fails too, the caller's attempt to make its file says why.
-    let _ = fs_place::windows::acl::make_private(&dir);
+    let _ = fs_trusted_path::windows::acl::make_private(&dir);
     dir
 }
 
@@ -157,7 +157,7 @@ impl Endpoint for Windows {
     }
 
     fn prepare_data_dir(dir: &Path) -> Result<PathBuf, DataDirError> {
-        fs_place::windows::acl::make_private(dir)?;
+        fs_trusted_path::windows::acl::make_private(dir)?;
         Ok(dir.canonicalize().map(plain)?)
     }
 

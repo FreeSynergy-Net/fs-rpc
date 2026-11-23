@@ -1,5 +1,5 @@
 [package]
-name = "fs-place"
+name = "fs-trusted-path"
 description = "FreeSynergy places: is this path the system's (owned by the system owner, nobody else can write it, no link on the way), on Unix and on Windows; plus the Windows identity and rights basics (SID, token owner, private folder) shared by fs-rpc"
 version.workspace = true
 edition.workspace = true
@@ -25,4 +25,4 @@ windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Securit
 [dev-dependencies]
 tempfile = "3"
 # Its own tests use `Trust::for_test`.
-fs-place = { path = ".", features = ["test-support"] }
+fs-trusted-path = { path = ".", features = ["test-support"] }
