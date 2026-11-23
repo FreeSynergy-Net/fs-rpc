@@ -30,7 +30,7 @@ jobs:
             $out = ""
             foreach ($t in @("--lib", "--test windows", "--test windows_rights")) {
               $out += (Invoke-Expression "cargo test -p fs-trusted-path --all-features --locked $t 2>&1" | Out-String)
-            }| Out-String
+            }
             $failed = ($out -split "`n" | Where-Object { $_ -match ' \.\.\. FAILED' }) -join ' | '
             Write-Output "MUTANT [$name] exit=$LASTEXITCODE RED: $failed"
           }
