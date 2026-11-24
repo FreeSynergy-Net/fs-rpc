@@ -12,7 +12,7 @@ repository.workspace = true
 # fs-interfaces and fs-objects: by `rev` (the landed heads) until their tags exist; then switch to `tag = "v0.2.0"` (fs-interfaces) and `tag = "v0.0.11"` (fs-objects).
 # fs-interfaces and fs-objects: by `rev` (the landed heads) until their tags exist; then switch to `tag = "v0.2.0"` (fs-interfaces) and `tag = "v0.0.11"` (fs-objects).
 fs-types = { git = "https://github.com/FreeSynergy-Net/fs-types", tag = "v0.0.6" }
-fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "12142143f49f9a60acbbd994659a57e5e6bdc536", version = "0.1.1" }
+fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "7bbad2ff60017c809b83085a4c6b6cab16b9b605", version = "0.2.0" }
 fs-objects = { git = "https://github.com/FreeSynergy-Net/fs-objects", rev = "f6409f2a5378ba1464e69ae216efd4d27d249182", version = "0.0.11" }
 capnp = "0.27"
 capnp-rpc = "0.27"
