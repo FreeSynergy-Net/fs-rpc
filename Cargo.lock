@@ -586,8 +586,8 @@ dependencies = [
 
 [[package]]
 name = "fs-interfaces"
-version = "0.1.0"
-source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?tag=v0.1.0#030a5a821c34e85f6da5f60bc9b69b9ce0544482"
+version = "0.1.1"
+source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=12142143f49f9a60acbbd994659a57e5e6bdc536#12142143f49f9a60acbbd994659a57e5e6bdc536"
 dependencies = [
  "capnp",
  "fs-types",
@@ -596,12 +596,13 @@ dependencies = [
 
 [[package]]
 name = "fs-objects"
-version = "0.0.10"
-source = "git+https://github.com/FreeSynergy-Net/fs-objects?tag=v0.0.10#18f68042df4a90ef5f04e0744d6f010c0af214c5"
+version = "0.0.11"
+source = "git+https://github.com/FreeSynergy-Net/fs-objects?rev=f6409f2a5378ba1464e69ae216efd4d27d249182#f6409f2a5378ba1464e69ae216efd4d27d249182"
 dependencies = [
  "async-trait",
  "base64",
  "chrono",
+ "fs-types",
  "rustix 1.1.6",
  "serde",
  "serde_json",
@@ -615,7 +616,7 @@ dependencies = [
 
 [[package]]
 name = "fs-rpc"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -645,7 +646,7 @@ dependencies = [
 
 [[package]]
 name = "fs-settings-rpc"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -662,7 +663,7 @@ dependencies = [
 
 [[package]]
 name = "fs-trusted-path"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "fs-trusted-path",
  "tempfile",

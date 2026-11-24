@@ -37,6 +37,7 @@ mod finish;
 mod handshake;
 mod heartbeat;
 mod hold;
+mod hold_call;
 mod hold_spec;
 mod ids;
 mod options;
@@ -76,6 +77,7 @@ pub use heartbeat::{
     ask_save,
 };
 pub use hold::{Hold, HoldEvent, HoldObserver, hold, hold_with};
+pub use hold_call::{Job, OnAttach, hold_calling};
 pub use hold_spec::HoldSpec;
 pub use ids::{from_millis, read_object_id, read_uuid, to_millis, write_object_id, write_uuid};
 pub use options::{

@@ -13,8 +13,10 @@ use std::time::Duration;
 
 use capnp::capability::{Client, FromClientHook};
 use futures::future::LocalBoxFuture;
+use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::oneshot;
 
+use super::hold_call::Call;
 use super::{HoldSpec, Reconnected, Resync, RpcError, Session, keep_connected};
 
 const CLOSE_GRACE: Duration = Duration::from_millis(100);
@@ -57,10 +59,13 @@ impl<F: Fn(HoldEvent) + Send + 'static> HoldObserver for F {
 pub struct Hold {
     stop: Option<oneshot::Sender<()>>,
     thread: Option<JoinHandle<()>>,
+    /// Jobs for the thread ([`Hold::call`]); only a hold made by `hold_calling` has it.
+    pub(super) calls: Option<UnboundedSender<Call>>,
 }
 
 impl Drop for Hold {
     fn drop(&mut self) {
+        drop(self.calls.take());
         drop(self.stop.take());
         if let Some(thread) = self.thread.take() {
             let _ = thread.join();
@@ -126,6 +131,20 @@ where
     C: FromClientHook + Clone + 'static,
     S: Session<C> + 'static,
 {
+    start::<C, S>(spec, session, observer, None)
+}
+
+/// The one start of every hold; `calls` is the sender of `hold_calling` (the session owns the other end).
+pub(super) fn start<C, S>(
+    spec: HoldSpec,
+    session: impl FnOnce() -> S + Send + 'static,
+    observer: impl HoldObserver,
+    calls: Option<UnboundedSender<Call>>,
+) -> io::Result<Hold>
+where
+    C: FromClientHook + Clone + 'static,
+    S: Session<C> + 'static,
+{
     let (stop, stopped) = oneshot::channel::<()>();
     let (ready, answer) = mpsc::channel::<io::Result<()>>();
     let name = format!("fs-hold-{}", spec.name);
@@ -135,6 +154,7 @@ where
     let hold = Hold {
         stop: Some(stop),
         thread: Some(thread),
+        calls,
     };
     // On `Err` the handle drops here: the stop is sent and the thread joined.
     answer
