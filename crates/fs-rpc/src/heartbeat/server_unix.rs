@@ -93,7 +93,7 @@ pub(super) fn open_with(
     let listener = UnixListener::bind(&path)?;
     std::fs::set_permissions(&path, PermissionsExt::from_mode(0o600))?;
     listener.set_nonblocking(true)?;
-    let (hangup, wake) = rustix::pipe::pipe()?;
+    let (hangup, wake) = rustix::pipe::pipe_with(rustix::pipe::PipeFlags::CLOEXEC)?;
     let thread = {
         let shared = shared.clone();
         std::thread::Builder::new()

@@ -87,3 +87,26 @@ fn dropping_the_heartbeat_ends_even_when_its_file_is_gone() {
         );
     }
 }
+
+/// A child that lives on (a service started by `ensure_single`) must not hold the heartbeat open: the write end of the pipe is
+/// CLOEXEC, so the child does not inherit it and `drop` still ends the thread.
+#[test]
+fn a_child_process_does_not_keep_the_heartbeat_from_ending() {
+    let dir = tempfile::tempdir().unwrap();
+    let socket = dir.path().join("p.sock");
+    let shared = Arc::new(Shared::new());
+    let (_path, guard) = open_with(&socket, &shared, super::is_me).unwrap();
+    let mut child = std::process::Command::new("sleep")
+        .arg("60")
+        .spawn()
+        .unwrap();
+    let (done, ended) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        drop(guard);
+        let _ = done.send(());
+    });
+    let ok = ended.recv_timeout(Duration::from_secs(5)).is_ok();
+    let _ = child.kill();
+    let _ = child.wait();
+    assert!(ok, "drop did not end within 5 s while a child lives");
+}

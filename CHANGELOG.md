@@ -16,7 +16,7 @@ Appending only (scheme 0.N.x, appending = x): new public items, `hold`/`hold_wit
 
 ### Unreleased
 
-- FIX (fs-rpc, Unix): dropping the heartbeat no longer hangs when its `.beat` file is gone or foreign. The thread now ends through a pipe it polls with the listener (before: a failed wake-up connect was ignored and `join` waited for ever, so a service never ended on SIGTERM). Test: `dropping_the_heartbeat_ends_even_when_its_file_is_gone`. Windows was not affected (`Notify`).
+- FIX (fs-rpc, Unix): dropping the heartbeat no longer hangs when its `.beat` file is gone or foreign. The thread now ends through a close-on-exec pipe it polls with the listener (a child process does not inherit it) (before: a failed wake-up connect was ignored and `join` waited for ever, so a service never ended on SIGTERM). Test: `dropping_the_heartbeat_ends_even_when_its_file_is_gone`. Windows was not affected (`Notify`).
 
 ### hold_calling: calls on a held connection (fs-rpc)
 
