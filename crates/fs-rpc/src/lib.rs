@@ -37,6 +37,7 @@ mod finish;
 mod handshake;
 mod heartbeat;
 mod hold;
+mod hold_spec;
 mod ids;
 mod options;
 mod page;
@@ -74,7 +75,8 @@ pub use heartbeat::{
     Beat, BeatError, HangTimes, Heartbeat, Hung, Pulse, SaveOnTerm, Verdict, Watch, ask_beat,
     ask_save,
 };
-pub use hold::{Hold, HoldEvent, HoldObserver, HoldSpec, hold, hold_with};
+pub use hold::{Hold, HoldEvent, HoldObserver, hold, hold_with};
+pub use hold_spec::HoldSpec;
 pub use ids::{from_millis, read_object_id, read_uuid, to_millis, write_object_id, write_uuid};
 pub use options::{
     FACET_FLAG, LOCAL_OWNER, ServerOptions, default_data_dir, facet_from_args, parse_facet,

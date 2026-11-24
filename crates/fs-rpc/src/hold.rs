@@ -7,7 +7,6 @@
 
 use std::any::Any;
 use std::io;
-use std::path::PathBuf;
 use std::sync::mpsc;
 use std::thread::JoinHandle;
 use std::time::Duration;
@@ -16,9 +15,7 @@ use capnp::capability::FromClientHook;
 use futures::future::LocalBoxFuture;
 use tokio::sync::oneshot;
 
-use super::{
-    Expected, ReconnectTimes, Reconnected, Resync, RpcError, ServerStarter, Session, keep_connected,
-};
+use super::{HoldSpec, Reconnected, Resync, RpcError, Session, keep_connected};
 
 /// How long the thread of a dropped hold lets the closing connection finish.
 const CLOSE_GRACE: Duration = Duration::from_millis(100);
@@ -54,47 +51,6 @@ pub trait HoldObserver: Send + 'static {
 impl<F: Fn(HoldEvent) + Send + 'static> HoldObserver for F {
     fn event(&self, event: HoldEvent) {
         self(event);
-    }
-}
-
-/// Pattern: Builder - what is held and how: the module's socket, what it must say, how to start it again.
-#[non_exhaustive]
-pub struct HoldSpec {
-    /// For the thread name `fs-hold-<name>` and error texts.
-    pub name: String,
-    /// The module's socket.
-    pub socket: PathBuf,
-    /// What the server must say about itself (`Expected::new("")` for any).
-    pub expected: Expected,
-    /// Starts the module again when it is gone; only the service of the module folder.
-    pub starter: Box<dyn ServerStarter + Send>,
-    /// The waits of connecting again (the defaults of [`keep_connected`]).
-    pub times: ReconnectTimes,
-}
-
-impl HoldSpec {
-    /// A hold of `socket` with the default times.
-    #[must_use]
-    pub fn new(
-        name: impl Into<String>,
-        socket: impl Into<PathBuf>,
-        expected: Expected,
-        starter: Box<dyn ServerStarter + Send>,
-    ) -> Self {
-        Self {
-            name: name.into(),
-            socket: socket.into(),
-            expected,
-            starter,
-            times: ReconnectTimes::default(),
-        }
-    }
-
-    /// The same with other times.
-    #[must_use]
-    pub fn with_times(mut self, times: ReconnectTimes) -> Self {
-        self.times = times;
-        self
     }
 }
 
