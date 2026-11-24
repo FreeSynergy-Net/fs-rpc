@@ -586,8 +586,8 @@ dependencies = [
 
 [[package]]
 name = "fs-interfaces"
-version = "0.0.34"
-source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?tag=v0.0.34#22abe015d75578e55e9e86880925490da15c1b35"
+version = "0.0.35"
+source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?tag=v0.0.35#4e2624e20f0b5ab4e6620e4c3c85f9d2f5b9240a"
 dependencies = [
  "capnp",
  "fs-types",
@@ -615,7 +615,7 @@ dependencies = [
 
 [[package]]
 name = "fs-rpc"
-version = "0.0.8"
+version = "0.1.0"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -645,7 +645,7 @@ dependencies = [
 
 [[package]]
 name = "fs-settings-rpc"
-version = "0.0.8"
+version = "0.1.0"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -662,7 +662,7 @@ dependencies = [
 
 [[package]]
 name = "fs-trusted-path"
-version = "0.0.8"
+version = "0.1.0"
 dependencies = [
  "fs-trusted-path",
  "tempfile",

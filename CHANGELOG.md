@@ -2,6 +2,16 @@
 
 Version = tag.
 
+## 0.1.0 (2026-11-24)
+
+First tag in the scheme 0.N.x (appending = x, breaking = N; version = tag; skipping 0.0.9 is allowed).
+
+### Re-pin of fs-interfaces to v0.0.35 (no Rust code changes)
+
+- `fs-rpc` and `fs-settings-rpc` pin `fs-interfaces` tag v0.0.35 (was v0.0.34). Reason: with v0.0.34 every dependent repo (fs-settings, fs-starter) had two `fs-interfaces` sources in its lock, so the lock gate stayed red. `Cargo.lock` of this repo has exactly one `fs-interfaces` source (v0.0.35, 4e2624e2). `cargo check --workspace --all-targets` and `cargo test --workspace --locked` pass locally.
+- Auf Deutsch: `fs-rpc` und `fs-settings-rpc` pinnen `fs-interfaces` auf Tag v0.0.35 (war v0.0.34). Grund: Mit v0.0.34 hatten abhaengige Repos (fs-settings, fs-starter) zwei `fs-interfaces`-Quellen im Lock, das Lock-Gate blieb rot. Im Lock dieses Repos genau eine Quelle. Erster Tag im Schema 0.N.x (Anhaengen = x, Bruch = N; Version = Tag; 0.0.9 wird uebersprungen). Keine Rust-Aenderung.
+- Co-developed with AI (Claude).
+
 ## 0.0.8 (2026-11-23)
 
 BREAKING (WH4, see below): `ask_beat` returns `Result<Pulse, BeatError>` instead of `io::Result`. Version 0.0.8 because 0.0.7 is the last tag (version = tag).
