@@ -11,17 +11,21 @@ struct NoBlob;
 impl blob::Server for NoBlob {}
 
 #[cfg(unix)]
-fn place() -> (tempfile::TempDir, std::path::PathBuf) {
+fn place(_test: &str) -> (tempfile::TempDir, std::path::PathBuf) {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("i.sock");
     (dir, path)
 }
 
 #[cfg(windows)]
-fn place() -> ((), std::path::PathBuf) {
+fn place(test: &str) -> ((), std::path::PathBuf) {
     (
         (),
-        format!(r"\\.\pipe\freesynergy-test-idle-{}", std::process::id()).into(),
+        format!(
+            r"\\.\pipe\freesynergy-test-idle-{}-{test}",
+            std::process::id()
+        )
+        .into(),
     )
 }
 
@@ -46,7 +50,7 @@ fn the_default_options_have_no_end() {
 
 #[test]
 fn the_service_ends_after_the_time_without_a_connection() {
-    let (_dir, path) = place();
+    let (_dir, path) = place("ends");
     run(async {
         let bound = bind_socket(&path).await.unwrap();
         let root: blob::Client = new_client(NoBlob);
@@ -65,7 +69,7 @@ fn the_service_ends_after_the_time_without_a_connection() {
 
 #[test]
 fn a_connection_keeps_it_up_and_the_time_runs_again_after_its_end() {
-    let (_dir, path) = place();
+    let (_dir, path) = place("kept");
     run(async {
         let bound = bind_socket(&path).await.unwrap();
         let root: blob::Client = new_client(NoBlob);
@@ -95,7 +99,7 @@ fn a_connection_keeps_it_up_and_the_time_runs_again_after_its_end() {
 
 #[test]
 fn without_the_option_nothing_ends_it_but_shutdown() {
-    let (_dir, path) = place();
+    let (_dir, path) = place("plain");
     run(async {
         let bound = bind_socket(&path).await.unwrap();
         let root: blob::Client = new_client(NoBlob);
