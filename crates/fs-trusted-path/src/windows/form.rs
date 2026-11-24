@@ -51,9 +51,12 @@ pub(super) fn local_disk(part: &Path, letter: u8) -> Result<(), PlaceRefusal> {
     } else {
         Some(unsafe { GetDriveTypeW(root.as_ptr()) })
     };
+    let drive_type = if mutant("W-notfixed") { Some(3) } else { drive_type };
     let device = [u16::from(letter), u16::from(b':'), 0];
     let mut target = vec![0_u16; SIZE as usize];
     let len = unsafe { QueryDosDeviceW(device.as_ptr(), target.as_mut_ptr(), SIZE) };
+    let fake: Vec<u16> = "\\Device\\HarddiskVolume1".encode_utf16().collect();
+    if mutant("W-nosubst") { return judge(drive_type, Some(&fake)); }
     judge(drive_type, (len != 0).then_some(&target[..]))
 }
 
@@ -61,6 +64,9 @@ pub(super) fn local_disk(part: &Path, letter: u8) -> Result<(), PlaceRefusal> {
 /// values): `drive_type` is `None` when the volume of the path is not known, `target` is `None` when the drive letter is not known.
 /// Refused when the volume is unknown or not fixed, when the letter is unknown, or when the letter is a `subst` alias.
 pub(super) fn judge(drive_type: Option<u32>, target: Option<&[u16]>) -> Result<(), PlaceRefusal> {
+    if mutant("J-notfixed") { return match target { Some(t) if !is_subst(t) => Ok(()), _ => Err(PlaceRefusal::NotLocalDisk) }; }
+    if mutant("J-nosubst") { return if drive_type.is_some_and(is_fixed) && target.is_some() { Ok(()) } else { Err(PlaceRefusal::NotLocalDisk) }; }
+    if mutant("J-noletter") { return if !drive_type.is_some_and(is_fixed) { Err(PlaceRefusal::NotLocalDisk) } else { match target { Some(t) if is_subst(t) => Err(PlaceRefusal::NotLocalDisk), _ => Ok(()) } }; }
     if !drive_type.is_some_and(is_fixed) {
         return Err(PlaceRefusal::NotLocalDisk);
     }
@@ -72,10 +78,17 @@ pub(super) fn judge(drive_type: Option<u32>, target: Option<&[u16]>) -> Result<(
 
 /// The answer of `GetDriveTypeW` for a volume the system calls a fixed disk (a network drive, a CD or a card gives another value).
 pub(super) fn is_fixed(drive_type: u32) -> bool {
+    if mutant("F-isfixed") { return true; }
     drive_type == DRIVE_FIXED
 }
 
 /// Whether the target `QueryDosDeviceW` gave for a drive letter is a `subst` alias (a real drive gives `\Device\...`).
 pub(super) fn is_subst(target: &[u16]) -> bool {
+    if mutant("F-issubst") { return false; }
     target.starts_with(&SUBST_TARGET.map(u16::from))
+}
+
+/// THROWAWAY mutant switch (review only, never merged).
+fn mutant(name: &str) -> bool {
+    std::env::var("MUTANT").is_ok_and(|m| m == name)
 }

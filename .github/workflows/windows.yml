@@ -23,6 +23,17 @@ jobs:
         with:
           components: rustfmt,clippy
           cache-key: windows
-      - run: cargo fmt --check -p fs-trusted-path -p fs-rpc
-      - run: cargo clippy -p fs-trusted-path -p fs-rpc --all-targets --all-features --locked -- -D warnings -W clippy::pedantic
-      - run: cargo test -p fs-trusted-path -p fs-rpc --all-features --locked --no-fail-fast
+      - name: mutants (THROWAWAY, review only)
+        shell: pwsh
+        run: |
+          cargo test -p fs-trusted-path --all-features --locked --no-run
+          foreach ($name in @("none","J-notfixed","J-nosubst","J-noletter","W-notfixed","W-nosubst","F-isfixed","F-issubst")) {
+            $env:MUTANT = $name
+            $out = (cargo test -p fs-trusted-path --all-features --locked --no-fail-fast 2>&1 | Out-String)
+            $code = $LASTEXITCODE
+            $failed = ([regex]::Matches($out, "test (\S+) \.\.\. FAILED") | ForEach-Object { $_.Groups[1].Value }) -join " | "
+            $ran = ([regex]::Matches($out, "test result: \S+\. \d+ passed; \d+ failed") | ForEach-Object { $_.Value }) -join " ; "
+            Write-Output "MUTANT [$name] exit=$code RED: $failed"
+            Write-Output "MUTANT [$name] RESULTS: $ran"
+            if ($name -eq "none") { Write-Output $out }
+          }
