@@ -23,6 +23,8 @@ mod server;
 mod server_other;
 #[cfg(unix)]
 mod server_unix;
+#[cfg(unix)]
+mod server_unix_loop;
 #[cfg(windows)]
 mod server_windows;
 mod types;

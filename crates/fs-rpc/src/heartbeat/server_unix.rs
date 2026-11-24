@@ -3,7 +3,9 @@
 //!
 //! Pattern: Active object + RAII (the thread and the socket file of the heartbeat on Unix). The thread is ended by a pipe it polls
 //! together with the listener (Self-pipe trick, instead of a connect to the file that fails when the file is gone), so `drop` never
-//! waits without end.
+//! waits without end. Builds on Linux only: `socket_peercred` (rustix, `linux_kernel`) and `pipe_with` (not on Apple) exist only there.
+//! The pipe MUST be created close-on-exec (`PipeFlags::CLOEXEC`): else a child process of the program holds the write end, the poll
+//! never sees the hang-up and `drop` waits for the child. The loop (poll, accept, faults) is in `server_unix_loop`.
 
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::os::fd::OwnedFd;
@@ -15,6 +17,7 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use super::server::Shared;
+use super::server_unix_loop::{PAUSE, drain_accepts, system_poll, wait_for_client};
 use crate::companion_path;
 
 fn is_me(stream: &UnixStream) -> bool {
@@ -40,23 +43,6 @@ fn serve_one(shared: &Shared, stream: UnixStream, admit: Admit) {
     }
     if let Some(answer) = shared.answer(&line) {
         let _ = writeln!(out, "{answer}");
-    }
-}
-
-/// Waits until a client is there (`true`) or the guard is dropped (`false`: the write end of `hangup` is closed).
-fn wait_for_client(listener: &UnixListener, hangup: &OwnedFd) -> bool {
-    use rustix::event::{PollFd, PollFlags, poll};
-    loop {
-        let mut fds = [
-            PollFd::new(listener, PollFlags::IN),
-            PollFd::new(hangup, PollFlags::IN),
-        ];
-        match poll(&mut fds, None) {
-            Ok(_) if !fds[1].revents().is_empty() => return false,
-            Ok(_) => return true,
-            Err(rustix::io::Errno::INTR) => {}
-            Err(_) => return false,
-        }
     }
 }
 
@@ -99,13 +85,18 @@ pub(super) fn open_with(
         std::thread::Builder::new()
             .name("fs-heartbeat".into())
             .spawn(move || {
-                while wait_for_client(&listener, &hangup) {
-                    while let Ok((stream, _)) = listener.accept() {
-                        let shared = shared.clone();
-                        let _ = std::thread::Builder::new()
-                            .name("fs-heartbeat-call".into())
-                            .spawn(move || serve_one(&shared, stream, admit));
-                    }
+                let mut pause = || std::thread::sleep(PAUSE);
+                while wait_for_client(&listener, &hangup, system_poll, &mut pause) {
+                    drain_accepts(
+                        || listener.accept().map(|(stream, _)| stream),
+                        |stream| {
+                            let shared = shared.clone();
+                            let _ = std::thread::Builder::new()
+                                .name("fs-heartbeat-call".into())
+                                .spawn(move || serve_one(&shared, stream, admit));
+                        },
+                        &mut pause,
+                    );
                 }
             })?
     };

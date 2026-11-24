@@ -2,7 +2,7 @@
 //! under test). The system's own `subst` drive fails both parts at once on the runner, so only values show each part alone.
 //! Pattern: Test.
 
-use super::form::{is_fixed, is_subst, judge};
+use super::form::{dos_target, is_fixed, is_subst, judge, local_disk_with};
 use crate::PlaceRefusal;
 
 fn wide(text: &str) -> Vec<u16> {
@@ -108,4 +108,41 @@ fn a_subst_alias_is_refused_although_the_volume_is_fixed() {
 #[test]
 fn an_unknown_drive_letter_is_refused_although_the_volume_is_fixed() {
     assert_eq!(judge(Some(3), None), Err(PlaceRefusal::NotLocalDisk));
+}
+
+fn fixed(_: &std::path::Path) -> Option<u32> {
+    Some(3)
+}
+
+/// The wire of the answer: the volume is given as fixed, the target is the REAL `QueryDosDeviceW` answer. For a `subst` drive the
+/// refusal can then only come from that answer, so a `local_disk` that hands on a fixed device instead of it (mutant M-nosubst)
+/// turns this red; for the drive of the temp folder (real) it must say yes. Fails where `subst` cannot be made. Pattern: Test.
+#[test]
+fn local_disk_hands_the_real_drive_answer_to_the_judge() {
+    use std::path::Path;
+    use std::process::Command;
+    let dir = tempfile::tempdir().unwrap();
+    let real_letter = dir.path().to_string_lossy().as_bytes()[0].to_ascii_uppercase();
+    assert_eq!(
+        local_disk_with(dir.path(), real_letter, fixed, dos_target),
+        Ok(()),
+        "a real drive"
+    );
+    let letter = ('R'..='Z')
+        .rev()
+        .find(|l| !Path::new(&format!("{l}:\\")).exists())
+        .expect("no free drive letter");
+    let drive = format!("{letter}:");
+    let made = Command::new("subst")
+        .arg(&drive)
+        .arg(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        made.status.success(),
+        "subst did not work: the wire is NOT proven"
+    );
+    let verdict = local_disk_with(dir.path(), letter as u8, fixed, dos_target);
+    let _ = Command::new("subst").arg(&drive).arg("/d").output();
+    assert_eq!(verdict, Err(PlaceRefusal::NotLocalDisk));
 }

@@ -42,19 +42,37 @@ pub(super) fn shape(part: &Path) -> Result<u8, PlaceRefusal> {
 /// alias ([`is_subst`]). Both are asked, each on its own; each has its own test. What the system calls fixed is all that is known:
 /// a USB hard disk often says `DRIVE_FIXED` too, so this is no proof that the disk cannot be unplugged.
 pub(super) fn local_disk(part: &Path, letter: u8) -> Result<(), PlaceRefusal> {
+    local_disk_with(part, letter, drive_type_of, dos_target)
+}
+
+/// [`local_disk`] with the two system questions as arguments (a seam, so a test can give one and keep the other real: the real
+/// `subst` answer is then the ONLY reason for a refusal, and a wire that does not pass the answer on turns the test red).
+pub(super) fn local_disk_with(
+    part: &Path,
+    letter: u8,
+    drive_type: fn(&Path) -> Option<u32>,
+    target: fn(u8) -> Option<Vec<u16>>,
+) -> Result<(), PlaceRefusal> {
+    judge(drive_type(part), target(letter).as_deref())
+}
+
+/// `GetDriveTypeW` of the volume of the path; `None` when the volume is not known.
+pub(super) fn drive_type_of(part: &Path) -> Option<u32> {
     const SIZE: u32 = 1024;
     let mut root = vec![0_u16; SIZE as usize];
     let found =
         unsafe { GetVolumePathNameW(wide(part.as_os_str()).as_ptr(), root.as_mut_ptr(), SIZE) };
-    let drive_type = if found == 0 {
-        None
-    } else {
-        Some(unsafe { GetDriveTypeW(root.as_ptr()) })
-    };
+    (found != 0).then(|| unsafe { GetDriveTypeW(root.as_ptr()) })
+}
+
+/// `QueryDosDeviceW` of the drive letter: what the letter points to (`\Device\...` for a real drive, `\??\...` for a `subst`
+/// alias); `None` when the letter is not known.
+pub(super) fn dos_target(letter: u8) -> Option<Vec<u16>> {
+    const SIZE: u32 = 1024;
     let device = [u16::from(letter), u16::from(b':'), 0];
     let mut target = vec![0_u16; SIZE as usize];
     let len = unsafe { QueryDosDeviceW(device.as_ptr(), target.as_mut_ptr(), SIZE) };
-    judge(drive_type, (len != 0).then_some(&target[..]))
+    (len != 0).then_some(target)
 }
 
 /// The decision of [`local_disk`] over what the system said, apart from the system calls (so each part is tested alone with literal
