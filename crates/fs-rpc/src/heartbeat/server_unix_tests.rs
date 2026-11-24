@@ -3,7 +3,7 @@
 //! Pattern: Test. Another user cannot be made here, so the check is a function the unit gets (`Admit`): the test gives one that
 //! says no, and what the check protects is looked at. Mutants (each turns its test red): M1 the server does not check the
 //! client (`admit` is not asked in `serve_one`): `a_client_that_is_not_this_user_gets_nothing_and_runs_no_hook`; M2 the
-//! client does not check the process behind the socket (`expect_pid` is not compared): `a_heartbeat_of_another_process_is_refused`.
+//! client does not check the process behind the socket (`expect_pid` is not compared): `a_heartbeat_of_another_process_is_refused`. M3 the guard wakes the thread by a connect to the file and joins without end (the old `Drop`): `dropping_the_heartbeat_ends_even_when_its_file_is_gone`.
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -61,4 +61,29 @@ fn a_heartbeat_of_another_process_is_refused() {
     let e = block_on(ask_beat_from(&socket, LIMIT, Some(mine + 1))).unwrap_err();
     assert_eq!(e.kind(), std::io::ErrorKind::PermissionDenied, "{e:?}");
     assert!(matches!(BeatError::from(e), BeatError::Refused));
+}
+
+/// The end of the heartbeat must not depend on its file: a deleted folder or a foreign file there once left the thread in `accept`
+/// and `drop` in `join` for ever (the service never ended on SIGTERM).
+#[test]
+fn dropping_the_heartbeat_ends_even_when_its_file_is_gone() {
+    for foreign_file in [false, true] {
+        let dir = tempfile::tempdir().unwrap();
+        let socket = dir.path().join("p.sock");
+        let shared = Arc::new(Shared::new());
+        let (path, guard) = open_with(&socket, &shared, super::is_me).unwrap();
+        std::fs::remove_file(&path).unwrap();
+        if foreign_file {
+            std::fs::write(&path, b"not a socket").unwrap();
+        }
+        let (done, ended) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            drop(guard);
+            let _ = done.send(());
+        });
+        assert!(
+            ended.recv_timeout(Duration::from_secs(5)).is_ok(),
+            "drop did not end within 5 s (foreign file: {foreign_file})"
+        );
+    }
 }

@@ -23,7 +23,7 @@ uuid = "1"
 
 [target.'cfg(unix)'.dependencies]
 # Who is on the other end of a Unix socket, and who runs this; the tests send themselves signals.
-rustix = { version = "1", features = ["process", "net", "param"] }
+rustix = { version = "1", features = ["process", "net", "param", "event", "pipe"] }
 
 [target.'cfg(windows)'.dependencies]
 # The Windows identity and rights basics (moved out of this crate into fs-trusted-path).

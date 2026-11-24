@@ -14,6 +14,10 @@ English
 
 Appending only (scheme 0.N.x, appending = x): new public items, `hold`/`hold_with` and `keep_connected` unchanged. Version = tag; this branch is not tagged yet.
 
+### Unreleased
+
+- FIX (fs-rpc, Unix): dropping the heartbeat no longer hangs when its `.beat` file is gone or foreign. The thread now ends through a pipe it polls with the listener (before: a failed wake-up connect was ignored and `join` waited for ever, so a service never ended on SIGTERM). Test: `dropping_the_heartbeat_ends_even_when_its_file_is_gone`. Windows was not affected (`Notify`).
+
 ### hold_calling: calls on a held connection (fs-rpc)
 
 - NEW `Hold::call(job, limit)`: runs a `Job<T>` on the thread of the hold with the capability of the CURRENT connection. No connection: `NotConnected` at once (nothing is buffered), over the limit: `TimedOut`. A hold made by `hold`/`hold_with` answers `Unsupported`.
