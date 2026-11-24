@@ -2,6 +2,12 @@
 
 Version = tag.
 
+## Unreleased
+
+English
+
+- Re-pin fs-interfaces v0.0.35 to v0.1.0 (fs-rpc, fs-settings-rpc; tag with `version`, one source in the lock, no Rust change), so the planning module can pin fs-interfaces v0.1.0 (stage 1, Package M3). Interim branch for development; the tag comes with the bundle.
+
 ## 0.1.2 (2026-11-24)
 
 Appending only (scheme 0.N.x, appending = x): new public items, nothing existing changed or renamed. Version = tag; this branch is not tagged yet.
