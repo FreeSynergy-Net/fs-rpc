@@ -110,10 +110,6 @@ fn an_unknown_drive_letter_is_refused_although_the_volume_is_fixed() {
     assert_eq!(judge(Some(3), None), Err(PlaceRefusal::NotLocalDisk));
 }
 
-fn fixed(_: &std::path::Path) -> Option<u32> {
-    Some(3)
-}
-
 /// The wire of the answer: the volume is given as fixed, the target is the REAL `QueryDosDeviceW` answer. For a `subst` drive the
 /// refusal can then only come from that answer, so a `local_disk` that hands on a fixed device instead of it (mutant M-nosubst)
 /// turns this red; for the drive of the temp folder (real) it must say yes. Fails where `subst` cannot be made. Pattern: Test.
@@ -124,7 +120,7 @@ fn local_disk_hands_the_real_drive_answer_to_the_judge() {
     let dir = tempfile::tempdir().unwrap();
     let real_letter = dir.path().to_string_lossy().as_bytes()[0].to_ascii_uppercase();
     assert_eq!(
-        local_disk_with(dir.path(), real_letter, fixed, dos_target),
+        local_disk_with(Some(3), real_letter, dos_target),
         Ok(()),
         "a real drive"
     );
@@ -142,7 +138,7 @@ fn local_disk_hands_the_real_drive_answer_to_the_judge() {
         made.status.success(),
         "subst did not work: the wire is NOT proven"
     );
-    let verdict = local_disk_with(dir.path(), letter as u8, fixed, dos_target);
+    let verdict = local_disk_with(Some(3), u8::try_from(letter).unwrap(), dos_target);
     let _ = Command::new("subst").arg(&drive).arg("/d").output();
     assert_eq!(verdict, Err(PlaceRefusal::NotLocalDisk));
 }

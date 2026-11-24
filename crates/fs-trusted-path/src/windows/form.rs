@@ -42,18 +42,17 @@ pub(super) fn shape(part: &Path) -> Result<u8, PlaceRefusal> {
 /// alias ([`is_subst`]). Both are asked, each on its own; each has its own test. What the system calls fixed is all that is known:
 /// a USB hard disk often says `DRIVE_FIXED` too, so this is no proof that the disk cannot be unplugged.
 pub(super) fn local_disk(part: &Path, letter: u8) -> Result<(), PlaceRefusal> {
-    local_disk_with(part, letter, drive_type_of, dos_target)
+    local_disk_with(drive_type_of(part), letter, dos_target)
 }
 
-/// [`local_disk`] with the two system questions as arguments (a seam, so a test can give one and keep the other real: the real
+/// [`local_disk`] with the answer for the volume (`drive_type`) and the question for the letter (`target`) as arguments (a seam, so a test can give one and keep the other real: the real
 /// `subst` answer is then the ONLY reason for a refusal, and a wire that does not pass the answer on turns the test red).
 pub(super) fn local_disk_with(
-    part: &Path,
+    drive_type: Option<u32>,
     letter: u8,
-    drive_type: fn(&Path) -> Option<u32>,
     target: fn(u8) -> Option<Vec<u16>>,
 ) -> Result<(), PlaceRefusal> {
-    judge(drive_type(part), target(letter).as_deref())
+    judge(drive_type, target(letter).as_deref())
 }
 
 /// `GetDriveTypeW` of the volume of the path; `None` when the volume is not known.
