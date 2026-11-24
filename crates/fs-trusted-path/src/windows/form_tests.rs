@@ -36,38 +36,53 @@ fn the_target_of_a_real_drive_is_no_subst_alias() {
     );
 }
 
+/// A `subst` drive for the length of a test (an alias of a folder, as a drive letter), removed when dropped. Both tests below use it:
+/// they run in parallel, so a letter that is taken by the other test (`subst` fails) is skipped and the next one tried, there is no
+/// "look, then act" race. Fails where no `subst` can be made (the real answer is then NOT proven). Pattern: RAII.
+struct Subst(String);
+
+impl Subst {
+    fn new(dir: &std::path::Path) -> Self {
+        for letter in ('R'..='Z').rev() {
+            let drive = format!("{letter}:");
+            if std::path::Path::new(&format!("{drive}\\")).exists() {
+                continue;
+            }
+            let made = std::process::Command::new("subst")
+                .arg(&drive)
+                .arg(dir)
+                .output()
+                .unwrap();
+            if made.status.success() {
+                return Self(drive);
+            }
+        }
+        panic!("subst did not work on any letter: the real answer is NOT proven");
+    }
+
+    fn letter(&self) -> u8 {
+        self.0.as_bytes()[0]
+    }
+}
+
+impl Drop for Subst {
+    fn drop(&mut self) {
+        let _ = std::process::Command::new("subst")
+            .arg(&self.0)
+            .arg("/d")
+            .output();
+    }
+}
+
 /// The real answer of the system for a `subst` drive (no `GetDriveTypeW`): it must begin with the DOS prefix `is_subst` looks for.
-/// Fails where `subst` cannot be made (it is not skipped: then the real answer is not proven). Pattern: Test.
+/// Pattern: Test.
 #[test]
 fn the_system_answer_for_a_real_subst_drive_is_a_subst_alias() {
-    use std::path::Path;
-    use std::process::Command;
-    use windows_sys::Win32::Storage::FileSystem::QueryDosDeviceW;
     let dir = tempfile::tempdir().unwrap();
-    let letter = ('R'..='Z')
-        .rev()
-        .find(|l| !Path::new(&format!("{l}:\\")).exists())
-        .expect("no free drive letter");
-    let drive = format!("{letter}:");
-    let made = Command::new("subst")
-        .arg(&drive)
-        .arg(dir.path())
-        .output()
-        .unwrap();
-    assert!(
-        made.status.success(),
-        "subst did not work: the real answer is NOT proven"
-    );
-    let device = wide(&drive);
-    let mut target = vec![0_u16; 1024];
-    let len = unsafe { QueryDosDeviceW(device.as_ptr(), target.as_mut_ptr(), 1024) };
-    let _ = Command::new("subst").arg(&drive).arg("/d").output();
-    assert_ne!(len, 0);
-    assert!(
-        is_subst(&target),
-        "{}",
-        String::from_utf16_lossy(&target[..len as usize])
-    );
+    let alias = Subst::new(dir.path());
+    let target =
+        dos_target(alias.letter()).expect("QueryDosDeviceW gave nothing for a subst drive");
+    assert!(is_subst(&target), "{}", String::from_utf16_lossy(&target));
 }
 
 /// What `judge` decides, each part alone: the other part is always fine (a fixed volume, a real drive) so only one part can refuse.
@@ -112,11 +127,9 @@ fn an_unknown_drive_letter_is_refused_although_the_volume_is_fixed() {
 
 /// The wire of the answer: the volume is given as fixed, the target is the REAL `QueryDosDeviceW` answer. For a `subst` drive the
 /// refusal can then only come from that answer, so a `local_disk` that hands on a fixed device instead of it (mutant M-nosubst)
-/// turns this red; for the drive of the temp folder (real) it must say yes. Fails where `subst` cannot be made. Pattern: Test.
+/// turns this red; for the drive of the temp folder (real) it must say yes. Pattern: Test.
 #[test]
 fn local_disk_hands_the_real_drive_answer_to_the_judge() {
-    use std::path::Path;
-    use std::process::Command;
     let dir = tempfile::tempdir().unwrap();
     let real_letter = dir.path().to_string_lossy().as_bytes()[0].to_ascii_uppercase();
     assert_eq!(
@@ -124,21 +137,9 @@ fn local_disk_hands_the_real_drive_answer_to_the_judge() {
         Ok(()),
         "a real drive"
     );
-    let letter = ('R'..='Z')
-        .rev()
-        .find(|l| !Path::new(&format!("{l}:\\")).exists())
-        .expect("no free drive letter");
-    let drive = format!("{letter}:");
-    let made = Command::new("subst")
-        .arg(&drive)
-        .arg(dir.path())
-        .output()
-        .unwrap();
-    assert!(
-        made.status.success(),
-        "subst did not work: the wire is NOT proven"
+    let alias = Subst::new(dir.path());
+    assert_eq!(
+        local_disk_with(Some(3), alias.letter(), dos_target),
+        Err(PlaceRefusal::NotLocalDisk)
     );
-    let verdict = local_disk_with(Some(3), u8::try_from(letter).unwrap(), dos_target);
-    let _ = Command::new("subst").arg(&drive).arg("/d").output();
-    assert_eq!(verdict, Err(PlaceRefusal::NotLocalDisk));
 }
