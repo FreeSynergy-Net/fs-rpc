@@ -44,6 +44,7 @@ mod pump;
 mod reconnect;
 mod saved;
 mod serve;
+mod serve_idle;
 mod setting_keys;
 #[cfg(unix)]
 mod single;
@@ -93,6 +94,7 @@ pub use serve::{
     Connection, ReadLimits, connect, connect_with, run_until_signal, run_until_signal_as,
     run_until_signal_callers, serve, serve_callers, serve_with,
 };
+pub use serve_idle::{ServeOptions, serve_callers_options, serve_options};
 pub use setting_keys::{MCP_ENABLED_KEY, SINGLE_ASK_KEY};
 pub use single::{
     AskPolicy, CHOICE_TOKENS, Choices, Single, SingleError, SingleOptions, SingleTimes, Stuck,

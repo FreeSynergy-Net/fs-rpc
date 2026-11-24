@@ -615,7 +615,7 @@ dependencies = [
 
 [[package]]
 name = "fs-rpc"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -645,7 +645,7 @@ dependencies = [
 
 [[package]]
 name = "fs-settings-rpc"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -662,7 +662,7 @@ dependencies = [
 
 [[package]]
 name = "fs-trusted-path"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "fs-trusted-path",
  "tempfile",

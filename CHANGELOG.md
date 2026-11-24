@@ -2,6 +2,27 @@
 
 Version = tag.
 
+## 0.1.1 (2026-11-24)
+
+Appending only (scheme 0.N.x, appending = x): new public items, nothing existing changed. Version = tag; this branch is not tagged yet.
+
+### INST-2a: one place for the program file of a module (fs-trusted-path)
+
+- NEW `fs_trusted_path::module_service(name)`: `<modules>/<name>/service` (Windows `service.exe`), checked. Folders: `modules/` next to the running program (read first, as the host does), then the system folder (Unix `/usr/libexec/freesynergy/modules`, Windows `<ProgramFiles>\FreeSynergy\modules` from the shell). Rules as in fs-starter `Known::service_with`: no link on the folder or the file, a regular file, `service` next to `service.exe` is refused (`ambiguous-service`), a plain folder name only, and a module of the system folder also passes the system check (`Trust::system_owned` on every part of the way: owner, rights, no link, Windows: local disk). Refusal words: `bad-name`, `no-service`, `symlink`, `not-a-file`, `ambiguous-service`, `not-system` (`ModuleRefusal`).
+- NEW, moved in copy from fs-starter (`layout.rs`, `system.rs`, `known_folder.rs`; fs-starter itself is changed only by the follow-up order INST-2b): `SERVICE_STEM`, `EXE_SUFFIX`, `program_file`, `bundled_modules_dir`, `system_modules_dir`, `STARTER_DIR`/`MODULES_DIR`/`SHARE_DIR` (Unix), `SystemPlaces` with `SystemRefusal`, `ModulePlaces`. `fs-trusted-path` on Windows now needs the `windows-sys` features `Win32_System_Com` and `Win32_UI_Shell` (the known folder of the shell).
+- Tests: `crates/fs-trusted-path/tests/module_service.rs` (Unix, throw-away folders; the Windows form is tested by passing the ending `.exe` under Unix). Not tested here: the Windows anchor (`SHGetKnownFolderPath`) itself, only that it compiles on the CI Windows job.
+
+### SB-3: end after a time without a user (fs-rpc)
+
+- NEW `ServeOptions { limits, idle_timeout }`, `serve_options` and `serve_callers_options`: like `serve_with` and `serve_callers`, and the serving ends with `Ok(())` (socket removed) when no connection was there for `idle_timeout` (counted from the start and from the end of the last connection). The default (`ServeOptions::default()`, `serve`, `serve_with`, `serve_callers`, `run_until_signal*`) has no end: unchanged. A caller that is dropped (another user, refused) is no connection. Not yet in `run_until_signal*`.
+- Tests: `crates/fs-rpc/tests/rpc_idle.rs` (ends after the time without a connection; a connection keeps it up, the time runs again from its end; without the option only `shutdown` ends it).
+
+### Other
+
+- `repository` in `Cargo.toml` and the link in the README name the org FreeSynergy-Net.
+- Auf Deutsch: Nur Anhaengen (0.1.1, kein Tag). `fs_trusted_path::module_service(name)` ist die eine Fundstelle fuer `<modules>/<name>/service[.exe]` mit den Pruefungen des Hosts (kein Link, regulaere Datei, `service` neben `service.exe` abgelehnt, nur schlichte Namen, Systemordner zusaetzlich Systempruefung ueber `Trust::system_owned`); Layout und Systemorte aus fs-starter hierher kopiert (fs-starter wird erst im Folgeauftrag INST-2b umgestellt). Neu: `ServeOptions`, `serve_options`, `serve_callers_options` mit optionaler Leerlauf-Frist (Ende ohne Verbindung; Standard aus); `run_until_signal*` noch nicht. `repository` zeigt auf die Org FreeSynergy-Net.
+- Co-developed with AI (Claude).
+
 ## 0.1.0 (2026-11-24)
 
 First tag in the scheme 0.N.x (appending = x, breaking = N; version = tag; skipping 0.0.9 is allowed).

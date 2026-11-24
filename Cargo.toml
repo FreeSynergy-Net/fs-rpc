@@ -3,8 +3,8 @@ resolver = "2"
 members = ["crates/fs-trusted-path", "crates/fs-rpc", "crates/fs-settings-rpc"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 rust-version = "1.89"
-repository = "https://github.com/FreeSynergy/fs-rpc"
+repository = "https://github.com/FreeSynergy-Net/fs-rpc"

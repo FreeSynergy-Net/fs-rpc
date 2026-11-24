@@ -3,6 +3,8 @@
 //! the ACL (decision of the plan WIN-HOST, rules 2.1 to 2.6; the plan's threat model: an ordinary local user, not an administrator).
 //! Also holds the Windows identity and rights basics (`windows`), shared with fs-rpc.
 //!
+//! Also the ONE place of the module layout: [`module_service`] (`<modules>/<name>/service[.exe]`, checked), see `module`.
+//!
 //! Security module. No relaxation: a doubt is a refusal.
 //!
 //! Limits, said openly (Windows):
@@ -16,6 +18,11 @@
 //!
 //! Pattern: Specification ([`Trust`]) + Value ([`PlaceRefusal`] names the border hit).
 
+#[cfg(windows)]
+mod known_folder;
+mod layout;
+mod module;
+mod places;
 mod refusal;
 mod trust;
 #[cfg(unix)]
@@ -23,6 +30,13 @@ mod unix;
 #[cfg(windows)]
 pub mod windows;
 
+pub use layout::{EXE_SUFFIX, SERVICE_STEM, bundled_modules_dir, program_file, system_modules_dir};
+#[cfg(unix)]
+pub use layout::{MODULES_DIR, SHARE_DIR, STARTER_DIR};
+#[doc(hidden)]
+pub use layout::{is_ambiguous, program_file_with};
+pub use module::{ModulePlaces, ModuleRefusal, module_service};
+pub use places::{SystemPlaces, SystemRefusal};
 pub use refusal::{Level, PlaceRefusal};
 pub use trust::{Trust, system_owned};
 

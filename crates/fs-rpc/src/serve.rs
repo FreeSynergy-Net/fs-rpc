@@ -18,8 +18,9 @@ use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 
 use super::control::ServerIdentity;
 use super::finish::{FINISH_TIMEOUT, finish_underway};
+use super::serve_idle::{ServeOptions, accept_idle};
 use super::transport::{
-    Accepted, BoundSocket, Endpoint, PerConnection, Shared, System, bind_socket, bootstrap_for,
+    BoundSocket, Endpoint, PerConnection, Shared, System, bind_socket, bootstrap_for,
 };
 
 /// What this end of a connection reads at most in one message; the default is
@@ -31,9 +32,9 @@ use super::transport::{
 pub type ReadLimits = ReaderOptions;
 
 /// Pause after the system ran out of descriptors or memory, instead of spinning on `accept`.
-const ACCEPT_PAUSE: Duration = Duration::from_millis(100);
+pub(super) const ACCEPT_PAUSE: Duration = Duration::from_millis(100);
 
-fn system<S: AsyncRead + AsyncWrite + Unpin + 'static>(
+pub(super) fn system<S: AsyncRead + AsyncWrite + Unpin + 'static>(
     stream: S,
     side: Side,
     bootstrap: Option<Client>,
@@ -93,33 +94,12 @@ pub async fn serve_callers<P: PerConnection>(
 
 async fn accept_until(
     socket: &BoundSocket,
-    mut bootstrap: impl FnMut(&<System as Endpoint>::ServerStream) -> Option<Client>,
+    bootstrap: impl FnMut(&<System as Endpoint>::ServerStream) -> Option<Client>,
     shutdown: impl Future<Output = ()>,
     limits: ReadLimits,
 ) -> io::Result<()> {
-    tokio::pin!(shutdown);
-    loop {
-        tokio::select! {
-            () = &mut shutdown => return Ok(()),
-            accepted = System::accept(socket) => match accepted? {
-                Accepted::Peer(stream) => {
-                    if let Some(client) = bootstrap(&stream) {
-                        let rpc = system(stream, Side::Server, Some(client), limits);
-                        tokio::task::spawn_local(async move {
-                            drop(rpc.await);
-                        });
-                    }
-                }
-                Accepted::Skip => {}
-                Accepted::Pause => {
-                    tokio::select! {
-                        () = &mut shutdown => return Ok(()),
-                        () = tokio::time::sleep(ACCEPT_PAUSE) => {}
-                    }
-                }
-            }
-        }
-    }
+    let options = ServeOptions::default().with_limits(limits);
+    accept_idle(socket, bootstrap, shutdown, options).await
 }
 
 /// A capability on another program, and the connection it lives on. Dropping this closes the
