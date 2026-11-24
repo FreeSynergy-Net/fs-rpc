@@ -2,6 +2,14 @@
 
 Version = tag.
 
+## Unreleased
+
+English
+
+- fs-trusted-path (S-a1): the decision of the drive check is now one pure function `judge(drive_type, target)` over what the system said; each part (volume fixed, drive letter no `subst` alias, letter known) has its own test with the other part fine, so dropping either part turns one test red. The system calls themselves stay: `GetDriveTypeW` is shown by the real network drive test (`net use`), `QueryDosDeviceW` by the real `subst` answer test. The end-to-end `subst` test cannot show a single part (the runner's `subst` drive fails both). No change of behaviour; no check removed. These Windows tests have not run locally (only the Windows CI shows them).
+- Auf Deutsch: Die Entscheidung der Laufwerkspruefung ist jetzt eine reine Funktion `judge`; jeder Teil hat einen eigenen Test, bei dem der andere Teil in Ordnung ist. Kein geaendertes Verhalten, keine Pruefung entfernt. Die Windows-Tests liefen lokal nicht, nur in der Windows-CI.
+- Co-developed with AI (Claude).
+
 ## 0.1.4
 
 Appending only (scheme 0.N.x, appending = x): new public items, `hold`/`hold_with` and `keep_connected` unchanged. Version = tag; this branch is not tagged yet.

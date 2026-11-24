@@ -2,7 +2,8 @@
 //! under test). The system's own `subst` drive fails both parts at once on the runner, so only values show each part alone.
 //! Pattern: Test.
 
-use super::form::{is_fixed, is_subst};
+use super::form::{is_fixed, is_subst, judge};
+use crate::PlaceRefusal;
 
 fn wide(text: &str) -> Vec<u16> {
     text.encode_utf16().chain(std::iter::once(0)).collect()
@@ -36,7 +37,7 @@ fn the_target_of_a_real_drive_is_no_subst_alias() {
 }
 
 /// The real answer of the system for a `subst` drive (no `GetDriveTypeW`): it must begin with the DOS prefix `is_subst` looks for.
-/// Skipped where `subst` cannot be made (then the literal tests above are all there is). Pattern: Test.
+/// Fails where `subst` cannot be made (it is not skipped: then the real answer is not proven). Pattern: Test.
 #[test]
 fn the_system_answer_for_a_real_subst_drive_is_a_subst_alias() {
     use std::path::Path;
@@ -67,4 +68,44 @@ fn the_system_answer_for_a_real_subst_drive_is_a_subst_alias() {
         "{}",
         String::from_utf16_lossy(&target[..len as usize])
     );
+}
+
+/// What `judge` decides, each part alone: the other part is always fine (a fixed volume, a real drive) so only one part can refuse.
+/// A mutant that drops either part of `local_disk` turns exactly one of these red. Pattern: Test.
+#[test]
+fn a_fixed_volume_on_a_real_drive_is_a_local_disk() {
+    assert_eq!(
+        judge(Some(3), Some(&wide(r"\Device\HarddiskVolume3"))),
+        Ok(())
+    );
+}
+
+#[test]
+fn a_volume_that_is_not_fixed_is_refused_although_the_letter_is_no_alias() {
+    let real = wide(r"\Device\LanmanRedirector\;Z:0\localhost\C$");
+    for other in [0, 1, 2, 4, 5, 6] {
+        assert_eq!(
+            judge(Some(other), Some(&real)),
+            Err(PlaceRefusal::NotLocalDisk),
+            "{other}"
+        );
+    }
+    assert_eq!(
+        judge(None, Some(&real)),
+        Err(PlaceRefusal::NotLocalDisk),
+        "volume unknown"
+    );
+}
+
+#[test]
+fn a_subst_alias_is_refused_although_the_volume_is_fixed() {
+    assert_eq!(
+        judge(Some(3), Some(&wide(r"\??\C:\folder"))),
+        Err(PlaceRefusal::NotLocalDisk)
+    );
+}
+
+#[test]
+fn an_unknown_drive_letter_is_refused_although_the_volume_is_fixed() {
+    assert_eq!(judge(Some(3), None), Err(PlaceRefusal::NotLocalDisk));
 }

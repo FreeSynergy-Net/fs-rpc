@@ -46,16 +46,28 @@ pub(super) fn local_disk(part: &Path, letter: u8) -> Result<(), PlaceRefusal> {
     let mut root = vec![0_u16; SIZE as usize];
     let found =
         unsafe { GetVolumePathNameW(wide(part.as_os_str()).as_ptr(), root.as_mut_ptr(), SIZE) };
-    if found == 0 || !is_fixed(unsafe { GetDriveTypeW(root.as_ptr()) }) {
-        return Err(PlaceRefusal::NotLocalDisk);
-    }
+    let drive_type = if found == 0 {
+        None
+    } else {
+        Some(unsafe { GetDriveTypeW(root.as_ptr()) })
+    };
     let device = [u16::from(letter), u16::from(b':'), 0];
     let mut target = vec![0_u16; SIZE as usize];
     let len = unsafe { QueryDosDeviceW(device.as_ptr(), target.as_mut_ptr(), SIZE) };
-    if len == 0 || is_subst(&target) {
+    judge(drive_type, (len != 0).then_some(&target[..]))
+}
+
+/// The decision of [`local_disk`] over what the system said, apart from the system calls (so each part is tested alone with literal
+/// values): `drive_type` is `None` when the volume of the path is not known, `target` is `None` when the drive letter is not known.
+/// Refused when the volume is unknown or not fixed, when the letter is unknown, or when the letter is a `subst` alias.
+pub(super) fn judge(drive_type: Option<u32>, target: Option<&[u16]>) -> Result<(), PlaceRefusal> {
+    if !drive_type.is_some_and(is_fixed) {
         return Err(PlaceRefusal::NotLocalDisk);
     }
-    Ok(())
+    match target {
+        Some(t) if !is_subst(t) => Ok(()),
+        _ => Err(PlaceRefusal::NotLocalDisk),
+    }
 }
 
 /// The answer of `GetDriveTypeW` for a volume the system calls a fixed disk (a network drive, a CD or a card gives another value).
