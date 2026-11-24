@@ -8,6 +8,9 @@ Appending only (scheme 0.N.x, appending = x): new public items, `hold`/`hold_wit
 
 ### Unreleased
 
+- Pins (no Rust change): fs-types `rev 722d3ce0` (v0.0.7, also the dev-dependency fs-conformance), fs-interfaces `rev 2bb70d82`, fs-objects `rev e38093f1`, `fs-settings` (repo fs-components) `rev 9ab4ac28`; `.cargo/config.toml` names the registry `freesynergy` (fs-conformance of fs-types 722d3ce0 needs it). `cargo tree -d` shows no fs-* duplicate (before: two fs-types). No non_exhaustive wildcard arm was needed. Written with the help of Claude (Anthropic).
+- Auf Deutsch: Pins (keine Rust-Aenderung): fs-types `rev 722d3ce0` (auch die Dev-Abhaengigkeit fs-conformance), fs-interfaces `rev 2bb70d82`, fs-objects `rev e38093f1`, `fs-settings` (Repo fs-components) `rev 9ab4ac28`; `.cargo/config.toml` nennt die Registry `freesynergy`. `cargo tree -d` zeigt kein fs-* Doppeltes (vorher zwei fs-types). Kein Wildcard-Arm noetig. Geschrieben mit Hilfe von Claude (Anthropic).
+
 - Pin (no Rust change): `fs-settings` from fs-components `rev d53126ba` (was `d49e01d9`), the one target head of the bundle; `cargo tree -d` shows no fs-* duplicate, the settings tests pass unchanged. Written with the help of Claude (Anthropic).
 - Auf Deutsch: Pin: `fs-settings` aus fs-components `rev d53126ba` (war `d49e01d9`), der eine Ziel-Kopf des Buendels; kein fs-* Doppeltes, die Settings-Tests laufen unveraendert. Geschrieben mit Hilfe von Claude (Anthropic).
 
