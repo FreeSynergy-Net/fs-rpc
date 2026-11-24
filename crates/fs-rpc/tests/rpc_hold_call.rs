@@ -148,8 +148,11 @@ fn no_connection_is_not_connected_and_a_slow_job_times_out() {
     let mut spec = spec(&socket, Duration::from_secs(30), 30_000);
     spec.starter = Box::new(|| -> io::Result<()> { Err(io::Error::other("stays down")) });
     let held = hold_calling(spec, move || Box::new(intro), |_: HoldEvent| {}).unwrap();
-    let slow: fs_rpc::Job<u64> = Box::new(|_| {
-        Box::pin(async {
+    let cancelled = Arc::new(AtomicU32::new(0));
+    let guard = Guard(cancelled.clone());
+    let slow: fs_rpc::Job<u64> = Box::new(move |_| {
+        Box::pin(async move {
+            let _guard = guard;
             tokio::time::sleep(Duration::from_secs(30)).await;
             Ok(0)
         })
@@ -157,7 +160,13 @@ fn no_connection_is_not_connected_and_a_slow_job_times_out() {
     let began = Instant::now();
     let err = held.call(slow, Duration::from_millis(200)).unwrap_err();
     assert_eq!(err.kind(), io::ErrorKind::TimedOut);
-    assert!(began.elapsed() < Duration::from_secs(3));
+    // Below `limit + ANSWER_MARGIN` (2 s): only the inner limit can give this, the outer wait cannot.
+    assert!(began.elapsed() < Duration::from_secs(1));
+    assert_eq!(
+        cancelled.load(Ordering::SeqCst),
+        1,
+        "the slow job must be dropped at the limit"
+    );
     let rt = runtime();
     tokio::task::LocalSet::new().block_on(&rt, async {
         stop_server(&socket).await.unwrap();
@@ -171,4 +180,27 @@ fn no_connection_is_not_connected_and_a_slow_job_times_out() {
         began.elapsed() < Duration::from_millis(500),
         "must not wait"
     );
+}
+
+/// C4: a hold made by `hold` cannot call: `Unsupported`, at once.
+#[test]
+fn a_plain_hold_cannot_call() {
+    let _one = lock();
+    let _limit = watchdog(60);
+    let dir = tempfile::tempdir().unwrap();
+    let socket = dir.path().join("c4.sock");
+    serve_and_wait(&socket, Duration::from_secs(30));
+    let held = fs_rpc::hold(
+        spec(&socket, Duration::from_secs(30), 5_000),
+        |_: HoldEvent| {},
+    )
+    .unwrap();
+    let err = held.call(size_job(), Duration::from_secs(5)).unwrap_err();
+    assert_eq!(err.kind(), io::ErrorKind::Unsupported);
+    drop(held);
+    let rt = runtime();
+    tokio::task::LocalSet::new().block_on(&rt, async {
+        stop_server(&socket).await.unwrap();
+        wait_gone(&socket).await;
+    });
 }

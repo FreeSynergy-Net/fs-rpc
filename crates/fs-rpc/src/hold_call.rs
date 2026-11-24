@@ -40,6 +40,12 @@ pub trait OnAttach: 'static {
 impl Hold {
     /// Runs `job` on the held connection and waits for its answer, at most `limit`.
     ///
+    /// Never call this from the thread of the connection (the `HoldObserver`, `OnAttach::attach` or inside a job): that thread
+    /// is the one that must run the job, so the call waits until `limit` plus a margin and ends in `TimedOut`.
+    ///
+    /// A connection that was lost is only noticed after the next heartbeat; a job started in that gap fails with its own error
+    /// (the dead capability), not with `NotConnected`.
+    ///
     /// # Errors
     /// `NotConnected` at once when no connection stands (between two connections, or the hold ended), `TimedOut` after `limit`,
     /// `Unsupported` when the hold was made by [`hold`](super::hold) or [`hold_with`](super::hold_with) (nothing can be called);
