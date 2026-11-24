@@ -1,23 +1,22 @@
-//! Holding a module: one connection per frontend (or program) to a module service, kept on its own thread until the handle drops.
-//! Attached = the connection stands; detached = the handle dropped. With no connection left, the module ends after its idle time.
+//! Holding a module: one connection per frontend (or program) to a module service, kept on its own thread until the handle
+//! drops (then the module ends after its idle time). Attached = the connection stands; detached = the handle dropped.
 //!
-//! Pattern: Observer (the owner learns attach, re-attach and give-up as events) + RAII (the handle is the registration). The loop is
-//! [`keep_connected`](super::keep_connected); the frame (own thread, `LocalSet`, block until the first answer) is that of
-//! [`client::Worker`](super::client::Worker).
+//! Pattern: Observer (attach, re-attach, give-up as events) + RAII (the handle is the registration). The loop is
+//! [`keep_connected`](super::keep_connected), the thread frame that of [`client::Worker`](super::client::Worker).
 
 use std::any::Any;
+use std::cell::RefCell;
 use std::io;
 use std::sync::mpsc;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
-use capnp::capability::FromClientHook;
+use capnp::capability::{Client, FromClientHook};
 use futures::future::LocalBoxFuture;
 use tokio::sync::oneshot;
 
 use super::{HoldSpec, Reconnected, Resync, RpcError, Session, keep_connected};
 
-/// How long the thread of a dropped hold lets the closing connection finish.
 const CLOSE_GRACE: Duration = Duration::from_millis(100);
 
 /// What happens to a hold, in the order it happens: `Attached` (again and again), maybe `GaveUp`, `Detached` once at the end.
@@ -72,11 +71,8 @@ impl Drop for Hold {
 /// No session: the connection is only kept (pings), nothing is subscribed on it.
 struct NoSession;
 
-impl Session<capnp::capability::Client> for NoSession {
-    fn attach(
-        &self,
-        _client: capnp::capability::Client,
-    ) -> LocalBoxFuture<'_, io::Result<Box<dyn Any>>> {
+impl Session<Client> for NoSession {
+    fn attach(&self, _client: Client) -> LocalBoxFuture<'_, io::Result<Box<dyn Any>>> {
         Box::pin(async { Ok(Box::new(()) as Box<dyn Any>) })
     }
 }
@@ -84,7 +80,7 @@ impl Session<capnp::capability::Client> for NoSession {
 /// Turns the loop's hints into events, and tells `hold_with` about the first result.
 struct Events<O> {
     observer: O,
-    first: std::cell::RefCell<Option<mpsc::Sender<io::Result<()>>>>,
+    first: RefCell<Option<mpsc::Sender<io::Result<()>>>>,
 }
 
 impl<O: HoldObserver> Resync for Events<O> {
@@ -113,7 +109,7 @@ impl<O: HoldObserver> Resync for Events<O> {
 /// # Errors
 /// The thread did not start, or nothing could be connected within `spec.times.give_up` (the text is the problem's).
 pub fn hold(spec: HoldSpec, observer: impl HoldObserver) -> io::Result<Hold> {
-    hold_with::<capnp::capability::Client, NoSession>(spec, || NoSession, observer)
+    hold_with::<Client, NoSession>(spec, || NoSession, observer)
 }
 
 /// [`hold`] with a [`Session`] on every connection (a subscription, for instance). `session` is built on the new thread, so it may
@@ -167,7 +163,7 @@ fn run<C, S>(
     let local = tokio::task::LocalSet::new();
     let events = Events {
         observer,
-        first: std::cell::RefCell::new(Some(ready)),
+        first: RefCell::new(Some(ready)),
     };
     let session = session();
     let HoldSpec {
