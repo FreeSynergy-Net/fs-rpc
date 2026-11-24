@@ -2,11 +2,13 @@
 
 Version = tag.
 
-## Unreleased
+## 0.1.3 (2026-11-24)
 
 English
 
-- Re-pin fs-interfaces v0.0.35 to v0.1.0 (fs-rpc, fs-settings-rpc; tag with `version`, one source in the lock, no Rust change), so the planning module can pin fs-interfaces v0.1.0 (stage 1, Package M3). Interim branch for development; the tag comes with the bundle.
+- Re-pin fs-interfaces v0.0.35 to v0.1.0 (fs-rpc, fs-settings-rpc). No Rust change. This way fs-forms v0.1.0 (pin fs-interfaces v0.1.0) has only ONE fs-interfaces source in the graph. Version = tag.
+- Auf Deutsch: Re-Pin fs-interfaces v0.0.35 auf v0.1.0 (fs-rpc, fs-settings-rpc), keine Rust-Aenderung, damit fs-forms v0.1.0 (Pin fs-interfaces v0.1.0) nur EINE fs-interfaces-Quelle im Graphen hat.
+- Co-developed with AI (Claude).
 
 ## 0.1.2 (2026-11-24)
 
