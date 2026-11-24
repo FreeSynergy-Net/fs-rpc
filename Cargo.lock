@@ -636,12 +636,14 @@ dependencies = [
 
 [[package]]
 name = "fs-settings"
-version = "0.0.35"
-source = "git+https://github.com/FreeSynergy-Net/fs-components?tag=v0.0.35#0becc479920d1bd512b30800cb0772db1130c27d"
+version = "0.1.0"
+source = "git+https://github.com/FreeSynergy-Net/fs-components?rev=d49e01d923931732ab1e090bc38f45268db85002#d49e01d923931732ab1e090bc38f45268db85002"
 dependencies = [
  "async-trait",
  "fs-conformance",
  "fs-types",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
