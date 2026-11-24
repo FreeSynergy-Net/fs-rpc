@@ -16,8 +16,8 @@ mod windows;
 pub(crate) use windows::beat;
 
 pub(super) use endpoint::{Accepted, Endpoint};
-pub use peer::{Caller, CallerError, CallerSource, PerConnection};
-pub(super) use peer::{Shared, bootstrap_for};
+pub(super) use peer::bootstrap_for;
+pub use peer::{Caller, CallerError, CallerSource, PerConnection, Shared};
 pub use socket::{BoundSocket, bind_socket, companion_path, default_socket};
 #[cfg(unix)]
 pub(super) use unix::Unix as System;

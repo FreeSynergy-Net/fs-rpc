@@ -36,6 +36,7 @@ mod feed;
 mod finish;
 mod handshake;
 mod heartbeat;
+mod hold;
 mod ids;
 mod options;
 mod page;
@@ -45,6 +46,7 @@ mod reconnect;
 mod saved;
 mod serve;
 mod serve_idle;
+mod serving;
 mod setting_keys;
 #[cfg(unix)]
 mod single;
@@ -72,6 +74,7 @@ pub use heartbeat::{
     Beat, BeatError, HangTimes, Heartbeat, Hung, Pulse, SaveOnTerm, Verdict, Watch, ask_beat,
     ask_save,
 };
+pub use hold::{Hold, HoldEvent, HoldObserver, HoldSpec, hold, hold_with};
 pub use ids::{from_millis, read_object_id, read_uuid, to_millis, write_object_id, write_uuid};
 pub use options::{
     FACET_FLAG, LOCAL_OWNER, ServerOptions, default_data_dir, facet_from_args, parse_facet,
@@ -92,9 +95,10 @@ pub use reconnect::{
 pub use saved::Saved;
 pub use serve::{
     Connection, ReadLimits, connect, connect_with, run_until_signal, run_until_signal_as,
-    run_until_signal_callers, serve, serve_callers, serve_with,
+    run_until_signal_callers, run_until_signal_serving, serve, serve_callers, serve_with,
 };
 pub use serve_idle::{ServeOptions, serve_callers_options, serve_options};
+pub use serving::{MODULE_IDLE, Serving};
 pub use setting_keys::{MCP_ENABLED_KEY, SINGLE_ASK_KEY};
 pub use single::{
     AskPolicy, CHOICE_TOKENS, Choices, Single, SingleError, SingleOptions, SingleTimes, Stuck,
@@ -105,6 +109,6 @@ pub use single::{Decision, Image, Own, Peer, Why, decide_takeover};
 pub use starter::{CommandStarter, ServerStarter};
 pub use stop::stop_self;
 pub use transport::{
-    BoundSocket, Caller, CallerError, CallerSource, PerConnection, bind_socket, companion_path,
-    default_socket,
+    BoundSocket, Caller, CallerError, CallerSource, PerConnection, Shared, bind_socket,
+    companion_path, default_socket,
 };

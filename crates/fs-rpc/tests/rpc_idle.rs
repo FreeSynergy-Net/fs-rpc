@@ -118,3 +118,33 @@ fn without_the_option_nothing_ends_it_but_shutdown() {
         serving.await.unwrap().unwrap();
     });
 }
+
+/// R1: the idle end also reaches the signal way (`run_until_signal_serving`); without it only the stop ends the run.
+#[test]
+fn run_until_signal_serving_ends_after_the_idle_time_and_not_without_it() {
+    use fs_rpc::{ServerIdentity, Serving, Shared, run_until_signal_serving, stop_self};
+    let (_dir, path) = place("serving");
+    let serve = |serving: Serving, path: std::path::PathBuf| {
+        std::thread::spawn(move || {
+            run_until_signal_serving(&path, serving, || async {
+                let root: blob::Client = new_client(NoBlob);
+                Ok(Shared(root.client))
+            })
+        })
+    };
+    let identity = ServerIdentity::new("test", "0.0.1");
+    let began = Instant::now();
+    let with = serve(
+        Serving::new(identity.clone()).with_idle_timeout(IDLE),
+        path.clone(),
+    );
+    with.join().unwrap().unwrap();
+    assert!(began.elapsed() >= IDLE, "ended before the idle time");
+    assert!(!path.exists() || cfg!(windows), "the socket is removed");
+    // Without the idle time nothing ends it but the stop.
+    let without = serve(Serving::new(identity), path);
+    std::thread::sleep(IDLE * 3);
+    assert!(!without.is_finished(), "ended without an idle time");
+    stop_self();
+    without.join().unwrap().unwrap();
+}

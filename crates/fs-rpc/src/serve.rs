@@ -19,6 +19,7 @@ use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 use super::control::ServerIdentity;
 use super::finish::{FINISH_TIMEOUT, finish_underway};
 use super::serve_idle::{ServeOptions, accept_idle};
+use super::serving::Serving;
 use super::transport::{
     BoundSocket, Endpoint, PerConnection, Shared, System, bind_socket, bootstrap_for,
 };
@@ -194,6 +195,25 @@ where
     Fut: Future<Output = io::Result<P>>,
     P: PerConnection,
 {
+    run_until_signal_serving(socket, Serving::new(identity), open)
+}
+
+/// [`run_until_signal_callers`] with a [`Serving`]: the identity and the [`ServeOptions`], so the service also ends after
+/// `idle_timeout` without a connection (as well as at the signal). Without an idle time it is exactly `run_until_signal_callers`.
+///
+/// # Errors
+/// As for [`run_until_signal`].
+pub fn run_until_signal_serving<F, Fut, P>(
+    socket: &Path,
+    serving: Serving,
+    open: F,
+) -> io::Result<()>
+where
+    F: FnOnce() -> Fut,
+    Fut: Future<Output = io::Result<P>>,
+    P: PerConnection,
+{
+    let Serving { identity, options } = serving;
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?;
@@ -225,7 +245,7 @@ where
                     bootstrap_for(s, &mut per)
                         .map(|c| super::control::with_control(c, identity.clone()))
                 };
-                accept_until(&bound, make, stop, ReadLimits::default()).await
+                accept_idle(&bound, make, stop, options).await
             }
         };
         let finished = finish_underway(FINISH_TIMEOUT).await;

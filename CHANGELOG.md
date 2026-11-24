@@ -2,6 +2,19 @@
 
 Version = tag.
 
+## 0.1.2 (2026-11-24)
+
+Appending only (scheme 0.N.x, appending = x): new public items, nothing existing changed or renamed. Version = tag; this branch is not tagged yet.
+
+### hold: a handle that keeps a connection to a module (fs-rpc)
+
+- NEW `hold(spec, observer)` and `hold_with(spec, session, observer)` returning `Hold` (RAII: drop signs off and joins the thread). Built on `keep_connected` and the thread frame of `client::Worker`: an own thread with a `LocalSet`, blocks until the first connection stands (or gives `Err` when none came within `times.give_up`). `HoldSpec { name, socket, expected, starter, times }` (`non_exhaustive`, `HoldSpec::new`, `with_times`): the starter brings a lost module back, so the connection is kept. `trait HoldObserver` (closures work) gets `HoldEvent` (`non_exhaustive`): `Attached { attempt, resync_needed }`, `GaveUp { error }`, `Detached` (last, exactly once, after the handle dropped).
+- NEW `Serving { identity, options }` (Builder, `non_exhaustive`, `Serving::new`, `with_idle_timeout`) and `run_until_signal_serving`: `run_until_signal_callers` with the idle end, so a module service ends after `idle_timeout` without a connection also on the signal way. `run_until_signal_callers` now delegates with `Serving::new(identity)`: no idle time, behaviour unchanged. `ServerIdentity` is unchanged.
+- NEW exports `Shared` (one capability for every connection; was crate private) and `MODULE_IDLE` (60 s, the default idle time of a module).
+- Tests: `crates/fs-rpc/tests/rpc_hold.rs` (H1-H6, Unix: a held module stays up and ends after the drop; event order; started again after a loss with the session attached twice; no module gives `Err` and no thread; a drop while connecting again returns fast; `Hold` is `Send + Sync`) and one test in `rpc_idle.rs` (R1: the idle end reaches `run_until_signal_serving`).
+- Auf Deutsch: Nur Anhaengen (0.1.2, kein Tag). `hold`/`hold_with` halten eine Verbindung zu einem Modul auf eigenem Thread, bis der Griff `Hold` faellt; der Beobachter (`HoldObserver`) erfaehrt `Attached` (mit `resync_needed`), `GaveUp`, `Detached`. `Serving` und `run_until_signal_serving` bringen die Leerlauf-Frist auch auf den Signalweg; `Shared` und `MODULE_IDLE` (60 s) sind neu exportiert. Nichts Bestehendes geaendert.
+- Co-developed with AI (Claude).
+
 ## 0.1.1 (2026-11-24)
 
 Appending only (scheme 0.N.x, appending = x): new public items, nothing existing changed. Version = tag; this branch is not tagged yet.

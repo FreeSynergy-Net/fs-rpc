@@ -87,8 +87,11 @@ pub trait PerConnection {
     fn refused(&mut self, _why: &CallerError) {}
 }
 
-/// One capability for everybody (the way [`serve`](crate::serve) works): the caller is not looked at.
-pub(crate) struct Shared(pub(crate) Client);
+/// Pattern: Adapter - one capability for everybody (the way [`serve`](crate::serve) works): the caller is not looked at.
+pub struct Shared(
+    /// The capability every connection gets.
+    pub Client,
+);
 
 impl PerConnection for Shared {
     fn bootstrap(&mut self, _: &Caller) -> Client {
