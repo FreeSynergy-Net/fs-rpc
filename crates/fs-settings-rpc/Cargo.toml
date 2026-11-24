@@ -17,7 +17,7 @@ fs-rpc = { path = "../fs-rpc" }
 fs-settings = { git = "https://github.com/FreeSynergy-Net/fs-components", tag = "v0.0.35" }
 fs-types = { git = "https://github.com/FreeSynergy-Net/fs-types", tag = "v0.0.6" }
 # `settings_capnp` (contract settings 0.2) and `common_capnp` come from fs-interfaces; no schema copy in this crate.
-fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "7bbad2ff60017c809b83085a4c6b6cab16b9b605", version = "0.2.0" }
+fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "e6f69213b68b47e139fc8038c8a095f9ed1fef3c", version = "0.2.0" }
 capnp = "0.27"
 capnp-rpc = "0.27"
 tokio = { version = "1", features = ["rt", "net", "sync", "macros", "time"] }

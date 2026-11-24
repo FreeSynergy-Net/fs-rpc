@@ -10,10 +10,10 @@ Appending only (scheme 0.N.x, appending = x): new public items, `hold`/`hold_wit
 
 - NEW `Hold::call(job, limit)`: runs a `Job<T>` on the thread of the hold with the capability of the CURRENT connection. No connection: `NotConnected` at once (nothing is buffered), over the limit: `TimedOut`. A hold made by `hold`/`hold_with` answers `Unsupported`.
 - NEW `trait OnAttach` (Template Method): what runs first on every connection, also after each reconnect (introduce, watch); its answer is the registration and ends with the connection. NEW `hold_calling(spec, on_attach, observer)`.
-- Pins renewed: fs-interfaces main 1214214 (0.1.1), fs-objects main f6409f2 (0.0.11), by `rev` until the tags exist. No code change was needed for them.
-- Re-pin: fs-interfaces main 7bbad2f (0.2.0, level 2 cumulative, form 1.3.0) in `fs-rpc` and `fs-settings-rpc`, by `rev` with `version`; one fs-interfaces source in the lock. fs-objects stays f6409f2. No code or test change was needed.
+- Pins renewed: fs-interfaces main e6f69213 (0.2.0), fs-objects main f6409f2 (0.0.11), by `rev` until the tags exist. No code change was needed for them.
+- Re-pin: fs-interfaces main e6f69213 (0.2.0, appended only: A5 I1 `layouts.capnp`) in `fs-rpc` and `fs-settings-rpc`, by `rev` with `version`; one fs-interfaces source in the lock. fs-objects stays f6409f2. No code or test change was needed.
 - Tests: `crates/fs-rpc/tests/rpc_hold_call.rs` (C1 job on the held connection, C2 registration again after a reconnect, C3 `NotConnected` and `TimedOut`).
-- Auf Deutsch: Nur Anhaengen (0.1.4, kein Tag). `Hold::call` fuehrt einen Auftrag auf der gehaltenen Verbindung aus (ohne Verbindung sofort `NotConnected`, nie gepuffert; `TimedOut` nach der Frist); `OnAttach` laeuft bei jeder neuen Verbindung zuerst (introduce, watch); `hold_calling` baut beides. Pins fs-interfaces und fs-objects auf die gelandeten Koepfe.
+- Auf Deutsch: Nur Anhaengen (0.1.4, kein Tag). `Hold::call` fuehrt einen Auftrag auf der gehaltenen Verbindung aus (ohne Verbindung sofort `NotConnected`, nie gepuffert; `TimedOut` nach der Frist); `OnAttach` laeuft bei jeder neuen Verbindung zuerst (introduce, watch); `hold_calling` baut beides. Pins: fs-interfaces main e6f69213 (0.2.0, nur Angehaengtes: A5 I1 `layouts.capnp`) und fs-objects f6409f2 auf die gelandeten Koepfe.
 - Co-developed with AI (Claude).
 
 ## 0.1.3 (2026-11-24)
