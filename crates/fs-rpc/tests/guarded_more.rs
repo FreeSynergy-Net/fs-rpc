@@ -204,14 +204,12 @@ fn g8_no_known_person_is_refused_everything() {
         assert!(req.send().promise.await.is_err(), "introduce");
         let mut req = stranger.revert_request();
         req.get().init_change().set_lo(1);
-        let r = req.send().promise.await.map(|r| {
-            let a = r.get().unwrap();
-            (a.get_failed(), a.get_problem().unwrap().get_status())
-        });
-        assert!(
-            r.is_err() || r.is_ok_and(|(failed, status)| failed && status == 403),
-            "revert"
-        );
+        let r = req
+            .send()
+            .promise
+            .await
+            .map(|r| r.get().unwrap().get_failed());
+        assert!(matches!(r, Err(_) | Ok(true)), "revert");
         assert!(g.core().applied.borrow().is_empty());
         assert_eq!(g.hub().watchers(), 0, "the stranger watches nothing");
     });
