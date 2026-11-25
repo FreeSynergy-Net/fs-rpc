@@ -20,11 +20,39 @@ use crate::ids::{read_uuid, write_uuid};
 use crate::page::check_intake;
 use crate::problem::{Problem, invalid_request};
 
-/// The problem of a refusal: type `form-source-<kind>`, the kind as title, the code as detail.
+/// The title of a kind of refusal: a short text for people (RFC 9457 `title`), never the kind itself.
+fn title_of(kind: &str) -> String {
+    match kind {
+        "unknown-form" => "Unknown form",
+        "unknown-scope" => "Unknown scope",
+        "bad-arguments" => "Bad arguments",
+        "unsupported" => "Not supported",
+        "unknown-record" => "Unknown record",
+        "unknown-command" => "Unknown command",
+        "unknown-change" => "Unknown change",
+        "forbidden" => "Not allowed",
+        "rejected" => "Rejected",
+        "conflict" => "Conflict",
+        "internal" => "Internal error",
+        other => return format!("Refused ({other})"),
+    }
+    .to_owned()
+}
+
+/// The refusal `bad-arguments` 400: a request the module contract cannot read (a cursor that is not text).
+fn bad_arguments(detail: &str) -> Refusal {
+    let mut r = Refusal::default();
+    r.kind = "bad-arguments".into();
+    r.status = 400;
+    r.detail = detail.into();
+    r
+}
+
+/// The problem of a refusal: type `form-source-<kind>`, a text for people as title, the code as detail.
 pub(super) fn problem_of(refusal: &Refusal) -> Problem {
     Problem::new(
         format!("form-source-{}", refusal.kind),
-        refusal.kind.clone(),
+        title_of(&refusal.kind),
         refusal.detail.clone(),
         refusal.status,
     )
@@ -59,7 +87,7 @@ pub(super) fn read_change_id(r: uuid_wire::Reader<'_>) -> Result<String> {
 
 pub(super) fn cursor_text(r: cursor::Reader<'_>) -> Result<String> {
     Ok(std::str::from_utf8(r.get_opaque()?)
-        .map_err(|_| invalid_request("cursor is not valid"))?
+        .map_err(|_| refusal_error(&bad_arguments("cursor is not valid")))?
         .to_owned())
 }
 

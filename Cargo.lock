@@ -656,7 +656,7 @@ dependencies = [
 [[package]]
 name = "fs-interfaces"
 version = "0.3.0"
-source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=6b02b138b3e55c290d6cbd957976013cc49dca5d#6b02b138b3e55c290d6cbd957976013cc49dca5d"
+source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=b3afc86d37c071a6d334710b9818241f56859554#b3afc86d37c071a6d334710b9818241f56859554"
 dependencies = [
  "capnp",
  "fs-types",
@@ -682,7 +682,7 @@ dependencies = [
 [[package]]
 name = "fs-module"
 version = "0.3.0"
-source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=6b02b138b3e55c290d6cbd957976013cc49dca5d#6b02b138b3e55c290d6cbd957976013cc49dca5d"
+source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=b3afc86d37c071a6d334710b9818241f56859554#b3afc86d37c071a6d334710b9818241f56859554"
 dependencies = [
  "capnp",
  "capnp-rpc",

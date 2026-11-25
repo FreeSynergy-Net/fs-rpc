@@ -109,28 +109,18 @@ fn has(list: &[String], text: &str) -> bool {
     list.iter().any(|f| f.contains(text))
 }
 
-/// G8 for real: the rules L2-2 to L2-11 (and every rule except 14 and 15) are PASSED; skipped only L2-9 "gone" and rule 9
-/// (`FakeCore::page` does not list the commands it offers, so no record has a `may`; card for the fake).
-///
-/// KNOWN GAP (production code of `Guarded`, not changed here; card in the report): the suite's rules 14 (shape of a refusal:
-/// the title is the kind, not text for people) and 15 (a garbage cursor is the generic `invalid-request` 422, not
-/// `form-source-bad-arguments`) fail over the wrapper. They are listed here, so every other failure is still an error.
+/// G8 for real: the whole suite over the wrapper: 0 failed, L2-2 to L2-11 PASSED; of all rules only the part "L2-9 gone" is
+/// skipped (the contract `module` has no redaction, so `FakeFixture` cannot black out a change; card).
 #[test]
 fn g8_the_suite_passes_over_guarded_fake_core() {
     run(async {
         let report = suite(FakeCore::new(Mode::Strict).with_blob(), true).await;
-        let other: Vec<_> = (report.failures.iter())
-            .filter(|f| !f.starts_with("14 ") && !f.starts_with("15 "))
-            .collect();
-        assert!(other.is_empty(), "failed: {other:?}");
+        assert!(report.failures.is_empty(), "failed: {:?}", report.failures);
         assert!(report.checked > 50, "the suite ran: {}", report.checked);
-        // Skipped is not passed: of the L2 rules only the part "L2-9 gone" is skipped (`FakeFixture` cannot black out a change; card).
-        let l2: Vec<_> = (report.skipped.iter())
-            .filter(|s| s.contains("L2-"))
-            .collect();
         assert!(
-            l2.iter().all(|s| s.starts_with("L2-9 gone")),
-            "L2 rules skipped: {l2:?}"
+            report.skipped.iter().all(|s| s.starts_with("L2-9 gone")),
+            "skipped: {:?}",
+            report.skipped
         );
         eprintln!("skipped: {:?}", report.skipped);
     });
