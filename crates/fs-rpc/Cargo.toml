@@ -11,7 +11,7 @@ repository.workspace = true
 # Pins by `rev` (main heads of the owners), each straight from the owner's repository (ADR 0092, ADR 0093): fs-types is no longer reached through fs-interfaces.
 # fs-interfaces and fs-objects: by `rev` (the landed heads) until their tags exist; then switch to `tag = "v0.2.0"` (fs-interfaces) and `tag = "v0.0.11"` (fs-objects).
 fs-types = { git = "https://github.com/FreeSynergy-Net/fs-types", rev = "722d3ce0156711d40cb278f2e835e865d9448290", version = "0.0.7" }
-fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "e8699fb4c8d1e1f766799f57ae43d246bb6e9858", version = "0.2.0" }
+fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "a395979b5df2fbff91347bf10b3324a2e1bfa33d", version = "0.2.0" }
 fs-objects = { git = "https://github.com/FreeSynergy-Net/fs-objects", rev = "e38093f1ec61b7c9faaa6f6046f65addb11dcf46", version = "0.0.11" }
 capnp = "0.27"
 capnp-rpc = "0.27"
@@ -36,4 +36,4 @@ windows-sys = { version = "0.61", features = [
 [dev-dependencies]
 tempfile = "3"
 # The fake module "only the owner may change" and the sample persons (`owner::fake`) for tests/guarded.rs.
-fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "e8699fb4c8d1e1f766799f57ae43d246bb6e9858", version = "0.2.0", features = ["fake"] }
+fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "a395979b5df2fbff91347bf10b3324a2e1bfa33d", version = "0.2.0", features = ["fake"] }
