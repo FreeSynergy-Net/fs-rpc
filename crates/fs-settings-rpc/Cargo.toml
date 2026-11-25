@@ -31,3 +31,6 @@ rustix = { version = "1", features = ["process"] }
 fs-conformance = { git = "https://github.com/FreeSynergy-Net/fs-types", rev = "722d3ce0156711d40cb278f2e835e865d9448290", version = "0.0.7" }
 tempfile = "3"
 tokio = { version = "1", features = ["rt", "net", "sync", "macros", "time", "rt-multi-thread"] }
+# The suite of the contract `module_v1` and the sample persons for tests/module_core.rs; the SAME source and rev as fs-interfaces (one fs-* in the lock).
+fs-module = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "4f6c3281cab594a76640c50abaedb4f7c4e79d97", version = "0.3.0" }
+fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "4f6c3281cab594a76640c50abaedb4f7c4e79d97", version = "0.3.0", features = ["fake"] }

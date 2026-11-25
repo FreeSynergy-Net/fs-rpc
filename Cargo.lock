@@ -753,6 +753,7 @@ dependencies = [
  "capnp-rpc",
  "fs-conformance",
  "fs-interfaces",
+ "fs-module",
  "fs-rpc",
  "fs-settings",
  "fs-types",
