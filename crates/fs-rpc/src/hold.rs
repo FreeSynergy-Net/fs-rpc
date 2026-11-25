@@ -57,8 +57,8 @@ impl<F: Fn(HoldEvent) + Send + 'static> HoldObserver for F {
 
 /// Pattern: RAII - the handle is the registration with the module; dropping it signs off (and waits for the end of the thread).
 pub struct Hold {
-    stop: Option<oneshot::Sender<()>>,
-    thread: Option<JoinHandle<()>>,
+    pub(super) stop: Option<oneshot::Sender<()>>,
+    pub(super) thread: Option<JoinHandle<()>>,
     /// Jobs for the thread ([`Hold::call`]); only a hold made by `hold_calling` has it.
     pub(super) calls: Option<UnboundedSender<Call>>,
 }

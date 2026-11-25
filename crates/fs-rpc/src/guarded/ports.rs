@@ -64,3 +64,15 @@ impl Ports {
         }
     }
 }
+
+/// Pattern: Strategy (a constant) - the person is the same for every connection: a module that is held in the program itself
+/// ([`hold_in_process`](crate::hold_in_process)) has one caller, the person of the device. Deviation: not read from the
+/// connection, because there is no socket to read it from; the person is fixed by the program that builds the ports.
+#[derive(Clone, Debug)]
+pub struct FixedPerson(pub PersonRef);
+
+impl PersonOfConnection for FixedPerson {
+    fn person(&self, _: &Caller) -> Option<PersonRef> {
+        Some(self.0.clone())
+    }
+}

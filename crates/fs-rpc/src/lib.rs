@@ -39,6 +39,7 @@ mod handshake;
 mod heartbeat;
 mod hold;
 mod hold_call;
+mod hold_in_process;
 mod hold_spec;
 mod ids;
 mod options;
@@ -73,8 +74,8 @@ pub use feed::{
 };
 pub use finish::{FINISH_TIMEOUT, finish_underway, run_to_end};
 pub use guarded::{
-    ActorOfConnection, AllBots, Guarded, PersonOfConnection, Ports, REVERT_COMMAND, WATCH_COMMAND,
-    WatchHub,
+    ActorOfConnection, AllBots, FixedPerson, Guarded, PersonOfConnection, Ports, REVERT_COMMAND,
+    WATCH_COMMAND, WatchHub,
 };
 pub use handshake::{connect_matching, connect_matching_with};
 pub use heartbeat::{
@@ -83,6 +84,7 @@ pub use heartbeat::{
 };
 pub use hold::{Hold, HoldEvent, HoldObserver, hold, hold_with};
 pub use hold_call::{Job, OnAttach, hold_calling};
+pub use hold_in_process::hold_in_process;
 pub use hold_spec::HoldSpec;
 pub use ids::{from_millis, read_object_id, read_uuid, to_millis, write_object_id, write_uuid};
 pub use options::{

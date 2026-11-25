@@ -8,6 +8,9 @@ Appending only (scheme 0.N.x, appending = x): new public items, `hold`/`hold_wit
 
 ### Unreleased
 
+- New `hold_in_process(name, make)`: holds a `ModuleCore` in the program itself, without a socket (a thread with a `LocalSet`; `make` builds the `Guarded` there because it is `Rc`). Writing, undo and watch run as on `hold_calling` (jobs by `Hold::call`), only without a socket-bound caller. New port `FixedPerson(PersonRef)` (`PersonOfConnection`). Appending only. Tests: `rpc_hold_in_process` (owner writes, stranger refused 403, undo, watch). Written with the help of Claude (Anthropic).
+- Auf Deutsch: Neu `hold_in_process(name, make)`: hält ein `ModuleCore` im Programm selbst, ohne Socket (Thread mit `LocalSet`; `make` baut den `Guarded` dort, weil er `Rc` ist). Schreiben, Undo und Watch laufen wie bei `hold_calling` (Jobs per `Hold::call`), nur ohne socketgebundenen Anrufer. Neuer Port `FixedPerson(PersonRef)` (`PersonOfConnection`). Nur angehängt. Tests: `rpc_hold_in_process` (Eigentümer schreibt, Fremder abgelehnt 403, Undo, Watch). Geschrieben mit Hilfe von Claude (Anthropic).
+
 - Pin (no Rust change): `fs-interfaces` `rev 6b02b138` (0.3.0; was `ad56e2f4`) and `fs-settings` from fs-components `rev 81367489` (was `77b23ea3`); exactly one fs-interfaces and one fs-components in the graph, `cargo tree -d` shows no fs-* duplicate. Written with the help of Claude (Anthropic).
 - Auf Deutsch: Pin: `fs-interfaces` `rev 6b02b138` (0.3.0; war `ad56e2f4`) und `fs-settings` aus fs-components `rev 81367489` (war `77b23ea3`); genau ein fs-interfaces und ein fs-components im Graph, kein fs-* Doppeltes. Geschrieben mit Hilfe von Claude (Anthropic).
 
