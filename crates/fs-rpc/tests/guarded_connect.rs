@@ -1,7 +1,7 @@
 //! `Guarded::connect`, `with_form_source`, `LocalPerson`, `OsUserIsPerson` (Stufe 4, B2a).
 //!
 //! Pattern: Test (in-process: the capability of a connection is called directly, no socket; one `LocalSet` per test).
-#![allow(clippy::field_reassign_with_default)]
+#![allow(clippy::field_reassign_with_default, clippy::unused_async_trait_impl)]
 
 mod guarded_support;
 
