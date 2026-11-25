@@ -34,6 +34,7 @@ mod envelope;
 mod expected;
 mod feed;
 mod finish;
+mod guarded;
 mod handshake;
 mod heartbeat;
 mod hold;
@@ -71,6 +72,10 @@ pub use feed::{
     change_channel, forward, write_change,
 };
 pub use finish::{FINISH_TIMEOUT, finish_underway, run_to_end};
+pub use guarded::{
+    ActorOfConnection, AllBots, Guarded, PersonOfConnection, Ports, REVERT_COMMAND, WATCH_COMMAND,
+    WatchHub,
+};
 pub use handshake::{connect_matching, connect_matching_with};
 pub use heartbeat::{
     Beat, BeatError, HangTimes, Heartbeat, Hung, Pulse, SaveOnTerm, Verdict, Watch, ask_beat,
