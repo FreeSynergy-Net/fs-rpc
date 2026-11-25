@@ -238,13 +238,27 @@ pub async fn watch(
     Rc<Cell<bool>>,
     capnp::capability::Response<form_source::watch_results::Owned>,
 ) {
+    let (seen, ended, answer) = watch_in(c, "").await;
+    (seen, ended, answer.unwrap())
+}
+
+/// `watch` of `notes@1.0.0` in `scope`; the answer may be the exception.
+pub async fn watch_in(
+    c: &form_source::Client,
+    scope: &str,
+) -> (
+    Rc<RefCell<Vec<String>>>,
+    Rc<Cell<bool>>,
+    Result<capnp::capability::Response<form_source::watch_results::Owned>, capnp::Error>,
+) {
     let seen = Rc::new(RefCell::new(Vec::new()));
     let ended = Rc::new(Cell::new(false));
     let mut req = c.watch_request();
     req.get().set_form("notes@1.0.0");
+    req.get().set_scope(scope);
     req.get().set_sink(capnp_rpc::new_client(Sink {
         seen: seen.clone(),
         ended: ended.clone(),
     }));
-    (seen, ended, req.send().promise.await.unwrap())
+    (seen, ended, req.send().promise.await)
 }

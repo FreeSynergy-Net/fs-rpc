@@ -25,6 +25,7 @@ fn title_of(kind: &str) -> String {
     match kind {
         "unknown-form" => "Unknown form",
         "unknown-scope" => "Unknown scope",
+        "feed-closed" => "Feed closed",
         "bad-arguments" => "Bad arguments",
         "unsupported" => "Not supported",
         "unknown-record" => "Unknown record",

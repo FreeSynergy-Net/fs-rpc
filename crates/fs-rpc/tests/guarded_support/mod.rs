@@ -13,6 +13,7 @@
 
 pub mod client;
 mod rules;
+pub mod scope;
 
 pub use rules::Rules;
 
@@ -21,8 +22,8 @@ use std::collections::HashMap;
 
 use fs_interfaces::module::{
     Applied, Blob, ChangeFeed, ChangeKind, ChangePage, ChangeRef, ChangesQuery, Conflict, Context,
-    FieldClash, Follow, Invocation, ModuleCore, Origin, Page, PageQuery, RecordView, Refusal,
-    RightsRules, StepRef, Value,
+    FeedBreak, FieldClash, Follow, Invocation, ModuleCore, Origin, Page, PageQuery, RecordView,
+    Refusal, RightsRules, StepRef, Value,
 };
 use fs_types::{BasicValue, Utc};
 
@@ -50,6 +51,8 @@ pub struct Notes {
     pub conflict_by: RefCell<Option<String>>,
     /// `changes` also answers one change of `note-1` with a 33 MB activity text (heavier than the answer limit).
     pub huge_change: std::cell::Cell<bool>,
+    /// Scope, feed break and conflict record (Stufe 4 V2).
+    pub spy: scope::Spy,
 }
 
 impl Notes {
@@ -64,6 +67,7 @@ impl Notes {
             revert_conflict: std::cell::Cell::default(),
             conflict_by: RefCell::default(),
             huge_change: std::cell::Cell::default(),
+            spy: scope::Spy::default(),
         }
     }
 
@@ -190,8 +194,10 @@ impl ModuleCore for Notes {
                     );
                     let clash = if let Some(mine) = value(&cmd, "secret") {
                         FieldClash::new("secret", &note.secret, mine)
+                            .on(&self.spy.record_named(&id))
                     } else {
                         FieldClash::new("text", &note.text, value(&cmd, "text").unwrap_or_default())
+                            .on(&self.spy.record_named(&id))
                     };
                     return Err(Refusal::conflict(
                         "changed-since",
@@ -226,7 +232,12 @@ impl ModuleCore for Notes {
             let secret = self.notes.borrow()["note-1"].secret.clone();
             return Err(Refusal::conflict(
                 "changed-since",
-                Conflict::new(by, vec![FieldClash::new("secret", &secret, "")]),
+                Conflict::new(
+                    by,
+                    vec![
+                        FieldClash::new("secret", &secret, "").on(&self.spy.record_named("note-1")),
+                    ],
+                ),
             ));
         }
         let mut applied = Applied::default();
@@ -259,7 +270,17 @@ impl ModuleCore for Notes {
     }
 
     fn feed(&self, sink: ChangeFeed) {
+        self.spy.calls.borrow_mut().push("feed");
         self.sinks.borrow_mut().push(sink);
+    }
+
+    fn on_feed_break(&self, sink: FeedBreak) {
+        self.spy.calls.borrow_mut().push("break");
+        self.spy.breaks.borrow_mut().push(sink);
+    }
+
+    async fn resolve_scope(&self, _: &Context, _: &str, scope: &str) -> Result<String, Refusal> {
+        self.spy.resolve(scope)
     }
 
     /// Form `notes@1.0.0` (or empty = all); a scope is the id of one note (empty = all).
@@ -270,6 +291,7 @@ impl ModuleCore for Notes {
             r.status = 404;
             return Err(r);
         }
+        self.spy.followed.borrow_mut().push(scope.to_owned());
         if scope.is_empty() {
             return Ok(Follow::all());
         }

@@ -21,8 +21,8 @@ use capnp::capability::FromClientHook;
 use fs_interfaces::formsource_capnp::form_source;
 use fs_interfaces::module::fake::{CREATE as OWNED_CREATE, OwnerOnlyModule, SET as OWNED_SET};
 use fs_interfaces::module::{
-    Actor, Applied, Ask, Blob, ChangeFeed, ChangePage, ChangesQuery, Context, HiddenReason,
-    Invocation, ModuleCore, Page, PageQuery, Refusal, RightsRules, StepRef, Verdict,
+    Actor, Applied, Ask, Blob, ChangeFeed, ChangePage, ChangesQuery, Context, FeedBreak, Follow,
+    HiddenReason, Invocation, ModuleCore, Page, PageQuery, Refusal, RightsRules, StepRef, Verdict,
 };
 use fs_interfaces::owner::fake::person;
 use fs_module::conformance::{Report, run_conformance};
@@ -102,6 +102,20 @@ impl<M: ModuleCore> ModuleCore for Lax<M> {
     }
     fn feed(&self, sink: ChangeFeed) {
         self.inner.feed(sink);
+    }
+    fn on_feed_break(&self, sink: FeedBreak) {
+        self.inner.on_feed_break(sink);
+    }
+    async fn resolve_scope(
+        &self,
+        cx: &Context,
+        form: &str,
+        scope: &str,
+    ) -> Result<String, Refusal> {
+        self.inner.resolve_scope(cx, form, scope).await
+    }
+    fn follows(&self, cx: &Context, form: &str, scope: &str) -> Result<Follow, Refusal> {
+        self.inner.follows(cx, form, scope)
     }
 }
 

@@ -94,7 +94,7 @@ fn a_foreign_scope_hears_nothing() {
     });
 }
 
-/// `changes` passes form and scope on to the module and shows only what `follows` admits; `limit` above 1000 is clamped.
+/// `changes` passes form and the resolved scope id on to the module and shows only what `follows` admits; `limit` above 1000 is clamped.
 #[test]
 fn changes_with_a_scope_are_filtered_and_the_limit_is_clamped() {
     run(async {
@@ -114,13 +114,15 @@ fn changes_with_a_scope_are_filtered_and_the_limit_is_clamped() {
             }
         };
         assert_eq!(count("", 0).await, 2, "empty scope = all");
-        assert_eq!(count("note-2", 0).await, 1, "only the followed scope");
-        assert_eq!(count("nowhere", 0).await, 0);
+        assert_eq!(count("second", 0).await, 1, "only the followed scope");
         count("", 5000).await;
         let queries = g.core().queries.borrow();
-        assert_eq!(queries[1].scope, "note-2", "the scope reaches the module");
-        assert_eq!(queries[3].limit, 1000, "limit is clamped");
-        assert_eq!(queries[2].limit, 0, "a small limit stays");
+        assert_eq!(
+            queries[1].scope, "note-2",
+            "the module gets the id, not the name"
+        );
+        assert_eq!(queries[2].limit, 1000, "limit is clamped");
+        assert_eq!(queries[1].limit, 0, "a small limit stays");
     });
 }
 

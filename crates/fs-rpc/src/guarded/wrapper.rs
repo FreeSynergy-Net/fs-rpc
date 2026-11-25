@@ -45,18 +45,29 @@ pub struct Guarded<M: ModuleCore> {
 }
 
 impl<M: ModuleCore> Guarded<M> {
-    /// Wrap `core`; registers the one feed sink of the module (a change goes to every `watch` of every connection).
+    /// Wrap `core`; registers the one feed sink of the module (a change goes to every `watch` of every connection) and, BEFORE it, the
+    /// one break sink (a lost or ended feed ends every `watch`, see [`WatchHub::end_all`]).
+    ///
+    /// # Panics
+    /// Outside a `LocalSet`, if `ModuleCore::feed` of the module starts its pump with `tokio::task::spawn_local`: build the wrapper inside the
+    /// `LocalSet` of the program.
     #[must_use]
     pub fn new(core: M, ports: Ports) -> Self {
         Self::with_clock(core, ports, Rc::new(system_clock))
     }
 
     /// Like [`new`](Self::new) with an own clock for `Ask.at` (tests; never a value from a caller).
+    ///
+    /// # Panics
+    /// As [`new`](Self::new): outside a `LocalSet`, if the module's `feed` calls `spawn_local`.
     #[must_use]
     pub fn with_clock(core: M, ports: Ports, clock: Clock) -> Self {
         let core = Rc::new(core);
         let hub = Rc::new(WatchHub::new());
         let (weak, sink_hub, sink_clock) = (Rc::downgrade(&core), hub.clone(), clock.clone());
+        // The break sink first: a loss between the two registrations would be missed. It holds the hub only (no cycle with the module).
+        let break_hub = hub.clone();
+        core.on_feed_break(Box::new(move |loss| break_hub.end_all(loss)));
         // A weak reference: the module holds the sink, the sink must not hold the module (no cycle).
         core.feed(Box::new(move |change: &ChangeRef| {
             if let Some(core) = weak.upgrade() {

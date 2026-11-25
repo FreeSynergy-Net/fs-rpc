@@ -217,11 +217,25 @@ impl<M: ModuleCore> Server for Conn<M> {
         let (form, scope) = (p.get_form()?.to_string()?, p.get_scope()?.to_string()?);
         let sink = p.get_sink()?;
         let cx = self.context().map_err(|r| refusal_error(&r))?;
-        // `unknown-form` (and `unknown-scope`) is an RPC exception like at `page`, before anything is subscribed.
+        // `unknown-form` and `unknown-scope` are RPC exceptions like at `page`, before anything is subscribed: first the fixed id of the
+        // scope (a rename must not move the subscription), then the filter on that id.
+        let id = self
+            .core
+            .resolve_scope(&cx, &form, &scope)
+            .await
+            .map_err(|r| refusal_error(&r))?;
         let follow = self
             .core
-            .follows(&cx, &form, &scope)
+            .follows(&cx, &form, &id)
             .map_err(|r| refusal_error(&r))?;
+        // The feed is gone for good: nothing could ever be told to a new subscriber (503).
+        if self.hub.is_closed() {
+            let mut r = Refusal::default();
+            r.kind = "feed-closed".into();
+            r.status = 503;
+            r.detail = "the feed of the module is closed".into();
+            return Err(refusal_error(&r));
+        }
         results
             .get()
             .set_subscription(self.hub.subscribe(cx, follow, sink));

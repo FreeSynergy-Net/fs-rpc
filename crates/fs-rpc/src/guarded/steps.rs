@@ -113,8 +113,13 @@ impl<M: ModuleCore> Conn<M> {
     pub(super) async fn changes(&self, query: ChangesQuery) -> Result<ChangePage, Refusal> {
         let cx = self.context()?;
         let mut query = query;
-        // The module says unknown form or scope (like `page`); the same value filters the page below.
-        let follow = self.core.follows(&cx, &query.form, &query.scope)?;
+        // First the fixed id of the scope (unknown = exception, BEFORE the module is asked for changes), then the filter on that id.
+        let id = self
+            .core
+            .resolve_scope(&cx, &query.form, &query.scope)
+            .await?;
+        let follow = self.core.follows(&cx, &query.form, &id)?;
+        query.scope = id;
         if query.limit > CHANGES_LIMIT {
             query.limit = CHANGES_LIMIT;
         }
@@ -137,14 +142,19 @@ impl<M: ModuleCore> Conn<M> {
     }
 
     /// A conflict names the current value of a field: a field this person may not see is emptied (a right to change is not a right to see).
-    /// The module names the record of the field only through `by`, which can be the change of ANOTHER record; so the field is judged on
-    /// `by.object` AND on `record` (the record of the call; `None` at `revert`, which has no record argument). Hidden on either: emptied.
+    /// Fail closed: `current` is emptied if the module did not name the record of the field (`FieldClash::record` empty), or if the field is
+    /// hidden on that record, on `by.object` or on the record of the call (`None` at `revert`, which has no record argument). Every check can
+    /// only empty more, never open.
     fn scrub(&self, cx: &Context, mut refusal: Refusal, record: Option<&str>) -> Refusal {
         if let Some(conflict) = &mut refusal.conflict {
             let rules = self.core.rules();
             for clash in &mut conflict.fields {
                 let hidden_on = |r: &str| rules.hidden(cx, r, &clash.path).is_some();
-                if hidden_on(&conflict.by.object) || record.is_some_and(hidden_on) {
+                if clash.record.is_empty()
+                    || hidden_on(&clash.record)
+                    || hidden_on(&conflict.by.object)
+                    || record.is_some_and(hidden_on)
+                {
                     clash.current.clear();
                 }
             }
