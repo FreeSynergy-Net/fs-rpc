@@ -45,6 +45,8 @@ pub struct Rules {
     /// A rule "the right ends": a change at or after this time is refused (preparation of user 66).
     pub cutoff: Arc<Mutex<Option<Utc>>>,
     pub revert_ok: Arc<AtomicBool>,
+    /// Persons who may run `note.set` on any record although they do not own it (a right to change, not to see).
+    pub setters: Arc<Mutex<Vec<PersonRef>>>,
 }
 
 impl RightsRules for Rules {
@@ -63,6 +65,7 @@ impl RightsRules for Rules {
         }
         match ask.command {
             CREATE => Verdict::Allow,
+            SET if self.setters.lock().unwrap().contains(&ask.who.person) => Verdict::Allow,
             "change.revert" if self.revert_ok.load(Ordering::SeqCst) => Verdict::Allow,
             "change.revert" => Verdict::deny("no-revert"),
             _ => match ask
@@ -225,11 +228,11 @@ impl ModuleCore for Notes {
                         ChangeKind::Update,
                         Utc::from_millis(1),
                     );
-                    let clash = FieldClash::new(
-                        "text",
-                        &note.text,
-                        value(&cmd, "text").unwrap_or_default(),
-                    );
+                    let clash = if let Some(mine) = value(&cmd, "secret") {
+                        FieldClash::new("secret", &note.secret, mine)
+                    } else {
+                        FieldClash::new("text", &note.text, value(&cmd, "text").unwrap_or_default())
+                    };
                     return Err(Refusal::conflict(
                         "changed-since",
                         Conflict::new(by, vec![clash]),

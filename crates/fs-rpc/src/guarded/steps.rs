@@ -11,7 +11,11 @@ use fs_interfaces::module::{
     Page, PageQuery, Refusal, StepRef, Verdict,
 };
 
-use super::REVERT_COMMAND;
+use super::{REVERT_COMMAND, WATCH_COMMAND};
+use crate::page::check_answer;
+
+/// The most changes one `changes` call asks the module for.
+const CHANGES_LIMIT: u32 = 1000;
 use super::conn::Conn;
 
 impl<M: ModuleCore> Conn<M> {
@@ -51,7 +55,10 @@ impl<M: ModuleCore> Conn<M> {
         }
         let cx = self.context()?;
         self.permit(&cx, &inv.command, inv.record.as_deref())?;
-        self.core.apply(&cx, inv).await
+        self.core
+            .apply(&cx, inv)
+            .await
+            .map_err(|r| self.scrub(&cx, r))
     }
 
     /// Fill `may` and `hidden` from the rules. The module lists the commands it offers; the wrapper only strikes out what the
@@ -95,11 +102,45 @@ impl<M: ModuleCore> Conn<M> {
     pub(super) async fn revert(&self, change: &str, step: StepRef) -> Result<Applied, Refusal> {
         let cx = self.context()?;
         self.permit(&cx, REVERT_COMMAND, Some(change))?;
-        self.core.revert(&cx, change, step).await
+        self.core
+            .revert(&cx, change, step)
+            .await
+            .map_err(|r| self.scrub(&cx, r))
     }
 
     pub(super) async fn changes(&self, query: ChangesQuery) -> Result<ChangePage, Refusal> {
         let cx = self.context()?;
-        self.core.changes(&cx, query).await
+        let mut query = query;
+        if query.limit > CHANGES_LIMIT {
+            query.limit = CHANGES_LIMIT;
+        }
+        let mut page = self.core.changes(&cx, query).await?;
+        // The module filters by the claimed program (not proven); the rules decide what this person may see, as at `watch`.
+        let (rules, at) = (self.core.rules(), (self.clock)());
+        page.changes.retain(|c| {
+            rules
+                .may(&Ask::new(&cx, WATCH_COMMAND, Some(&c.object), at))
+                .is_allowed()
+        });
+        let weight: usize = page
+            .changes
+            .iter()
+            .map(|c| c.object.len() + c.activity.len() + c.origin.person.len() + 256)
+            .sum();
+        check_answer(weight).map_err(|_| Refusal::forbidden("too-large"))?;
+        Ok(page)
+    }
+
+    /// A conflict names the current value of a field: a field this person may not see is emptied (a right to change is not a right to see).
+    fn scrub(&self, cx: &Context, mut refusal: Refusal) -> Refusal {
+        if let Some(conflict) = &mut refusal.conflict {
+            let record = conflict.by.object.clone();
+            for clash in &mut conflict.fields {
+                if self.core.rules().hidden(cx, &record, &clash.path).is_some() {
+                    clash.current.clear();
+                }
+            }
+        }
+        refusal
     }
 }

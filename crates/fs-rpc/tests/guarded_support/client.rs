@@ -61,6 +61,7 @@ pub struct Wrote {
     pub origin_person: Option<String>,
     pub activity_zero: bool,
     pub clash_paths: Vec<String>,
+    pub clash_current: Vec<String>,
 }
 
 pub fn args(
@@ -121,6 +122,12 @@ pub async fn invoke_if(
             .unwrap()
             .iter()
             .map(|f| f.get_path().unwrap().to_string().unwrap())
+            .collect();
+        w.clash_current = c
+            .get_fields()
+            .unwrap()
+            .iter()
+            .map(|f| f.get_current().unwrap().to_string().unwrap())
             .collect();
     }
     w

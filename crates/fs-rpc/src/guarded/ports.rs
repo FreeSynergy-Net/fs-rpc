@@ -8,7 +8,7 @@ use fs_types::PersonRef;
 
 use crate::transport::Caller;
 
-/// The person a connection acts for, from the connection alone.
+/// Pattern: Strategy - the person a connection acts for, from the connection alone.
 pub trait PersonOfConnection {
     /// The person of `caller`'s connection, or `None` if it is not known: the connection then gets nothing (fail closed).
     fn person(&self, caller: &Caller) -> Option<PersonRef>;
@@ -20,7 +20,7 @@ impl<F: Fn(&Caller) -> Option<PersonRef>> PersonOfConnection for F {
     }
 }
 
-/// Who acts on a connection: a person or a bot, from the connection alone.
+/// Pattern: Strategy - who acts on a connection: a person or a bot, from the connection alone.
 pub trait ActorOfConnection {
     /// Anything that is not proven a person must be [`Actor::Bot`].
     fn actor(&self, caller: &Caller) -> Actor;

@@ -232,3 +232,44 @@ fn watch_is_filtered_by_the_rules_and_ends_when_dropped() {
         wait_for(|| g.hub().watchers() == 0).await;
     });
 }
+
+/// `changes` is filtered by the rules like `watch`: a stranger who claims the program of the owner reads nothing the
+/// rules deny him (`claimed` is no key to read).
+#[test]
+fn changes_are_filtered_by_the_rules_even_with_a_foreign_claim() {
+    run(async {
+        let (mut g, _) = notes();
+        let (alice, bob) = (connect(&mut g, "alice"), connect(&mut g, "bob"));
+        introduce(&alice, "net.freesynergy.planning", "a").await;
+        introduce(&bob, "net.freesynergy.planning", "b").await;
+        assert!(!invoke(&alice, CREATE, "", &[("text", "x")]).await.failed);
+        let count = |c: form_source::Client| async move {
+            let r = c.changes_request().send().promise.await.unwrap();
+            r.get().unwrap().get_items().unwrap().len()
+        };
+        assert_eq!(count(alice).await, 1);
+        assert_eq!(count(bob).await, 0);
+    });
+}
+
+/// A conflict does not tell the current value of a field the person may not see (a right to change is no right to see).
+#[test]
+fn a_conflict_does_not_leak_a_hidden_field() {
+    run(async {
+        let (mut g, rules) = notes();
+        let (alice, bob) = (connect(&mut g, "alice"), connect(&mut g, "bob"));
+        invoke(&alice, CREATE, "", &[("text", "t"), ("secret", "s3cret")]).await;
+        rules
+            .setters
+            .lock()
+            .unwrap()
+            .push(fs_interfaces::owner::fake::person(BOB));
+        let w = invoke_if(&bob, SET, "note-1", &[("secret", "guess")], "99").await;
+        assert_eq!((w.failed, w.status), (true, 409), "{w:?}");
+        assert_eq!(w.clash_paths, ["secret"]);
+        assert_eq!(w.clash_current, [""], "the value must not travel");
+        // The owner sees it.
+        let w = invoke_if(&alice, SET, "note-1", &[("secret", "guess")], "99").await;
+        assert_eq!(w.clash_current, ["s3cret"]);
+    });
+}
