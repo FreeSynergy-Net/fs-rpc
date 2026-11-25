@@ -51,8 +51,7 @@ pub struct Notes {
     pub conflict_by: RefCell<Option<String>>,
     /// `changes` also answers one change of `note-1` with a 33 MB activity text (heavier than the answer limit).
     pub huge_change: std::cell::Cell<bool>,
-    /// Scope, feed break and conflict record (Stufe 4 V2).
-    pub spy: scope::Spy,
+    pub spy: scope::Spy, // scope, feed break, conflict record (Stufe 4 V2)
 }
 
 impl Notes {

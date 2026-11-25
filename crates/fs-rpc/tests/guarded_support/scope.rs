@@ -2,7 +2,7 @@
 //! the order of the registrations, and which record a conflict names.
 //!
 //! Pattern: Test double (Spy + Stub) - split from `mod.rs` (300-line rule).
-#![allow(dead_code)]
+#![allow(dead_code, clippy::result_large_err)] // `Refusal` is the contract's own value
 
 use std::cell::RefCell;
 
