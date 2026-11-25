@@ -12,6 +12,19 @@ pub fn os_user_of(caller: &Caller) -> Option<String> {
     Some(caller.name().unwrap_or_else(|| caller.id()).to_owned())
 }
 
+/// The same as [`os_user_of`] for the caller a module call carries (`Context::caller`): the name, else the id; an origin without a living
+/// connection (none exists yet) says nobody.
+#[must_use]
+pub(crate) fn os_user_of_module(caller: &fs_interfaces::module::Caller) -> Option<String> {
+    match caller {
+        fs_interfaces::module::Caller::Connection {
+            system_id,
+            system_name,
+        } => Some(system_name.clone().unwrap_or_else(|| system_id.clone())),
+        _ => None,
+    }
+}
+
 pub use fs_rpc::id_usable;
 
 /// The default actor of a caller: `urn:fs:os-user:<id>` from `Caller::id` ONLY (the name is display; it can be chosen by whoever set up the

@@ -24,8 +24,11 @@ use fs_settings::{
     Actor, Catalog, NoSystem, ProgramName, SettingKey, Settings, SettingsStore, Surface, Target,
 };
 
+use crate::caller::scoped;
+use crate::identity::os_user_of_module;
 use crate::module_rows::{FORM, refusal_of, refuse, row, value_of};
 use crate::module_rules::SettingsRules;
+use crate::service::blocking;
 
 /// The level this module speaks (no `write_by` log in settings).
 pub const LEVEL: u32 = 1;
@@ -37,8 +40,12 @@ const DEFAULT_PAGE: usize = 100;
 const MAX_PAGE: usize = 1000;
 
 /// Pattern: Template Method (steps) - the settings of one program as a module; see the module doc.
+///
+/// Called directly it is the view of a PERSON and checks no right: serve it ONLY through `fs_rpc::Guarded` with [`SettingsRules`]
+/// (never hand it out bare). Its store calls are sync and may block, so `page` and `apply` run them on the blocking pool (as the hub
+/// does), with the OS user of the connection set for exactly that call, so the change log names who changed (the same value as via the hub).
 pub struct SettingsCore<S: SettingsStore> {
-    settings: Settings,
+    settings: Arc<Settings>,
     rules: SettingsRules,
     store: Arc<S>,
 }
@@ -48,7 +55,12 @@ impl<S: SettingsStore + 'static> SettingsCore<S> {
     #[must_use]
     pub fn new(program: ProgramName, catalog: Catalog, store: Arc<S>) -> Self {
         let rules = SettingsRules::of(&catalog);
-        let settings = Settings::open(program, catalog, store.clone(), Arc::new(NoSystem));
+        let settings = Arc::new(Settings::open(
+            program,
+            catalog,
+            store.clone(),
+            Arc::new(NoSystem),
+        ));
         Self {
             settings,
             rules,
@@ -77,6 +89,68 @@ impl<S: SettingsStore + 'static> SettingsCore<S> {
             n => usize::try_from(n).unwrap_or(MAX_PAGE).min(MAX_PAGE),
         };
         Ok((skip, size))
+    }
+
+    /// Runs the sync store calls `f` on the blocking pool with the OS user of the connection (`cx.caller`) set for exactly that call.
+    async fn off<T: Send + 'static>(
+        &self,
+        cx: &Context,
+        f: impl FnOnce(&Settings) -> Result<T, Refusal> + Send + 'static,
+    ) -> Result<T, Refusal> {
+        let (settings, user) = (self.settings.clone(), os_user_of_module(&cx.caller));
+        blocking(move || scoped(user, || f(&settings)))
+            .await
+            .map_err(|_| refuse("unavailable", 503, "store call failed"))?
+    }
+
+    /// One page of the view of a person (reads again first: another program may have written since, the view is cached per stamp).
+    fn read_page(settings: &Settings, skip: usize, size: usize) -> Page {
+        settings.refresh();
+        // The view of a person: who may see what is the question of the rules, asked by the wrapper (see the module doc).
+        let surface = Surface::new(settings, Actor::Person);
+        let all = surface.list();
+        let may = [SET.to_owned(), RESET.to_owned()];
+        let rows: Vec<_> = all
+            .iter()
+            .enumerate()
+            .skip(skip)
+            .take(size)
+            .filter_map(|(i, d)| Some(row(d, &surface.get(&d.key).ok()?, i, &may)))
+            .collect();
+        let mut page = Page::default();
+        page.total = Some(all.len() as u64);
+        if skip + size < all.len() {
+            page.next = (skip + size).to_string();
+        }
+        page.records = rows;
+        page
+    }
+
+    /// `value.set` (`text` = `Some`) or `value.reset`.
+    fn save(
+        settings: &Settings,
+        key: &SettingKey,
+        text: Option<&str>,
+        set: bool,
+    ) -> Result<Applied, Refusal> {
+        let d = settings
+            .catalog()
+            .get(key)
+            .ok_or_else(|| refuse("unknown-record", 404, "no such setting"))?;
+        let value = match text {
+            Some(t) => Some(
+                value_of(&d.kind, t)
+                    .ok_or_else(|| refuse("bad-arguments", 400, "value does not fit"))?,
+            ),
+            None => None,
+        };
+        Surface::new(settings, Actor::Person)
+            .save(key, value.as_ref(), Target::ThisProgram)
+            .map_err(|c| refusal_of(&c))?;
+        let mut done = Applied::default();
+        key.as_str().clone_into(&mut done.record);
+        (if set { "set" } else { "reset" }).clone_into(&mut done.text);
+        Ok(done)
     }
 
     /// The scope: empty = the settings of this program; its own name is the same.
@@ -134,65 +208,33 @@ impl<S: SettingsStore + 'static> ModuleCore for SettingsCore<S> {
         &self.rules
     }
 
-    async fn page(&self, _cx: &Context, query: PageQuery) -> Result<Page, Refusal> {
+    async fn page(&self, cx: &Context, query: PageQuery) -> Result<Page, Refusal> {
         if !parse_key(&query.form).is_some_and(|(n, v)| n == FORM && (v.major, v.minor) == (1, 0)) {
             return Err(refuse("unknown-form", 404, "no such form"));
         }
         self.check_scope(&query.scope)?;
         let (skip, size) = Self::window(&query)?;
-        // Read again: another program may have written since (the view is cached per stamp).
-        self.settings.refresh();
-        // The view of a person: who may see what is the question of the rules, asked by the wrapper (see the module doc).
-        let surface = Surface::new(&self.settings, Actor::Person);
-        let all = surface.list();
-        let may = [SET.to_owned(), RESET.to_owned()];
-        let rows: Vec<_> = all
-            .iter()
-            .enumerate()
-            .skip(skip)
-            .take(size)
-            .filter_map(|(i, d)| Some(row(d, &surface.get(&d.key).ok()?, i, &may)))
-            .collect();
-        let mut page = Page::default();
-        page.total = Some(all.len() as u64);
-        if skip + size < all.len() {
-            page.next = (skip + size).to_string();
-        }
-        page.records = rows;
-        Ok(page)
+        self.off(cx, move |settings| {
+            Ok(Self::read_page(settings, skip, size))
+        })
+        .await
     }
 
     async fn blob(&self, _cx: &Context, _record: &str, _field: &str) -> Result<Blob, Refusal> {
         Err(refuse("unsupported", 501, "settings have no binary field"))
     }
 
-    async fn apply(&self, _cx: &Context, command: Invocation) -> Result<Applied, Refusal> {
+    async fn apply(&self, cx: &Context, command: Invocation) -> Result<Applied, Refusal> {
         let (set, reset) = (command.command == SET, command.command == RESET);
         if !set && !reset {
             return Err(refuse("unknown-command", 404, "no such command"));
         }
         let key = Self::key_of(&command)?;
-        let text = self.text_arg(&command, set)?;
-        let d = self
-            .settings
-            .catalog()
-            .get(&key)
-            .ok_or_else(|| refuse("unknown-record", 404, "no such setting"))?;
-        let value = match text {
-            Some(t) => Some(
-                value_of(&d.kind, t)
-                    .ok_or_else(|| refuse("bad-arguments", 400, "value does not fit"))?,
-            ),
-            None => None,
-        };
-        let surface = Surface::new(&self.settings, Actor::Person);
-        surface
-            .save(&key, value.as_ref(), Target::ThisProgram)
-            .map_err(|c| refusal_of(&c))?;
-        let mut done = Applied::default();
-        key.as_str().clone_into(&mut done.record);
-        (if set { "set" } else { "reset" }).clone_into(&mut done.text);
-        Ok(done)
+        let text = self.text_arg(&command, set)?.map(str::to_owned);
+        self.off(cx, move |settings| {
+            Self::save(settings, &key, text.as_deref(), set)
+        })
+        .await
     }
 
     async fn revert(

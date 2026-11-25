@@ -19,6 +19,7 @@ use fs_settings::{
 };
 use fs_settings_rpc::SettingsCore;
 
+#[allow(unused_imports)] // not every test file uses the fixture
 pub use fixture::SettingsFixture;
 
 pub const FORM: &str = "fields-in-groups@1.0.0";
