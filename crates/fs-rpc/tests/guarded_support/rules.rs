@@ -9,6 +9,7 @@ use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 
 use fs_interfaces::module::{Ask, Context, HiddenReason, RightsRules, Verdict};
+use fs_rpc::READ_COMMAND;
 use fs_types::{PersonRef, Utc};
 
 use super::{CREATE, SET};
@@ -32,6 +33,8 @@ pub struct Rules {
     pub revert_ok: Arc<AtomicBool>,
     /// Persons who may run `note.set` on any record although they do not own it (a right to change, not to see).
     pub setters: Arc<Mutex<Vec<PersonRef>>>,
+    /// Records the rules refuse `form.read` (the read right; any other record may be read).
+    pub unreadable: Arc<Mutex<Vec<String>>>,
 }
 
 impl RightsRules for Rules {
@@ -49,6 +52,12 @@ impl RightsRules for Rules {
             }
         }
         match ask.command {
+            READ_COMMAND => match ask.record {
+                Some(r) if self.unreadable.lock().unwrap().iter().any(|u| u == r) => {
+                    Verdict::deny("no-read")
+                }
+                _ => Verdict::Allow,
+            },
             CREATE => Verdict::Allow,
             SET if self.setters.lock().unwrap().contains(&ask.who.person) => Verdict::Allow,
             "change.revert" if self.revert_ok.load(Ordering::SeqCst) => Verdict::Allow,

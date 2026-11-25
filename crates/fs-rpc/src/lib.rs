@@ -76,7 +76,7 @@ pub use feed::{
 pub use finish::{FINISH_TIMEOUT, finish_underway, run_to_end};
 pub use guarded::{
     ActorOfConnection, AllBots, FixedPerson, Guarded, LocalPerson, OsUserIsPerson,
-    PersonOfConnection, Ports, REVERT_COMMAND, WATCH_COMMAND, WatchHub, id_usable,
+    PersonOfConnection, Ports, READ_COMMAND, REVERT_COMMAND, WATCH_COMMAND, WatchHub, id_usable,
 };
 pub use handshake::{connect_matching, connect_matching_with};
 pub use heartbeat::{

@@ -26,6 +26,9 @@ use crate::transport::{Caller, PerConnection};
 
 /// The command key the rules are asked for a `revert` (the wrapper does not know the command of the change; card).
 pub const REVERT_COMMAND: &str = "change.revert";
+/// The command key the rules are asked before a record is read (`page`: per record, a refused record is struck out; `blob`: refused with 403).
+/// A rule that does not know it must allow it; a fail-closed rule that lists commands needs the line `form.read` (Stufe 4 read right).
+pub const READ_COMMAND: &str = "form.read";
 /// The command key the rules are asked before a change is delivered to a `watch` subscriber (per change, per record).
 pub const WATCH_COMMAND: &str = "change.watch";
 

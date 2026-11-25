@@ -16,4 +16,4 @@ pub use ports::{
     ActorOfConnection, AllBots, FixedPerson, LocalPerson, OsUserIsPerson, PersonOfConnection,
     Ports, id_usable,
 };
-pub use wrapper::{Guarded, REVERT_COMMAND, WATCH_COMMAND};
+pub use wrapper::{Guarded, READ_COMMAND, REVERT_COMMAND, WATCH_COMMAND};

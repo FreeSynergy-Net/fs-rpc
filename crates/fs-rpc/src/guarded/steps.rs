@@ -11,7 +11,7 @@ use fs_interfaces::module::{
     Page, PageQuery, Refusal, StepRef, Verdict,
 };
 
-use super::{REVERT_COMMAND, WATCH_COMMAND};
+use super::{READ_COMMAND, REVERT_COMMAND, WATCH_COMMAND};
 use crate::page::check_answer;
 
 /// The most changes one `changes` call asks the module for.
@@ -68,6 +68,12 @@ impl<M: ModuleCore> Conn<M> {
     pub(super) fn screen(&self, cx: &Context, page: &mut Page) {
         let rules = self.core.rules();
         let at = (self.clock)();
+        // The read right first: a record the rules refuse `form.read` is not in the answer (it is not hidden, it is not there).
+        page.records.retain(|r| {
+            rules
+                .may(&Ask::new(cx, READ_COMMAND, Some(&r.id), at))
+                .is_allowed()
+        });
         page.may
             .retain(|c| rules.may(&Ask::new(cx, c, None, at)).is_allowed());
         for rec in &mut page.records {
@@ -95,6 +101,7 @@ impl<M: ModuleCore> Conn<M> {
 
     pub(super) async fn read_blob(&self, record: &str, field: &str) -> Result<Blob, Refusal> {
         let cx = self.context()?;
+        self.permit(&cx, READ_COMMAND, Some(record))?;
         if self.core.rules().hidden(&cx, record, field).is_some() {
             return Err(Refusal::forbidden("hidden"));
         }
