@@ -105,6 +105,8 @@ pub struct Notes {
     pub revert_conflict: std::cell::Cell<bool>,
     /// `by` of a conflict at `apply` names the change of THIS record instead of the record of the call.
     pub conflict_by: RefCell<Option<String>>,
+    /// `changes` also answers one change of `note-1` with a 33 MB activity text (heavier than the answer limit).
+    pub huge_change: std::cell::Cell<bool>,
 }
 
 impl Notes {
@@ -118,6 +120,7 @@ impl Notes {
             queries: RefCell::default(),
             revert_conflict: std::cell::Cell::default(),
             conflict_by: RefCell::default(),
+            huge_change: std::cell::Cell::default(),
         }
     }
 
@@ -294,6 +297,17 @@ impl ModuleCore for Notes {
             .filter(|c| q.run.is_empty() && c.origin.program == cx.claimed.program)
             .cloned()
             .collect();
+        if self.huge_change.get() {
+            page.changes.push(ChangeRef::new(
+                &"a".repeat(33 * 1024 * 1024),
+                "note-1",
+                "1",
+                "",
+                Origin::default(),
+                ChangeKind::Create,
+                Utc::from_millis(1),
+            ));
+        }
         Ok(page)
     }
 

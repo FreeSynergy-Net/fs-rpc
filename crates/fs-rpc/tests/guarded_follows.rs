@@ -163,3 +163,24 @@ fn a_conflict_naming_another_record_does_not_leak_the_hidden_field() {
         assert_eq!(w.clash_current, [""], "judged on the record of the call");
     });
 }
+
+/// An answer heavier than the limit is `too-large` (an exception), not a broken connection.
+#[test]
+fn changes_heavier_than_the_answer_limit_are_too_large() {
+    run(async {
+        let (mut g, _) = notes();
+        let alice = connect(&mut g, "alice");
+        invoke(&alice, CREATE, "", &[("text", "one")]).await;
+        g.core().huge_change.set(true);
+        let err = alice
+            .changes_request()
+            .send()
+            .promise
+            .await
+            .err()
+            .expect("too heavy");
+        assert!(err.to_string().contains("too-large"), "{err}");
+        g.core().huge_change.set(false);
+        assert!(alice.changes_request().send().promise.await.is_ok());
+    });
+}
