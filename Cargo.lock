@@ -637,7 +637,7 @@ dependencies = [
 [[package]]
 name = "fs-settings"
 version = "0.1.0"
-source = "git+https://github.com/FreeSynergy-Net/fs-components?rev=06a77a6a052b5fa23c81d81d0866ad0b59f8bec9#06a77a6a052b5fa23c81d81d0866ad0b59f8bec9"
+source = "git+https://github.com/FreeSynergy-Net/fs-components?rev=4c515bf7bf02cc0c9e0873b3cc5efe1df49486a8#4c515bf7bf02cc0c9e0873b3cc5efe1df49486a8"
 dependencies = [
  "async-trait",
  "fs-conformance",

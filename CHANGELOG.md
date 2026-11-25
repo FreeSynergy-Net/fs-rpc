@@ -8,6 +8,9 @@ Appending only (scheme 0.N.x, appending = x): new public items, `hold`/`hold_wit
 
 ### Unreleased
 
+- Pin (no Rust change): `fs-settings` from fs-components `rev 4c515bf7` (was `06a77a6a`); `cargo tree -d` shows no fs-* duplicate. Written with the help of Claude (Anthropic).
+- Auf Deutsch: Pin: `fs-settings` aus fs-components `rev 4c515bf7` (war `06a77a6a`); kein fs-* Doppeltes. Geschrieben mit Hilfe von Claude (Anthropic).
+
 - Pins (no Rust change): fs-interfaces `rev 83b96e30` (was `2bb70d82`), `fs-settings` (repo fs-components) `rev 06a77a6a` (was `9ab4ac28`); fs-types `722d3ce0` and fs-objects `e38093f1` unchanged; `cargo tree -d` shows no fs-* duplicate. The branch `unreviewed/nextest-security` does not exist, so `.config/nextest.toml` is unchanged. Written with the help of Claude (Anthropic).
 - Auf Deutsch: Pins (keine Rust-Aenderung): fs-interfaces `rev 83b96e30` (war `2bb70d82`), `fs-settings` (Repo fs-components) `rev 06a77a6a` (war `9ab4ac28`); fs-types und fs-objects unveraendert; kein fs-* Doppeltes. Geschrieben mit Hilfe von Claude (Anthropic).
 
