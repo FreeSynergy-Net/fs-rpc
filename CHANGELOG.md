@@ -8,6 +8,9 @@ Appending only (scheme 0.N.x, appending = x): new public items, `hold`/`hold_wit
 
 ### Unreleased
 
+- Pin-Hub (no Rust change): `fs-settings` from fs-components `rev 2ffa1c4d` (was `4c515bf7`); `cargo tree -d` shows no fs-* duplicate. Written with the help of Claude (Anthropic).
+- Auf Deutsch: Pin-Hub: `fs-settings` aus fs-components `rev 2ffa1c4d` (war `4c515bf7`); kein fs-* Doppeltes. Geschrieben mit Hilfe von Claude (Anthropic).
+
 - Pin (no Rust change): `fs-settings` from fs-components `rev 4c515bf7` (was `06a77a6a`); `cargo tree -d` shows no fs-* duplicate. Written with the help of Claude (Anthropic).
 - Auf Deutsch: Pin: `fs-settings` aus fs-components `rev 4c515bf7` (war `06a77a6a`); kein fs-* Doppeltes. Geschrieben mit Hilfe von Claude (Anthropic).
 
