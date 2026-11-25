@@ -8,6 +8,9 @@ Appending only (scheme 0.N.x, appending = x): new public items, `hold`/`hold_wit
 
 ### Unreleased
 
+- Pin (no Rust change): `fs-settings` from fs-components `rev 233c9208` (was `2ffa1c4d`); `cargo tree -d` shows no fs-* duplicate. Written with the help of Claude (Anthropic).
+- Auf Deutsch: Pin: `fs-settings` aus fs-components `rev 233c9208` (war `2ffa1c4d`); kein fs-* Doppeltes. Geschrieben mit Hilfe von Claude (Anthropic).
+
 - Stufe 4 part 2 review fixes: `changes` of a guarded module is filtered by the rules per entry with `WATCH_COMMAND` (as `watch`), so a foreign `introduce` of another program name reads nothing the rules deny; its `limit` is clamped (1000) and the answer weight checked; a `conflict` (invokeIf, revert) empties `current` of a field the person may not see (`hidden`); `PersonOfConnection` and `ActorOfConnection` name their pattern (Strategy). Tests: `changes_are_filtered_by_the_rules_even_with_a_foreign_claim`, `a_conflict_does_not_leak_a_hidden_field`. Written with the help of Claude (Anthropic).
 - Auf Deutsch: Stufe 4 Teil 2, Review-Fixes: `changes` eines bewachten Moduls wird je Eintrag von den Regeln mit `WATCH_COMMAND` gefiltert (wie `watch`), ein fremdes `introduce` mit dem Namen eines anderen Programms liest nichts, was die Regeln verweigern; `limit` wird auf 1000 geklammert und das Antwortgewicht geprueft; ein `conflict` (invokeIf, revert) leert `current` eines Feldes, das die Person nicht sehen darf (`hidden`); `PersonOfConnection` und `ActorOfConnection` nennen ihr Pattern (Strategy). Geschrieben mit Hilfe von Claude (Anthropic).
 
