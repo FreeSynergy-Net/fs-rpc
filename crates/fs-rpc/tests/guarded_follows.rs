@@ -64,8 +64,13 @@ fn watch_with_a_form_that_follows_refuses_is_an_error() {
         let (mut g, _) = notes();
         let alice = connect(&mut g, "alice");
         let (_, answer) = watch_for(&alice, "other@1.0.0", "").await;
-        let err = answer.err().expect("an unknown form must not subscribe");
-        assert!(err.to_string().contains("form-source-unknown-form"), "{err}");
+        let Err(err) = answer else {
+            panic!("an unknown form must not subscribe");
+        };
+        assert!(
+            err.to_string().contains("form-source-unknown-form"),
+            "{err}"
+        );
         assert_eq!(g.hub().watchers(), 0);
         let (_, answer) = watch_for(&alice, "notes@1.0.0", "").await;
         assert!(answer.is_ok());
@@ -172,13 +177,9 @@ fn changes_heavier_than_the_answer_limit_are_too_large() {
         let alice = connect(&mut g, "alice");
         invoke(&alice, CREATE, "", &[("text", "one")]).await;
         g.core().huge_change.set(true);
-        let err = alice
-            .changes_request()
-            .send()
-            .promise
-            .await
-            .err()
-            .expect("too heavy");
+        let Err(err) = alice.changes_request().send().promise.await else {
+            panic!("too heavy");
+        };
         assert!(err.to_string().contains("too-large"), "{err}");
         g.core().huge_change.set(false);
         assert!(alice.changes_request().send().promise.await.is_ok());
