@@ -10,7 +10,7 @@ use std::rc::{Rc, Weak};
 use capnp_rpc::new_client;
 use fs_interfaces::common_capnp::subscription;
 use fs_interfaces::formsource_capnp::change_sink;
-use fs_interfaces::module::{Ask, ChangeRef, Context, RightsRules};
+use fs_interfaces::module::{Ask, ChangeRef, Context, Follow, RightsRules};
 use fs_types::Utc;
 use tokio::sync::mpsc::{self, Receiver, Sender, error::TrySendError};
 use tokio::task::JoinHandle;
@@ -23,6 +23,8 @@ use crate::problem::Problem;
 struct Sub {
     id: u64,
     who: Context,
+    /// Which changes this subscriber follows (form and scope of its `watch`); `!Send`, so it stays here in the `LocalSet`.
+    follow: Follow,
     tx: RefCell<Option<Sender<ChangeRef>>>,
     overflowed: Cell<bool>,
 }
@@ -47,11 +49,14 @@ impl WatchHub {
         self.subs.borrow().len()
     }
 
-    /// Tell `change` to every subscriber the rules allow to see it (`WATCH_COMMAND` on the record, at `at`).
+    /// Tell `change` to every subscriber that follows it (`Follow::admits`) and that the rules allow to see it (`WATCH_COMMAND` on the record, at `at`).
     /// Synchronous, no borrow held while the rules are asked.
     pub fn publish(&self, rules: &dyn RightsRules, at: Utc, change: &ChangeRef) {
         let subs: Vec<Rc<Sub>> = self.subs.borrow().clone();
         for sub in subs {
+            if !sub.follow.admits(change) {
+                continue;
+            }
             let ask = Ask::new(&sub.who, WATCH_COMMAND, Some(change.object.as_str()), at);
             if !rules.may(&ask).is_allowed() {
                 continue;
@@ -72,6 +77,7 @@ impl WatchHub {
     pub(super) fn subscribe(
         self: &Rc<Self>,
         who: Context,
+        follow: Follow,
         sink: change_sink::Client,
     ) -> subscription::Client {
         let id = self.next.get();
@@ -80,6 +86,7 @@ impl WatchHub {
         let sub = Rc::new(Sub {
             id,
             who,
+            follow,
             tx: RefCell::new(Some(tx)),
             overflowed: Cell::new(false),
         });

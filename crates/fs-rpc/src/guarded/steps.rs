@@ -55,10 +55,12 @@ impl<M: ModuleCore> Conn<M> {
         }
         let cx = self.context()?;
         self.permit(&cx, &inv.command, inv.record.as_deref())?;
+        // Cloned before `apply` takes `inv`: a conflict names fields of THIS record, whatever `by` says.
+        let record = inv.record.clone();
         self.core
             .apply(&cx, inv)
             .await
-            .map_err(|r| self.scrub(&cx, r))
+            .map_err(|r| self.scrub(&cx, r, record.as_deref()))
     }
 
     /// Fill `may` and `hidden` from the rules. The module lists the commands it offers; the wrapper only strikes out what the
@@ -105,12 +107,14 @@ impl<M: ModuleCore> Conn<M> {
         self.core
             .revert(&cx, change, step)
             .await
-            .map_err(|r| self.scrub(&cx, r))
+            .map_err(|r| self.scrub(&cx, r, None))
     }
 
     pub(super) async fn changes(&self, query: ChangesQuery) -> Result<ChangePage, Refusal> {
         let cx = self.context()?;
         let mut query = query;
+        // The module says unknown form or scope (like `page`); the same value filters the page below.
+        let follow = self.core.follows(&cx, &query.form, &query.scope)?;
         if query.limit > CHANGES_LIMIT {
             query.limit = CHANGES_LIMIT;
         }
@@ -118,9 +122,10 @@ impl<M: ModuleCore> Conn<M> {
         // The module filters by the claimed program (not proven); the rules decide what this person may see, as at `watch`.
         let (rules, at) = (self.core.rules(), (self.clock)());
         page.changes.retain(|c| {
-            rules
-                .may(&Ask::new(&cx, WATCH_COMMAND, Some(&c.object), at))
-                .is_allowed()
+            follow.admits(c)
+                && rules
+                    .may(&Ask::new(&cx, WATCH_COMMAND, Some(&c.object), at))
+                    .is_allowed()
         });
         let weight: usize = page
             .changes
@@ -132,11 +137,14 @@ impl<M: ModuleCore> Conn<M> {
     }
 
     /// A conflict names the current value of a field: a field this person may not see is emptied (a right to change is not a right to see).
-    fn scrub(&self, cx: &Context, mut refusal: Refusal) -> Refusal {
+    /// The module names the record of the field only through `by`, which can be the change of ANOTHER record; so the field is judged on
+    /// `by.object` AND on `record` (the record of the call; `None` at `revert`, which has no record argument). Hidden on either: emptied.
+    fn scrub(&self, cx: &Context, mut refusal: Refusal, record: Option<&str>) -> Refusal {
         if let Some(conflict) = &mut refusal.conflict {
-            let record = conflict.by.object.clone();
+            let rules = self.core.rules();
             for clash in &mut conflict.fields {
-                if self.core.rules().hidden(cx, &record, &clash.path).is_some() {
+                let hidden_on = |r: &str| rules.hidden(cx, r, &clash.path).is_some();
+                if hidden_on(&conflict.by.object) || record.is_some_and(hidden_on) {
                     clash.current.clear();
                 }
             }

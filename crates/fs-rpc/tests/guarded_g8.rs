@@ -110,7 +110,7 @@ fn has(list: &[String], text: &str) -> bool {
 }
 
 /// The skips that are right by design: "9 card.clear" (the fake LOCKS that set command on purpose, rule 11b uses it), "12 blob" (the
-/// fake has an image, rule 13 reads it), "L2-9 gone" (the contract `module` has no redaction, so `FakeFixture` cannot black out a change; card).
+/// fake has an image, rule 20 reads it), "L2-9 gone" (the contract `module` has no redaction, so `FakeFixture` cannot black out a change; card).
 const ALLOWED_SKIPS: [&str; 3] = ["9 card.clear:", "12 blob", "L2-9 gone"];
 
 /// G8 for real: the whole suite over the wrapper: 0 failed, L2-2 to L2-11 PASSED; nothing else is skipped than `ALLOWED_SKIPS`.

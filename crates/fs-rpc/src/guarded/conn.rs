@@ -164,6 +164,7 @@ impl<M: ModuleCore> Server for Conn<M> {
         let p = params.get()?;
         let mut query = ChangesQuery::default();
         query.run = p.get_run()?.to_string()?;
+        query.scope = p.get_scope()?.to_string()?;
         query.cursor = cursor_text(p.get_cursor()?)?;
         query.limit = p.get_limit();
         let page = Conn::changes(&self, query)
@@ -212,9 +213,18 @@ impl<M: ModuleCore> Server for Conn<M> {
         params: WatchParams,
         mut results: WatchResults,
     ) -> Result<(), capnp::Error> {
-        let sink = params.get()?.get_sink()?;
+        let p = params.get()?;
+        let (form, scope) = (p.get_form()?.to_string()?, p.get_scope()?.to_string()?);
+        let sink = p.get_sink()?;
         let cx = self.context().map_err(|r| refusal_error(&r))?;
-        results.get().set_subscription(self.hub.subscribe(cx, sink));
+        // `unknown-form` (and `unknown-scope`) is an RPC exception like at `page`, before anything is subscribed.
+        let follow = self
+            .core
+            .follows(&cx, &form, &scope)
+            .map_err(|r| refusal_error(&r))?;
+        results
+            .get()
+            .set_subscription(self.hub.subscribe(cx, follow, sink));
         Ok(())
     }
 }

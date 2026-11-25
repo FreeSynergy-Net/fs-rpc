@@ -5,7 +5,7 @@
 //! ([`ModuleCore`], [`RightsRules`]) and cannot leave a step out, because only [`Guarded`] serves `FormSource` to the
 //! caller. Deviation: not a Template Method in the strict sense (no base class; in Rust the wrapper is generic).
 //!
-//! The [`Context`] of a connection is built ONCE in `bootstrap` from the connection ([`Caller`], [`ActorOfConnection`],
+//! The [`Context`] of a connection is built ONCE in `connect` (which `bootstrap` calls) from the connection ([`Caller`], [`ActorOfConnection`],
 //! [`PersonOfConnection`]) and from nothing else: no call argument, no global, no "current user". `introduce` replaces
 //! only `claimed` (history and undo), never a right. A connection without a known person is refused everything
 //! (fail closed). A verdict is read only through `is_allowed()`; a refusal reason or a hidden reason this code does not

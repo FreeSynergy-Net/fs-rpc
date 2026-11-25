@@ -20,7 +20,7 @@ use std::sync::{Arc, Mutex};
 
 use fs_interfaces::module::{
     Applied, Ask, Blob, ChangeFeed, ChangeKind, ChangePage, ChangeRef, ChangesQuery, Conflict,
-    Context, FieldClash, HiddenReason, Invocation, ModuleCore, Origin, Page, PageQuery, RecordView,
+    Context, FieldClash, Follow, HiddenReason, Invocation, ModuleCore, Origin, Page, PageQuery, RecordView,
     Refusal, RightsRules, StepRef, Value, Verdict,
 };
 use fs_types::{BasicValue, PersonRef, Utc};
@@ -99,6 +99,12 @@ pub struct Notes {
     sinks: RefCell<Vec<ChangeFeed>>,
     /// How often `apply` ran, and the contexts it saw.
     pub applied: RefCell<Vec<Context>>,
+    /// The `changes` queries the module received (what the wrapper passed on).
+    pub queries: RefCell<Vec<ChangesQuery>>,
+    /// `revert` answers with a conflict on the secret of the first note (a spy for `scrub`).
+    pub revert_conflict: std::cell::Cell<bool>,
+    /// `by` of a conflict at `apply` names the change of THIS record instead of the record of the call.
+    pub conflict_by: RefCell<Option<String>>,
 }
 
 impl Notes {
@@ -109,6 +115,9 @@ impl Notes {
             log: RefCell::default(),
             sinks: RefCell::default(),
             applied: RefCell::default(),
+            queries: RefCell::default(),
+            revert_conflict: std::cell::Cell::default(),
+            conflict_by: RefCell::default(),
         }
     }
 
@@ -219,9 +228,10 @@ impl ModuleCore for Notes {
             };
             if let Some(expect) = &cmd.expect {
                 if *expect != note.rev.to_string() {
+                    let by_object = self.conflict_by.borrow().clone().unwrap_or_else(|| id.clone());
                     let by = ChangeRef::new(
                         "00000000-0000-7000-8000-0000000000ff",
-                        &id,
+                        &by_object,
                         &note.rev.to_string(),
                         expect,
                         Origin::new("urn:uuid:other", "other", "", ""),
@@ -253,12 +263,29 @@ impl ModuleCore for Notes {
     }
 
     async fn revert(&self, cx: &Context, change: &str, _: StepRef) -> Result<Applied, Refusal> {
+        if self.revert_conflict.get() {
+            let by = ChangeRef::new(
+                change,
+                "note-1",
+                "2",
+                "1",
+                Origin::new("urn:uuid:other", "other", "", ""),
+                ChangeKind::Update,
+                Utc::from_millis(1),
+            );
+            let secret = self.notes.borrow()["note-1"].secret.clone();
+            return Err(Refusal::conflict(
+                "changed-since",
+                Conflict::new(by, vec![FieldClash::new("secret", &secret, "")]),
+            ));
+        }
         let mut applied = Applied::default();
         applied.text = format!("reverted {change} for {}", cx.claimed.program);
         Ok(applied)
     }
 
     async fn changes(&self, cx: &Context, q: ChangesQuery) -> Result<ChangePage, Refusal> {
+        self.queries.borrow_mut().push(q.clone());
         let mut page = ChangePage::default();
         page.changes = self
             .log
@@ -272,5 +299,20 @@ impl ModuleCore for Notes {
 
     fn feed(&self, sink: ChangeFeed) {
         self.sinks.borrow_mut().push(sink);
+    }
+
+    /// Form `notes@1.0.0` (or empty = all); a scope is the id of one note (empty = all).
+    fn follows(&self, _: &Context, form: &str, scope: &str) -> Result<Follow, Refusal> {
+        if !form.is_empty() && form != "notes@1.0.0" {
+            let mut r = Refusal::default();
+            r.kind = "unknown-form".into();
+            r.status = 404;
+            return Err(r);
+        }
+        if scope.is_empty() {
+            return Ok(Follow::all());
+        }
+        let scope = scope.to_owned();
+        Ok(Follow::by(move |c| c.object == scope))
     }
 }
