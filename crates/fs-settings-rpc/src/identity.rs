@@ -12,15 +12,7 @@ pub fn os_user_of(caller: &Caller) -> Option<String> {
     Some(caller.name().unwrap_or_else(|| caller.id()).to_owned())
 }
 
-/// Is the id of a caller something an actor can be made of: not empty, and only letters, digits, `-`, `_`, `.` (a Unix user id, a Windows
-/// SID)?
-#[must_use]
-pub fn id_usable(id: &str) -> bool {
-    !id.is_empty()
-        && id
-            .bytes()
-            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.'))
-}
+pub use fs_rpc::id_usable;
 
 /// The default actor of a caller: `urn:fs:os-user:<id>` from `Caller::id` ONLY (the name is display; it can be chosen by whoever set up the
 /// account). An id that is unusable ([`id_usable`]) is the actor `urn:fs:os-user:unknown`, NEVER the name; the service does not even get

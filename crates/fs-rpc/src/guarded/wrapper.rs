@@ -83,6 +83,18 @@ impl<M: ModuleCore> Guarded<M> {
         &self.hub
     }
 
+    /// The guarded `FormSource` of one connection (its `Context` built ONCE from `caller`), for a program that serves it next to its own
+    /// contract ([`with_form_source`](crate::with_form_source)); `bootstrap` is this and nothing more.
+    #[must_use]
+    pub fn connect(&self, caller: &Caller) -> form_source::Client {
+        new_client(Conn {
+            core: self.core.clone(),
+            hub: self.hub.clone(),
+            clock: self.clock.clone(),
+            cx: RefCell::new(self.context_of(caller)),
+        })
+    }
+
     /// The context of a new connection, or `None` if the connection has no known person (then it is refused everything).
     fn context_of(&self, caller: &Caller) -> Option<Context> {
         let person = self.ports.person.person(caller)?;
@@ -100,13 +112,6 @@ impl<M: ModuleCore> Guarded<M> {
 
 impl<M: ModuleCore> PerConnection for Guarded<M> {
     fn bootstrap(&mut self, caller: &Caller) -> Client {
-        let conn = Conn {
-            core: self.core.clone(),
-            hub: self.hub.clone(),
-            clock: self.clock.clone(),
-            cx: RefCell::new(self.context_of(caller)),
-        };
-        let client: form_source::Client = new_client(conn);
-        client.client
+        self.connect(caller).client
     }
 }

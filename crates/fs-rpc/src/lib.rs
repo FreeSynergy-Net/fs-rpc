@@ -60,6 +60,7 @@ mod single;
 mod starter;
 mod stop;
 mod transport;
+mod with_form_source;
 
 pub use cause::RestartCause;
 pub use code::{Param, RpcError, RpcErrorCode, param_keys as rpc_param_keys};
@@ -74,8 +75,8 @@ pub use feed::{
 };
 pub use finish::{FINISH_TIMEOUT, finish_underway, run_to_end};
 pub use guarded::{
-    ActorOfConnection, AllBots, FixedPerson, Guarded, PersonOfConnection, Ports, REVERT_COMMAND,
-    WATCH_COMMAND, WatchHub,
+    ActorOfConnection, AllBots, FixedPerson, Guarded, LocalPerson, OsUserIsPerson,
+    PersonOfConnection, Ports, REVERT_COMMAND, WATCH_COMMAND, WatchHub, id_usable,
 };
 pub use handshake::{connect_matching, connect_matching_with};
 pub use heartbeat::{
@@ -123,3 +124,4 @@ pub use transport::{
     BoundSocket, Caller, CallerError, CallerSource, PerConnection, Shared, bind_socket,
     companion_path, default_socket,
 };
+pub use with_form_source::with_form_source;

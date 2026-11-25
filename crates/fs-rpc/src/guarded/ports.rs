@@ -4,6 +4,7 @@
 //! never from an argument of a call.
 
 use fs_interfaces::module::Actor;
+use fs_interfaces::owner::{LocalOwner, OwnerProblem};
 use fs_types::PersonRef;
 
 use crate::transport::Caller;
@@ -74,5 +75,53 @@ pub struct FixedPerson(pub PersonRef);
 impl PersonOfConnection for FixedPerson {
     fn person(&self, _: &Caller) -> Option<PersonRef> {
         Some(self.0.clone())
+    }
+}
+
+/// Pattern: Adapter (`LocalOwner` -> `PersonOfConnection`) - on a single place (ADR 0090) every connection the transport admits acts for
+/// the one owner of the device. The owner is read ONCE, in the constructor; no owner is no start (the constructor says why). Open card:
+/// uid <-> anchor before V1 (then the person comes from the connection, not from the place).
+#[derive(Clone, Debug)]
+pub struct LocalPerson(PersonRef);
+
+impl LocalPerson {
+    /// Read the owner of `owner` once.
+    ///
+    /// # Errors
+    /// The [`OwnerProblem`] of the source (no "me", unreachable, invalid): the program must not start then.
+    pub fn new(owner: &dyn LocalOwner) -> Result<Self, OwnerProblem> {
+        owner.owner().map(Self)
+    }
+}
+
+impl PersonOfConnection for LocalPerson {
+    fn person(&self, _: &Caller) -> Option<PersonRef> {
+        Some(self.0.clone())
+    }
+}
+
+/// Is the id of a caller something an actor can be made of: not empty, and only letters, digits, `-`, `_`, `.` (a Unix user id, a Windows
+/// SID)?
+#[must_use]
+pub fn id_usable(id: &str) -> bool {
+    !id.is_empty()
+        && id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.'))
+}
+
+/// Pattern: Strategy - a connection the transport admitted is the service's own OS user, so a person; one whose id cannot make an
+/// actor ([`id_usable`]) is a bot. Not the default (that is [`AllBots`]): the host chooses it on purpose (ADR 0054 open point 1: a
+/// program that runs as that user is a person for the module, not prevented and not claimed).
+#[derive(Clone, Copy, Debug, Default)]
+pub struct OsUserIsPerson;
+
+impl ActorOfConnection for OsUserIsPerson {
+    fn actor(&self, caller: &Caller) -> Actor {
+        if id_usable(caller.id()) {
+            Actor::Person
+        } else {
+            Actor::Bot
+        }
     }
 }

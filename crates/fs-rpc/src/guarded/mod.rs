@@ -12,5 +12,8 @@ mod wrapper;
 use wrapper::Clock;
 
 pub use hub::WatchHub;
-pub use ports::{ActorOfConnection, AllBots, FixedPerson, PersonOfConnection, Ports};
+pub use ports::{
+    ActorOfConnection, AllBots, FixedPerson, LocalPerson, OsUserIsPerson, PersonOfConnection,
+    Ports, id_usable,
+};
 pub use wrapper::{Guarded, REVERT_COMMAND, WATCH_COMMAND};

@@ -37,7 +37,7 @@ pub struct OsUserIsPerson;
 
 impl ActorOfConnection for OsUserIsPerson {
     fn actor(&self, caller: &Caller) -> Actor {
-        if crate::identity::id_usable(caller.id()) {
+        if fs_rpc::id_usable(caller.id()) {
             Actor::Person
         } else {
             Actor::Bot
