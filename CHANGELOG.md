@@ -8,6 +8,9 @@ Appending only (scheme 0.N.x, appending = x): new public items, `hold`/`hold_wit
 
 ### Unreleased
 
+- Pin (no Rust change): `fs-interfaces` `rev 6b02b138` (0.3.0; was `ad56e2f4`) and `fs-settings` from fs-components `rev 81367489` (was `77b23ea3`); exactly one fs-interfaces and one fs-components in the graph, `cargo tree -d` shows no fs-* duplicate. Written with the help of Claude (Anthropic).
+- Auf Deutsch: Pin: `fs-interfaces` `rev 6b02b138` (0.3.0; war `ad56e2f4`) und `fs-settings` aus fs-components `rev 81367489` (war `77b23ea3`); genau ein fs-interfaces und ein fs-components im Graph, kein fs-* Doppeltes. Geschrieben mit Hilfe von Claude (Anthropic).
+
 - Pin (no Rust change): `fs-interfaces` `rev ad56e2f4` (was `a395979b`) and `fs-settings` from fs-components `rev 77b23ea3` (was `233c9208`); exactly one fs-interfaces and one fs-components in the graph, `cargo tree -d` shows no fs-* duplicate. Written with the help of Claude (Anthropic).
 - Auf Deutsch: Pin: `fs-interfaces` `rev ad56e2f4` (war `a395979b`) und `fs-settings` aus fs-components `rev 77b23ea3` (war `233c9208`); genau ein fs-interfaces und ein fs-components im Graph, kein fs-* Doppeltes. Geschrieben mit Hilfe von Claude (Anthropic).
 
