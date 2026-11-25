@@ -54,7 +54,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "54dae3d1d7b8956f3506c4e999a74e77f932a59153ccf38ab8cf96db74bb9dc0"
 dependencies = [
  "cfg-if",
- "getrandom 0.3.4",
  "getrandom 0.4.3",
  "once_cell",
  "serde",
@@ -612,7 +611,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e35d6e78f4cebb90e51d543db8fe41528851d6deeef6ef21ebd4bfdc1e784776"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -656,7 +655,7 @@ dependencies = [
 [[package]]
 name = "fs-interfaces"
 version = "0.3.0"
-source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=4fcd013e60f8859ad70b203f2838d4b23912c1f4#4fcd013e60f8859ad70b203f2838d4b23912c1f4"
+source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=3f91fe0ec776c2c42e27adfdbc2aa309502784f2#3f91fe0ec776c2c42e27adfdbc2aa309502784f2"
 dependencies = [
  "capnp",
  "fs-types",
@@ -682,7 +681,7 @@ dependencies = [
 [[package]]
 name = "fs-module"
 version = "0.3.0"
-source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=4fcd013e60f8859ad70b203f2838d4b23912c1f4#4fcd013e60f8859ad70b203f2838d4b23912c1f4"
+source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=3f91fe0ec776c2c42e27adfdbc2aa309502784f2#3f91fe0ec776c2c42e27adfdbc2aa309502784f2"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -736,7 +735,7 @@ dependencies = [
 [[package]]
 name = "fs-settings"
 version = "0.1.0"
-source = "git+https://github.com/FreeSynergy-Net/fs-components?rev=be580b10d1701c3932a92b73ee43f57fbe252261#be580b10d1701c3932a92b73ee43f57fbe252261"
+source = "git+https://github.com/FreeSynergy-Net/fs-components?rev=508a25f3915270e28ea6a306411fa336e563d9e1#508a25f3915270e28ea6a306411fa336e563d9e1"
 dependencies = [
  "async-trait",
  "fs-conformance",
@@ -1595,7 +1594,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2035,7 +2034,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2338,7 +2337,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix 1.1.6",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
