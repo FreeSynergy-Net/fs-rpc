@@ -8,6 +8,9 @@ Appending only (scheme 0.N.x, appending = x): new public items, `hold`/`hold_wit
 
 ### Unreleased
 
+- Pin follow-up (only pins and lock, no code): `fs-interfaces` and `fs-module` `rev 4f6c3281` (was `3f91fe0e`; also in fs-settings-rpc; the interfaces change is comments in `store.capnp` only). `cargo tree -d` shows no fs-* twice, no `[patch]`. The lock also moved a few third-party crates (windows-sys, getrandom) because the new fs-interfaces lock resolves them so. Written with the help of Claude (Anthropic).
+- Auf Deutsch: Pin-Folge (nur Pins und Lock, kein Code): `fs-interfaces` und `fs-module` `rev 4f6c3281` (war `3f91fe0e`; auch in fs-settings-rpc; die Änderung an den Interfaces sind nur Kommentare in `store.capnp`). `cargo tree -d` zeigt kein fs-* doppelt, kein `[patch]`. Im Lock haben sich dabei einige Fremd-Crates (windows-sys, getrandom) bewegt, weil das neue fs-interfaces sie so auflöst. Geschrieben mit Hilfe von Claude (Anthropic).
+
 - Pin follow-up (only pins and lock, no code): `fs-interfaces` and `fs-module` `rev 3f91fe0e` (was `4fcd013e`; also in fs-settings-rpc) and `fs-settings` (crate of repo fs-components) `rev 508a25f3` (was `be580b10`). `cargo tree -d` shows no fs-* twice, no `[patch]`. fs-settings (program repo) is not involved: fs-rpc takes the crate from fs-components. Written with the help of Claude (Anthropic).
 - Auf Deutsch: Pin-Folge (nur Pins und Lock, kein Code): `fs-interfaces` und `fs-module` `rev 3f91fe0e` (war `4fcd013e`; auch in fs-settings-rpc) und `fs-settings` (Crate des Repos fs-components) `rev 508a25f3` (war `be580b10`). `cargo tree -d` zeigt kein fs-* doppelt, kein `[patch]`. Das Programm-Repo fs-settings ist nicht beteiligt: fs-rpc nimmt die Crate aus fs-components. Geschrieben mit Hilfe von Claude (Anthropic).
 
