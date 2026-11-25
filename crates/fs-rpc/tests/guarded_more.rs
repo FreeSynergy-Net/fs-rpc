@@ -187,7 +187,33 @@ fn g8_no_known_person_is_refused_everything() {
         let w = invoke(&stranger, CREATE, "", &[("text", "x")]).await;
         assert_eq!((w.failed, w.status), (true, 403));
         assert!(page_err(&stranger).await);
+        // Every other call of the contract is refused too, not only `page` and `invoke`.
+        let mut req = stranger.blob_request();
+        req.get().set_record("note-1");
+        req.get().set_field("secret");
+        assert!(req.send().promise.await.is_err(), "blob");
+        assert!(
+            stranger.changes_request().send().promise.await.is_err(),
+            "changes"
+        );
+        let mut req = stranger.watch_request();
+        req.get().set_form("notes@1.0.0");
+        assert!(req.send().promise.await.is_err(), "watch");
+        let mut req = stranger.introduce_request();
+        req.get().set_program("net.freesynergy.planning");
+        assert!(req.send().promise.await.is_err(), "introduce");
+        let mut req = stranger.revert_request();
+        req.get().init_change().set_lo(1);
+        let r = req.send().promise.await.map(|r| {
+            let a = r.get().unwrap();
+            (a.get_failed(), a.get_problem().unwrap().get_status())
+        });
+        assert!(
+            r.is_err() || r.is_ok_and(|(failed, status)| failed && status == 403),
+            "revert"
+        );
         assert!(g.core().applied.borrow().is_empty());
+        assert_eq!(g.hub().watchers(), 0, "the stranger watches nothing");
     });
 }
 

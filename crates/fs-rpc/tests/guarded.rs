@@ -121,5 +121,9 @@ fn g4_introduce_changes_no_right() {
         let mut req = bob.introduce_request();
         req.get().set_program("p".repeat(300));
         assert!(req.send().promise.await.is_err());
+        // ... and the refused introduce does not wipe the old claim: bob still claims "settings" afterwards.
+        invoke(&bob, SET, "note-1", &[("text", "x")]).await;
+        let last = rules.asked.lock().unwrap().last().unwrap().clone();
+        assert_eq!(last.claimed_program, "settings", "the old claim stays");
     });
 }

@@ -37,3 +37,5 @@ windows-sys = { version = "0.61", features = [
 tempfile = "3"
 # The fake module "only the owner may change" and the sample persons (`owner::fake`) for tests/guarded.rs.
 fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "6b02b138b3e55c290d6cbd957976013cc49dca5d", version = "0.3.0", features = ["fake"] }
+# The suite of the contract `module_v1` (run_conformance, FakeCore, FakeFixture) for tests/guarded_g8.rs; the SAME source and rev as fs-interfaces (one fs-* in the lock).
+fs-module = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "6b02b138b3e55c290d6cbd957976013cc49dca5d", version = "0.3.0" }
