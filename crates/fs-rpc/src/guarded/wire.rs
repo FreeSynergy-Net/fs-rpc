@@ -26,6 +26,7 @@ fn title_of(kind: &str) -> String {
         "unknown-form" => "Unknown form",
         "unknown-scope" => "Unknown scope",
         "feed-closed" => "Feed closed",
+        "read-again" => "Read again later",
         "bad-arguments" => "Bad arguments",
         "unsupported" => "Not supported",
         "unknown-record" => "Unknown record",

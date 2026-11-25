@@ -4,9 +4,9 @@
 //! Pattern: Test double (Spy + Stub) - split from `mod.rs` (300-line rule).
 #![allow(dead_code, clippy::result_large_err)] // `Refusal` is the contract's own value
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
-use fs_interfaces::module::{FeedBreak, FeedLoss, Refusal};
+use fs_interfaces::module::{FeedBreak, FeedLoss, Page, Refusal};
 
 /// The scopes of the notes module: the ids of its first notes (an alias resolves to an id, anything else is unknown).
 const KNOWN: [&str; 3] = ["note-1", "note-2", "note-3"];
@@ -25,6 +25,8 @@ pub struct Spy {
     pub calls: RefCell<Vec<&'static str>>,
     /// The record a conflict names in `FieldClash::record`: `None` = the record of the call; `Some("")` = none named.
     pub clash_record: RefCell<Option<String>>,
+    /// `page` hands out this many records per page (0 = all on one page); the cursor is the index of the first.
+    pub page_size: Cell<usize>,
 }
 
 impl Spy {
@@ -43,6 +45,22 @@ impl Spy {
     pub fn lose(&self, loss: FeedLoss) {
         for sink in self.breaks.borrow().iter() {
             sink(loss);
+        }
+    }
+
+    /// The module's own paging: `total` is the count of ALL records (before any striking), `next` the cursor of the following slice.
+    pub fn paginate(&self, page: &mut Page, cursor: &str) {
+        page.total = Some(page.records.len() as u64);
+        let size = self.page_size.get();
+        if size > 0 {
+            let from: usize = cursor.parse().unwrap_or(0).min(page.records.len());
+            let to = (from + size).min(page.records.len());
+            page.records = page.records.drain(from..to).collect();
+            page.next = if to < page.total.unwrap_or(0) as usize {
+                to.to_string()
+            } else {
+                String::new()
+            };
         }
     }
 

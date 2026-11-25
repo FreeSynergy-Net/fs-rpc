@@ -17,8 +17,7 @@ pub mod scope;
 
 pub use rules::Rules;
 
-use std::cell::RefCell;
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap};
 
 use fs_interfaces::module::{
     Applied, Blob, ChangeFeed, ChangeKind, ChangePage, ChangeRef, ChangesQuery, Conflict, Context,
@@ -121,7 +120,7 @@ impl ModuleCore for Notes {
         &self.rules
     }
 
-    async fn page(&self, _: &Context, _: PageQuery) -> Result<Page, Refusal> {
+    async fn page(&self, _: &Context, q: PageQuery) -> Result<Page, Refusal> {
         let notes = self.notes.borrow();
         let mut ids: Vec<&String> = notes.keys().collect();
         ids.sort();
@@ -138,6 +137,7 @@ impl ModuleCore for Notes {
                 r
             })
             .collect();
+        self.spy.paginate(&mut page, &q.cursor);
         Ok(page)
     }
 

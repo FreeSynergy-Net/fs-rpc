@@ -16,6 +16,10 @@ use crate::page::check_answer;
 
 /// The most changes one `changes` call asks the module for.
 const CHANGES_LIMIT: u32 = 1000;
+/// The most pages `page` reads from the module to find one that is not empty after the read right struck its records. The contract says an
+/// empty page has an empty `next`, so a page that is empty after striking is never handed out with a cursor. When the limit is reached the
+/// answer is an honest refusal (`read-again` 503), not an empty last page: the set may go on, the caller reads again later.
+const MAX_STRUCK_PAGES: usize = 64;
 use super::conn::Conn;
 
 impl<M: ModuleCore> Conn<M> {
@@ -65,10 +69,12 @@ impl<M: ModuleCore> Conn<M> {
 
     /// Fill `may` and `hidden` from the rules. The module lists the commands it offers; the wrapper only strikes out what the
     /// rules refuse, and a hidden field loses its value (nothing leaks through `values`).
-    pub(super) fn screen(&self, cx: &Context, page: &mut Page) {
+    /// Returns whether a record was struck out by the read right.
+    pub(super) fn screen(&self, cx: &Context, page: &mut Page) -> bool {
         let rules = self.core.rules();
         let at = (self.clock)();
         // The read right first: a record the rules refuse `form.read` is not in the answer (it is not hidden, it is not there).
+        let before = page.records.len();
         page.records.retain(|r| {
             rules
                 .may(&Ask::new(cx, READ_COMMAND, Some(&r.id), at))
@@ -90,13 +96,33 @@ impl<M: ModuleCore> Conn<M> {
                 }
             }
         }
+        page.records.len() < before
     }
 
     pub(super) async fn read_page(&self, query: PageQuery) -> Result<Page, Refusal> {
         let cx = self.context()?;
-        let mut page = self.core.page(&cx, query).await?;
-        self.screen(&cx, &mut page);
-        Ok(page)
+        let mut query = query;
+        let mut struck = false;
+        for _ in 0..MAX_STRUCK_PAGES {
+            let mut page = self.core.page(&cx, query.clone()).await?;
+            struck |= self.screen(&cx, &mut page);
+            if page.records.is_empty() && !page.next.is_empty() {
+                // Empty after striking, but the set goes on: an empty page never carries a `next` (formsource.capnp), read on.
+                query.cursor = std::mem::take(&mut page.next);
+                continue;
+            }
+            if struck {
+                // The module counted before the striking: a count would tell how many records are not there.
+                page.total = None;
+                page.estimate = None;
+            }
+            return Ok(page);
+        }
+        let mut r = Refusal::default();
+        r.kind = "read-again".into();
+        r.status = 503;
+        r.detail = "too-many-struck-pages".into();
+        Err(r)
     }
 
     pub(super) async fn read_blob(&self, record: &str, field: &str) -> Result<Blob, Refusal> {
