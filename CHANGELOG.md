@@ -8,6 +8,9 @@ Appending only (scheme 0.N.x, appending = x): new public items, `hold`/`hold_wit
 
 ### Unreleased
 
+- Pins (no Rust change): fs-interfaces `rev 83b96e30` (was `2bb70d82`), `fs-settings` (repo fs-components) `rev 06a77a6a` (was `9ab4ac28`); fs-types `722d3ce0` and fs-objects `e38093f1` unchanged; `cargo tree -d` shows no fs-* duplicate. The branch `unreviewed/nextest-security` does not exist, so `.config/nextest.toml` is unchanged. Written with the help of Claude (Anthropic).
+- Auf Deutsch: Pins (keine Rust-Aenderung): fs-interfaces `rev 83b96e30` (war `2bb70d82`), `fs-settings` (Repo fs-components) `rev 06a77a6a` (war `9ab4ac28`); fs-types und fs-objects unveraendert; kein fs-* Doppeltes. Geschrieben mit Hilfe von Claude (Anthropic).
+
 - Pins (no Rust change): fs-types `rev 722d3ce0` (v0.0.7, also the dev-dependency fs-conformance), fs-interfaces `rev 2bb70d82`, fs-objects `rev e38093f1`, `fs-settings` (repo fs-components) `rev 9ab4ac28`; `.cargo/config.toml` names the registry `freesynergy` (fs-conformance of fs-types 722d3ce0 needs it). `cargo tree -d` shows no fs-* duplicate (before: two fs-types). No non_exhaustive wildcard arm was needed. Written with the help of Claude (Anthropic).
 - Auf Deutsch: Pins (keine Rust-Aenderung): fs-types `rev 722d3ce0` (auch die Dev-Abhaengigkeit fs-conformance), fs-interfaces `rev 2bb70d82`, fs-objects `rev e38093f1`, `fs-settings` (Repo fs-components) `rev 9ab4ac28`; `.cargo/config.toml` nennt die Registry `freesynergy`. `cargo tree -d` zeigt kein fs-* Doppeltes (vorher zwei fs-types). Kein Wildcard-Arm noetig. Geschrieben mit Hilfe von Claude (Anthropic).
 

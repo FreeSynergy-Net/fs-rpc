@@ -587,7 +587,7 @@ dependencies = [
 [[package]]
 name = "fs-interfaces"
 version = "0.2.0"
-source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=2bb70d826681403894ec6d65a7fad9d3a3f51ac2#2bb70d826681403894ec6d65a7fad9d3a3f51ac2"
+source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=83b96e30ae3f8a04a222fa5a34dc4ad29306cdf2#83b96e30ae3f8a04a222fa5a34dc4ad29306cdf2"
 dependencies = [
  "capnp",
  "fs-types",
@@ -637,7 +637,7 @@ dependencies = [
 [[package]]
 name = "fs-settings"
 version = "0.1.0"
-source = "git+https://github.com/FreeSynergy-Net/fs-components?rev=9ab4ac280fb2354d41fdbc15bdbed92664a016de#9ab4ac280fb2354d41fdbc15bdbed92664a016de"
+source = "git+https://github.com/FreeSynergy-Net/fs-components?rev=06a77a6a052b5fa23c81d81d0866ad0b59f8bec9#06a77a6a052b5fa23c81d81d0866ad0b59f8bec9"
 dependencies = [
  "async-trait",
  "fs-conformance",
