@@ -50,13 +50,14 @@ impl Spy {
 
     /// The module's own paging: `total` is the count of ALL records (before any striking), `next` the cursor of the following slice.
     pub fn paginate(&self, page: &mut Page, cursor: &str) {
-        page.total = Some(page.records.len() as u64);
+        let all = page.records.len();
+        page.total = Some(all as u64);
         let size = self.page_size.get();
         if size > 0 {
             let from: usize = cursor.parse().unwrap_or(0).min(page.records.len());
             let to = (from + size).min(page.records.len());
             page.records = page.records.drain(from..to).collect();
-            page.next = if to < page.total.unwrap_or(0) as usize {
+            page.next = if to < all {
                 to.to_string()
             } else {
                 String::new()
