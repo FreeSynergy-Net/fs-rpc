@@ -65,6 +65,10 @@ impl RightsRules for Rules {
     }
 
     fn hidden(&self, who: &Context, record: &str, field: &str) -> Option<HiddenReason> {
+        // No record named: nothing is known to be hidden (the wrapper must not rely on this: it blanks the field itself).
+        if record.is_empty() {
+            return None;
+        }
         let owners = self.owners.lock().unwrap();
         (field == "secret" && owners.get(record) != Some(&who.person))
             .then_some(HiddenReason::NoRight)
