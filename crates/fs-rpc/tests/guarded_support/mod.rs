@@ -11,6 +11,8 @@
     clippy::assigning_clones
 )]
 
+pub mod client;
+
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};

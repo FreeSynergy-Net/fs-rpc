@@ -11,11 +11,13 @@ use fs_interfaces::formsource_capnp::{
     record_view, step_ref, value, write_result,
 };
 use fs_interfaces::module::{
-    Applied, ChangeRef, Conflict, HiddenReason, Origin, Page, RecordView, Refusal, StepRef, Value,
+    Applied, ChangeRef, Conflict, HiddenReason, Invocation, Origin, Page, RecordView, Refusal,
+    StepRef, Value,
 };
 use uuid::Uuid;
 
 use crate::ids::{read_uuid, write_uuid};
+use crate::page::check_intake;
 use crate::problem::{Problem, invalid_request};
 
 /// The problem of a refusal: type `form-source-<kind>`, the kind as title, the code as detail.
@@ -184,4 +186,25 @@ pub(super) fn weight(p: &Page) -> usize {
                     .sum::<usize>()
         })
         .sum()
+}
+
+pub(super) fn invocation(
+    command: capnp::text::Reader<'_>,
+    record: capnp::text::Reader<'_>,
+    args: capnp::struct_list::Reader<'_, fs_interfaces::formsource_capnp::value::Owned>,
+) -> capnp::Result<Invocation> {
+    let (command, record) = (command.to_string()?, record.to_string()?);
+    let args = read_values(args)?;
+    check_intake(
+        args.iter()
+            .map(|v| v.path.len() + v.text.len())
+            .sum::<usize>()
+            + command.len()
+            + record.len(),
+    )?;
+    let mut inv = Invocation::default();
+    inv.command = command;
+    inv.record = (!record.is_empty()).then_some(record);
+    inv.args = args;
+    Ok(inv)
 }
