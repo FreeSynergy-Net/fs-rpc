@@ -8,6 +8,9 @@ Appending only (scheme 0.N.x, appending = x): new public items, `hold`/`hold_wit
 
 ### Unreleased
 
+- Pin wave 13 (only pins and lock, no code, no version change): `fs-settings` (crate of repo fs-components, used by `fs-settings-rpc`) `rev 08d501d9` (was `f2e90244`); the new components API still builds (`cargo check --workspace --all-targets --all-features`). `cargo tree -d` shows no fs-* twice. Written with the help of Claude (Anthropic).
+- Auf Deutsch: Pin-Welle 13 (nur Pins und Lock, kein Code, keine Versionsänderung): `fs-settings` (Crate des Repos fs-components, genutzt von `fs-settings-rpc`) `rev 08d501d9` (war `f2e90244`); die neue Components-API baut weiter (`cargo check --workspace --all-targets --all-features`). `cargo tree -d` zeigt kein fs-* doppelt. Geschrieben mit Hilfe von Claude (Anthropic).
+
 - Pin wave 12 (only pins and lock, no code): `fs-settings` (crate of repo fs-components, used by `fs-settings-rpc`) `rev f2e90244` (was `bd170fa0`); the new components API still builds with `fs-settings-rpc` (`cargo check --workspace --all-targets --all-features`). The lock gets `fs-settings` on the new source and, from cargo, the new package `fs-components-words` (a dependency of fs-settings). `cargo tree -d` shows no fs-* twice, no `[patch]`. Written with the help of Claude (Anthropic).
 - Auf Deutsch: Pin-Welle 12 (nur Pins und Lock, kein Code): `fs-settings` (Crate des Repos fs-components, genutzt von `fs-settings-rpc`) `rev f2e90244` (war `bd170fa0`); die neue Components-API baut weiter mit `fs-settings-rpc` (`cargo check --workspace --all-targets --all-features`). Das Lock bekommt `fs-settings` auf der neuen Quelle und, von cargo erzeugt, das neue Paket `fs-components-words` (Abhängigkeit von fs-settings). `cargo tree -d` zeigt kein fs-* doppelt, kein `[patch]`. Geschrieben mit Hilfe von Claude (Anthropic).
 
