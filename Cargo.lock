@@ -646,7 +646,7 @@ checksum = "1c66915cc5391097de7a2b0b972e8505aa33c0df401fd3a6811dbdb32881ba48"
 [[package]]
 name = "fs-components-words"
 version = "0.1.0"
-source = "git+https://github.com/FreeSynergy-Net/fs-components?rev=f2e90244ff830197e56c127aa5da53ac591a66ea#f2e90244ff830197e56c127aa5da53ac591a66ea"
+source = "git+https://github.com/FreeSynergy-Net/fs-components?rev=08d501d9d81a111ece4b95115eb4540223c83fac#08d501d9d81a111ece4b95115eb4540223c83fac"
 
 [[package]]
 name = "fs-conformance"
@@ -740,7 +740,7 @@ dependencies = [
 [[package]]
 name = "fs-settings"
 version = "0.1.0"
-source = "git+https://github.com/FreeSynergy-Net/fs-components?rev=f2e90244ff830197e56c127aa5da53ac591a66ea#f2e90244ff830197e56c127aa5da53ac591a66ea"
+source = "git+https://github.com/FreeSynergy-Net/fs-components?rev=08d501d9d81a111ece4b95115eb4540223c83fac#08d501d9d81a111ece4b95115eb4540223c83fac"
 dependencies = [
  "async-trait",
  "fs-components-words",
