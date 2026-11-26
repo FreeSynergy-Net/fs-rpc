@@ -14,7 +14,7 @@ conformance = ["fs-settings/conformance"]
 [dependencies]
 fs-rpc = { path = "../fs-rpc", version = "0.1.4" }
 # Pins by `rev`, each straight from the owner's repository: one source per library (fs-settings = crate of repo fs-components).
-fs-settings = { git = "https://github.com/FreeSynergy-Net/fs-components", rev = "08d501d9d81a111ece4b95115eb4540223c83fac", version = "0.1.0" }
+fs-settings = { git = "https://github.com/FreeSynergy-Net/fs-components", rev = "4a923bbc843f07534376213a04ee9e2806070611", version = "0.1.0" }
 fs-types = { git = "https://github.com/FreeSynergy-Net/fs-types", rev = "722d3ce0156711d40cb278f2e835e865d9448290", version = "0.0.7" }
 # `settings_capnp` (contract settings 0.2) and `common_capnp` come from fs-interfaces; no schema copy in this crate.
 fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "92dbb53e9c9ea2c48e85a27712f0456f2a7b8161", version = "0.3.0" }
