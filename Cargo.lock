@@ -644,6 +644,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c66915cc5391097de7a2b0b972e8505aa33c0df401fd3a6811dbdb32881ba48"
 
 [[package]]
+name = "fs-components-words"
+version = "0.1.0"
+source = "git+https://github.com/FreeSynergy-Net/fs-components?rev=f2e90244ff830197e56c127aa5da53ac591a66ea#f2e90244ff830197e56c127aa5da53ac591a66ea"
+
+[[package]]
 name = "fs-conformance"
 version = "0.0.7"
 source = "git+https://github.com/FreeSynergy-Net/fs-types?rev=722d3ce0156711d40cb278f2e835e865d9448290#722d3ce0156711d40cb278f2e835e865d9448290"
@@ -735,9 +740,10 @@ dependencies = [
 [[package]]
 name = "fs-settings"
 version = "0.1.0"
-source = "git+https://github.com/FreeSynergy-Net/fs-components?rev=bd170fa086ec231e1eb724596849b66fb6a75320#bd170fa086ec231e1eb724596849b66fb6a75320"
+source = "git+https://github.com/FreeSynergy-Net/fs-components?rev=f2e90244ff830197e56c127aa5da53ac591a66ea#f2e90244ff830197e56c127aa5da53ac591a66ea"
 dependencies = [
  "async-trait",
+ "fs-components-words",
  "fs-conformance",
  "fs-types",
  "serde",
