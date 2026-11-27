@@ -54,6 +54,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "54dae3d1d7b8956f3506c4e999a74e77f932a59153ccf38ab8cf96db74bb9dc0"
 dependencies = [
  "cfg-if",
+ "getrandom 0.3.4",
  "getrandom 0.4.3",
  "once_cell",
  "serde",
@@ -611,7 +612,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e35d6e78f4cebb90e51d543db8fe41528851d6deeef6ef21ebd4bfdc1e784776"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -660,7 +661,7 @@ dependencies = [
 [[package]]
 name = "fs-interfaces"
 version = "0.3.0"
-source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=92dbb53e9c9ea2c48e85a27712f0456f2a7b8161#92dbb53e9c9ea2c48e85a27712f0456f2a7b8161"
+source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=1eb7daae7a1edb9e3f70fba7267d91cf8955a34f#1eb7daae7a1edb9e3f70fba7267d91cf8955a34f"
 dependencies = [
  "capnp",
  "fs-types",
@@ -686,7 +687,7 @@ dependencies = [
 [[package]]
 name = "fs-module"
 version = "0.3.0"
-source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=92dbb53e9c9ea2c48e85a27712f0456f2a7b8161#92dbb53e9c9ea2c48e85a27712f0456f2a7b8161"
+source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=1eb7daae7a1edb9e3f70fba7267d91cf8955a34f#1eb7daae7a1edb9e3f70fba7267d91cf8955a34f"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -1601,7 +1602,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2041,7 +2042,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2341,10 +2342,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.6",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

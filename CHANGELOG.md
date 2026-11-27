@@ -8,6 +8,9 @@ Appending only (scheme 0.N.x, appending = x): new public items, `hold`/`hold_wit
 
 ### Unreleased
 
+- Pin wave 15 (only pins and lock, no code): `fs-interfaces` and `fs-module` `rev 1eb7daae` (was `92dbb53e`; new capabilities `person.profile.create`, `person.profile.update`, `person.profile.delete` on the capability list; also in fs-settings-rpc). `cargo tree -d` shows no fs-* twice, no `[patch]`. Written with the help of Claude (Anthropic).
+- Auf Deutsch: Pin-Welle 15 (nur Pins und Lock, kein Code): `fs-interfaces` und `fs-module` `rev 1eb7daae` (war `92dbb53e`; neue Fähigkeiten `person.profile.create`, `person.profile.update`, `person.profile.delete` auf der Fähigkeitenliste; auch in fs-settings-rpc). `cargo tree -d` zeigt kein fs-* doppelt, kein `[patch]`. Geschrieben mit Hilfe von Claude (Anthropic).
+
 - Pin wave 14 (only pins and lock, no code, no version change): `fs-settings` (crate of repo fs-components, used by `fs-settings-rpc`) `rev 4a923bbc` (was `08d501d9`); the new components API still builds (`cargo check --workspace --all-targets --all-features --locked`). The lock moves `fs-settings` and `fs-components-words` to the new source. `cargo tree -d` shows no fs-* twice. Written with the help of Claude (Anthropic).
 - Auf Deutsch: Pin-Welle 14 (nur Pins und Lock, kein Code, keine Versionsänderung): `fs-settings` (Crate des Repos fs-components, genutzt von `fs-settings-rpc`) `rev 4a923bbc` (war `08d501d9`); die neue Components-API baut weiter (`cargo check --workspace --all-targets --all-features --locked`). Das Lock setzt `fs-settings` und `fs-components-words` auf die neue Quelle. `cargo tree -d` zeigt kein fs-* doppelt. Geschrieben mit Hilfe von Claude (Anthropic).
 
